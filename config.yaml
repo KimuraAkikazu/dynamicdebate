@@ -1,0 +1,25 @@
+# LLMモデルの設定
+llm:
+  # Hugging FaceのリポジトリID
+  repo_id: "bartowski/Meta-Llama-3.1-8B-Instruct-GGUF"
+  # ダウンロードするモデルファイル名
+  filename: "Meta-Llama-3.1-8B-Instruct-Q8_0.gguf"
+  # llama-cpp-python用の設定
+  n_gpu_layers: -1  # GPUにオフロードするレイヤー数 (-1で全て)
+  n_ctx: 65536       # コンテキストウィンドウサイズ
+  temperature: 0.7  # 生成の多様性
+  max_tokens: 512    # 1回の生成における最大トークン数
+
+# 議論全体の設定
+discussion:
+  topic: "死刑制度は廃止すべきか"
+  max_turns: 5
+
+# 参加エージェントの設定
+agents:
+  - name: "高橋"
+    persona: "あなたは、常に批判的な視点から議論の穴を探す、経験豊富なアナリストです。発言は常に冷静かつ論理的です。"
+  - name: "田中"
+    persona: "あなたは、多様なアイデアを歓迎し、議論を広げることを得意とする、創造的なブレインストーマーです。楽観的で、新しい可能性を見つけるのが好きです。"
+  - name: "鈴木"
+    persona: "あなたは、両者の意見をまとめ、議論が停滞しないように合意形成を促すことを目指す、穏健なファシリテーターです。全体のバランスを重視し、過度な発言は避けます。"
