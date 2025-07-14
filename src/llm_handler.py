@@ -3,10 +3,11 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
-from typing import Any, Dict
+from typing import Any, Dict, Optional
 
 from llama_cpp import Llama
 from . import prompts
+from .prompt_logger import PromptLogger
 
 
 class LLMHandler:
@@ -21,10 +22,18 @@ class LLMHandler:
         return cls._instance
 
     # --------------------------------------------------------------------- #
-    def __init__(self, config: Dict[str, Any]) -> None:
+    def __init__(
+        self,
+        config: Dict[str, Any],
+        *,
+        prompt_logger: Optional[PromptLogger] = None,
+    ) -> None:
         if hasattr(self, "_initialized") and self._initialized:  # 2 回目以降はスキップ
             return
         self._initialized = True
+
+        # ロガー
+        self.logger = prompt_logger
 
         # モデルロード
         self.model_path = Path(__file__).resolve().parents[1] / "models" / config["filename"]
@@ -43,15 +52,26 @@ class LLMHandler:
         print("[LLMHandler] ✅ モデル読み込み完了")
 
     # ======================  公開 API  ====================== #
-    def generate_action(self, user_prompt: str, turn: int, max_turn: int) -> Dict[str, Any]:
+    def generate_action(
+        self,
+        user_prompt: str,
+        turn: int,
+        max_turn: int,
+        *,
+        agent_name: str | None = None,
+    ) -> Dict[str, Any]:
         """JSON 形式の行動計画を返す"""
+        phase = "plan"
         system_prompt = prompts.SYSTEM_PROMPT.format(max_turn=max_turn, turn=turn)
-        print(system_prompt)
 
         messages = [
             {"role": "system", "content": system_prompt},
             {"role": "user", "content": user_prompt},
         ]
+
+        # ログ保存
+        if self.logger and agent_name:
+            self.logger.log(agent_name, phase, turn, system_prompt, user_prompt)
 
         try:
             resp = self.model.create_chat_completion(
@@ -65,15 +85,26 @@ class LLMHandler:
             return {"action": "listen", "thought": "JSON 解析に失敗したので聞き手に回る"}
 
     # ------------------------------------------------------ #
-    def generate_utterance(self, user_prompt: str, turn: int, max_turn: int) -> str:
+    def generate_utterance(
+        self,
+        user_prompt: str,
+        turn: int,
+        max_turn: int,
+        *,
+        agent_name: str | None = None,
+    ) -> str:
         """自然言語の発話全文を返す"""
+        phase = "utterance"
         system_prompt = prompts.SYSTEM_PROMPT.format(max_turn=max_turn, turn=turn)
-        print(system_prompt)
 
         messages = [
             {"role": "system", "content": system_prompt},
             {"role": "user", "content": user_prompt},
         ]
+
+        # ログ保存
+        if self.logger and agent_name:
+            self.logger.log(agent_name, phase, turn, system_prompt, user_prompt)
 
         try:
             resp = self.model.create_chat_completion(messages=messages)

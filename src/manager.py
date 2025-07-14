@@ -9,6 +9,8 @@ from typing import Any, List, Optional
 from .agent import Agent
 
 
+HISTORY_WINDOW = 100  # 直近何行の履歴を渡すか
+
 class DiscussionManager:
     def __init__(self, agents: List[Agent], config: dict[str, Any]):
         self.agents = agents
@@ -63,27 +65,18 @@ class DiscussionManager:
 
         # 行動計画フェーズ --------------------------------------------------
         self.current_actions.clear()
-        # ---- 直前イベントを組み立てる ----
-        if event_type == "silence":
-            last_event = (
-                f"沈黙:None:このターン({turn}/{self.max_turns})では誰も発言しませんでした"
-            )
-        else:
-            last_event = f"{event_type}:{speaker_name}:{content}"
 
-        hist_str = "\n".join(self.history[-20:])
+        last_event = (
+            f"沈黙:None:このターン({turn}/{self.max_turns})では誰も発言しませんでした"
+            if event_type == "silence"
+            else f"{event_type}:{speaker_name}:{content}"
+        )
+
+        hist_str = "\n".join(self.history[-HISTORY_WINDOW:])
+
         for ag in self.agents:
             if ag is self.speaker:
                 continue  # 発言者は計画不要
-            self.current_actions[ag.name] = ag.plan_action(
-                hist_str, last_event, self.topic, turn, self.max_turns
-            )
-        
-        last_event = f"{event_type}:{speaker_name or 'None'}:{content}"
-        hist_str = "\n".join(self.history[-20:])  # 直近 20 発話だけ渡す
-        for ag in self.agents:
-            if ag is self.speaker:                 # 発言者は次の行動計画を立てない
-                continue
             self.current_actions[ag.name] = ag.plan_action(
                 hist_str, last_event, self.topic, turn, self.max_turns
             )
@@ -123,8 +116,9 @@ class DiscussionManager:
 
         # 新しいスピーカーに交代
         self.speaker = next(a for a in self.agents if a.name == next_name)
+        # 常に新しい全文を生成（キューは Agent 内で clear 済み）
         self.speaker.decide_to_speak(
-            "\n".join(self.history[-20:]),
+            "\n".join(self.history[-HISTORY_WINDOW:]),
             self.topic,
             next_plan.get("thought", ""),
             current_turn + 1,
