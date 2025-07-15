@@ -11,31 +11,24 @@ from .prompt_logger import PromptLogger
 
 
 class LLMHandler:
-    """モデルを 1 度だけロードし、各エージェントで共有する"""
+    _instance: "LLMHandler" | None = None
 
-    _instance: "LLMHandler" | None = None  # シングルトン保持用
-
-    # --------------------------------------------------------------------- #
     def __new__(cls, *args, **kwargs):
         if cls._instance is None:
             cls._instance = super().__new__(cls)
         return cls._instance
 
-    # --------------------------------------------------------------------- #
     def __init__(
         self,
         config: Dict[str, Any],
         *,
         prompt_logger: Optional[PromptLogger] = None,
     ) -> None:
-        if hasattr(self, "_initialized") and self._initialized:  # 2 回目以降はスキップ
+        if hasattr(self, "_initialized") and self._initialized:
             return
         self._initialized = True
 
-        # ロガー
         self.logger = prompt_logger
-
-        # モデルロード
         self.model_path = Path(__file__).resolve().parents[1] / "models" / config["filename"]
         if not self.model_path.exists():
             raise FileNotFoundError(f"モデルが見つかりません: {self.model_path}")
@@ -52,6 +45,13 @@ class LLMHandler:
         print("[LLMHandler] ✅ モデル読み込み完了")
 
     # ======================  公開 API  ====================== #
+    def _build_system_prompt(self, max_turn: int, turn: int) -> str:
+        return prompts.SYSTEM_PROMPT.format(
+            max_turn=max_turn,
+            turn=turn,
+            turns_left=max_turn - turn,
+        )
+
     def generate_action(
         self,
         user_prompt: str,
@@ -60,16 +60,14 @@ class LLMHandler:
         *,
         agent_name: str | None = None,
     ) -> Dict[str, Any]:
-        """JSON 形式の行動計画を返す"""
         phase = "plan"
-        system_prompt = prompts.SYSTEM_PROMPT.format(max_turn=max_turn, turn=turn)
+        system_prompt = self._build_system_prompt(max_turn, turn)
 
         messages = [
             {"role": "system", "content": system_prompt},
             {"role": "user", "content": user_prompt},
         ]
 
-        # ログ保存
         if self.logger and agent_name:
             self.logger.log(agent_name, phase, turn, system_prompt, user_prompt)
 
@@ -80,11 +78,9 @@ class LLMHandler:
             )
             raw = resp["choices"][0]["message"]["content"]
             return json.loads(raw)
-        except Exception as e:  # JSON パース失敗や推論エラー
-            print(f"[LLMHandler] ⚠️ generate_action 失敗: {e}")
-            return {"action": "listen", "thought": "JSON 解析に失敗したので聞き手に回る"}
+        except Exception:
+            return {"action": "listen", "thought": "JSON 解析失敗→listen"}
 
-    # ------------------------------------------------------ #
     def generate_utterance(
         self,
         user_prompt: str,
@@ -93,22 +89,20 @@ class LLMHandler:
         *,
         agent_name: str | None = None,
     ) -> str:
-        """自然言語の発話全文を返す"""
         phase = "utterance"
-        system_prompt = prompts.SYSTEM_PROMPT.format(max_turn=max_turn, turn=turn)
+        system_prompt = self._build_system_prompt(max_turn, turn)
 
         messages = [
             {"role": "system", "content": system_prompt},
             {"role": "user", "content": user_prompt},
         ]
 
-        # ログ保存
         if self.logger and agent_name:
             self.logger.log(agent_name, phase, turn, system_prompt, user_prompt)
 
         try:
             resp = self.model.create_chat_completion(messages=messages)
+            print(resp["choices"][0]["message"]["content"])
             return resp["choices"][0]["message"]["content"].strip()
-        except Exception as e:
-            print(f"[LLMHandler] ⚠️ generate_utterance 失敗: {e}")
+        except Exception:
             return "…"
