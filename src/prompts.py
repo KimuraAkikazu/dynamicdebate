@@ -1,163 +1,149 @@
+"""Prompt templates (English version, per‑agent name aware).
 
+Placeholders
+------------
+{name}   : name of this agent
+{peer1}  : name of the first other agent
+{peer2}  : name of the second other agent
+{max_turn}, {turn}, {turns_left} : turn information
+"""
 
 # -------------------------------------------------- #
-# 共通システムプロンプト（エージェント名対応版）
+# System prompt
 # -------------------------------------------------- #
-#
-# * {name} … 現在プロンプトを受け取っているエージェントの名前
-# * {peer1}, {peer2} … 他の 2 名のエージェント名（順不同）
-# * {max_turn}, {turn}, {turns_left} … ターン情報（既存）
-#
-# 注意: 句読点制限の記述で「。、！？」をチャンク境界として明示しています。
-#       これによりモデルが長文一括出力しようとする傾向を抑制します。
-#
 SYSTEM_PROMPT = """
-あなたの名前は {name} です。他の2人のAIエージェント {peer1} と {peer2} で議論を行う知的な議論参加者です。
-あなたの目的は、与えられたペルソナに完全になりきり、議題に対して議論を通して結論を導き出すことです。
-議論はマルチターンで行われ、1ターンの定義は以下のとおりです。
-- 1ターンで発言できるのは **1人のみ** で、発言者は `urgency` の大きさで決定されます。
-- １ターンで発言できる内容は限られており、発言内容が長い場合、発言は次のターンに繰り越されます。
-最大 {max_turn} ターンの議論で現在 {turn} ターン目です。
-残り {turns_left} ターンで必ず結論を導く必要があります。
-残りターンが少ない場合は、議論を収束させ結論または暫定合意に近づけることを優先してください。
+You are {name}. Together with two other AI agents, {peer1} and {peer2}, you will hold an online debate.
+Your goal is to fully embody your assigned persona and lead the discussion toward a conclusion about the given topic.
+The debate is multi‑turn. One turn is defined as follows:
+- **Only one agent may speak per turn**, chosen according to the largest `urgency`.
+- In a single turn you may output **exactly one chunk**, delimited by an English comma “,” or period “.”  
+  If you wish to continue, stop at the punctuation and resume in the next turn.
+This is turn {turn} of a maximum of {max_turn}. (You have {turns_left} turns remaining.)
+When few turns remain, prioritise convergence and a clear conclusion or provisional agreement.
 """.strip()
 
-
 # -------------------------------------------------- #
-# 行動計画用プロンプト（通常ターン）
+# Plan‑action prompt (normal turn)
 # -------------------------------------------------- #
 PLAN_ACTION_PROMPT_TEMPLATE = """
-# 指示
-次のターンでのあなたの行動計画をJSON形式で出力してください。
-行動パターンは以下のいずれかです:
-- `listen`: 他のエージェントの発言を聞く
-- `speak`: 自分のターンで発言する
-- `interrupt`: 別のエージェントがまだ発言中に割り込む
-# urgency（緊急度）を0から4の範囲で設定してください。
+# Instruction
+Return your action plan for the next turn in JSON format.
+
+Actions:
+- `listen`   : Listen to the other agent.
+- `speak`    : Speak on your turn.
+- `interrupt`: Interrupt while another agent is still speaking.
+
+# Set `urgency` from 0–4
   0: I would like to observe and listen for now.
   1: I have some general thoughts to share with the group.
-  2: I have something critical and specific to contribute to this discussion.
-  3: It is absolutely urgent for me to speak next.
+  2: I have something critical and specific to contribute.
+  3: It is absolutely urgent that I speak next.
   4: Someone has addressed me directly and I must respond.
 
-# あなたのペルソナ
+# Your persona
 {persona}
 
-# 議論の議題
+# Topic
 {topic}
 
-# これまでの議論の履歴 (新しいものが下)
+# Debate history (newest last)
 {history}
 
-# これまでのあなたの思考履歴 (新しいものが下)
+# Your thought history (newest last)
 {thought_history}
 
-# このターンでの発言
+# Last utterance in this turn
 {last_event}
 
-# 出力形式
-listenの場合は、以下のように出力してください。
+# Output format
+When you choose `listen`:
 ```json
 {{
   "action": "listen",
-  "thought": "（あなたは何を考えて、そのactionを選択したのか）"
+  "thought": "(Why you chose listen)"
 }}
-```
-
-speakまたはinterruptの場合は、以下のように出力してください。
-```json
+When you choose speak or interrupt:
 {{
   "action": "speak|interrupt",
   "urgency": 0-4,
-  "intent": "質問/同意/まとめる/反論/結論への促進/結論",
-  "thought": "（あなたは何を考えて、そのactionを選択したのか）"
+  "intent": "question/agree/summarise/challenge/drive‑to‑conclusion",
+  "thought": "(Why you chose this action)"
 }}
-```
-# 注意
-- 無理に発言の先を予測して行動計画を立てる必要はありません。
-- 残りターンが半分以下の場合は結論を優先してください。
-- 最終ターンの場合、結論を出力する必要があります。
+Notes
+Consider only what to do in the very next turn; do not over‑plan future content.
+
+If turns_left ≤ half of max_turn, prioritise concluding the debate.
+
+On the final turn, you must output a conclusion.
 """.strip()
 
-
-# -------------------------------------------------- #
-# 行動計画用プロンプト（沈黙ターン）
-# -------------------------------------------------- #
+# --------------------------------------------------
+# Plan‑action prompt (silence turn)
+# --------------------------------------------------
 SILENCE_PLAN_PROMPT_TEMPLATE = """
-# 状況
-現在のターンは誰も発言しませんでした（沈黙）。
-残り {turns_left} 回の発言で必ず議論の結論を導く必要があります。
 
-# 指示
-次のターンでのあなたの行動計画をJSON形式で出力してください。
-行動パターンは以下のいずれかです:
-- `listen`: 他のエージェントの発言を聞く
-- `speak`: 自分のターンで発言する
-- `interrupt`: 別のエージェントがまだ発言中に割り込む
-urgency（緊急度）を0から4の範囲で設定してください。
-  0: I would like to observe and listen for now.
-  1: I have some general thoughts to share with the group.
-  2: I have something critical and specific to contribute to this discussion.
-  3: It is absolutely urgent for me to speak next.
-  4: Someone has addressed me directly and I must respond.
+Situation
+No one spoke this turn (silence).
+Only {turns_left} speaking turns remain before a conclusion is mandatory.
 
-# あなたのペルソナ
+Instruction
+Return your action plan for the next turn in JSON format.
+
+Actions (urgency scale is the same as above: 0–4):
+
+listen
+
+speak
+
+interrupt
+
+Your persona
 {persona}
 
-# 議論の議題
+Topic
 {topic}
 
-# これまでの議論の履歴 (新しいものが下)
+Debate history (newest last)
 {history}
 
-# 出力要件
-沈黙を打破し議論を進めるための行動を JSON で返してください。
+Output requirement
+Propose an action to break the silence and move the debate forward.
 
-# 出力形式
-listenの場合は、以下のように出力してください。
-```json
-{{
-  "action": "listen",
-  "thought": "（actionを選択した理由と、あなたが今思っていること）"
-}}
-```
-
-speakまたはinterruptの場合は、以下のように出力してください。
-```json
-{{
-  "action": "speak|interrupt",
-  "urgency": 0-4,
-  "intent": "質問/同意/補足/反論/話題転換",
-  "thought": "（actionを選択した理由と、あなたが今思っていること）"
-}}
-```
+Output format
+Same as in the normal‑turn prompt.
 """.strip()
 
-
-# -------------------------------------------------- #
-# 発話生成用プロンプト
-# -------------------------------------------------- #
+# --------------------------------------------------
+# Utterance‑generation prompt
+# --------------------------------------------------
 GENERATE_UTTERANCE_PROMPT_TEMPLATE = """
-# 指示
-あなたは、議論において発言する権利を得ました。あなたのペルソナと議論の流れを踏まえて発言を生成してください。
-残り {turns_left} ターン以内に結論を必ず導いてください。
 
-# あなたのペルソナ
+Instruction
+You have the right to speak. Generate your utterance in line with your persona and the debate flow.
+Only {turns_left} turns remain.
+
+Your persona
 {persona}
 
-# 議論の議題
+Topic
 {topic}
 
-# これまでの議論の履歴 (新しいものが下)
+Debate history (newest last)
 {history}
 
-# あなたが発言しようと思った理由（思考）
+Reason for speaking (your thought)
 {thought}
 
-# 発言内容
-上記の情報を基に、あなたの発言を自然な日本語で生成してください。
+Utterance
+Write your utterance in concise, clear English.
 
-# 注意
-- 発言は簡潔かつ明瞭にしてください。
-- 発言時は前置きは必要ありません。主張や意見を直接述べてください。
+Notes
+Omit pleasantries; state your point directly.
+
+Base your utterance on the debate history.
+
+Output exactly one chunk ending with a comma “,” or period “.”
+Stop there; continue in the next turn if needed.
 """.strip()
+

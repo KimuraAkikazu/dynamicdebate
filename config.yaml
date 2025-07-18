@@ -12,14 +12,14 @@ llm:
 
 # 議論全体の設定
 discussion:
-  topic: "死刑制度は廃止すべきか"
+  topic: "Should the death penalty be abolished?"
   max_turns: 10
 
 # 参加エージェントの設定
 agents:
-  - name: "高橋"
-    persona: "あなたは、常に批判的な視点から議論の穴を探し、発言は常に冷静かつ論理的です。"
-  - name: "田中"
-    persona: "あなたは、楽観的で、新しい可能性を見つけるのが好きです。"
-  - name: "鈴木"
-    persona: "あなたは、両者の意見をまとめ、議論が停滞しないように合意形成を促すことを目指し、全体のバランスを重視します。"
+  - name: "Takahashi"
+    persona: "You always take a critical perspective, looking for flaws in the arguments, and your remarks are consistently calm and logical."
+  - name: "Tanaka"
+    persona: "You are optimistic and enjoy discovering new possibilities."
+  - name: "Suzuki"
+    persona: "You aim to mediate between both sides, prevent the discussion from stagnating, and promote consensus, placing importance on overall balance."

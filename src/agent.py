@@ -94,13 +94,13 @@ class Agent:
     # ---------------- チャンク化 ---------------- #
     @staticmethod
     def _chunk_utterance(text: str) -> List[str]:
-        parts = re.split(r"([。！？])", text)
+        parts = re.split(r"([。！？,.?!])", text)
         chunks, buf = [], ""
         for p in parts:
             if not p:
                 continue
             buf += p
-            if p in "。！？":
+            if p in ",.。！？!?":
                 chunks.append(buf)
                 buf = ""
         if buf:
