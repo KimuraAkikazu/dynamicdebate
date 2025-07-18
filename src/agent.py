@@ -1,9 +1,9 @@
-"""エージェントクラス"""
+"""エージェントクラス（peer name aware）"""
 from __future__ import annotations
 
 import re
 from collections import deque
-from typing import Any, Deque, List, Optional
+from typing import Any, Deque, List, Optional, Sequence
 
 from . import prompts
 from .llm_handler import LLMHandler
@@ -29,12 +29,12 @@ class Agent:
         max_turn: int,
         *,
         silence: bool = False,
+        peer_names: Optional[Sequence[str]] = None,
     ) -> dict[str, Any]:
+        """Ask LLM for next action plan."""
         recent_thoughts = "\n".join(self.thought_history[-THOUGHT_WINDOW:])
         template = (
-            prompts.SILENCE_PLAN_PROMPT_TEMPLATE
-            if silence
-            else prompts.PLAN_ACTION_PROMPT_TEMPLATE
+            prompts.SILENCE_PLAN_PROMPT_TEMPLATE if silence else prompts.PLAN_ACTION_PROMPT_TEMPLATE
         )
         prompt = template.format(
             persona=self.persona,
@@ -46,7 +46,7 @@ class Agent:
         )
 
         action_plan = self.llm_handler.generate_action(
-            prompt, turn, max_turn, agent_name=self.name
+            prompt, turn, max_turn, agent_name=self.name, peer_names=peer_names
         )
 
         # 思考履歴に追加
@@ -63,6 +63,8 @@ class Agent:
         thought: str,
         turn: int,
         max_turn: int,
+        *,
+        peer_names: Optional[Sequence[str]] = None,
     ) -> None:
         self.utterance_queue.clear()
 
@@ -77,7 +79,7 @@ class Agent:
         ).strip()
 
         full_text = self.llm_handler.generate_utterance(
-            utterance_prompt, turn, max_turn, agent_name=self.name
+            utterance_prompt, turn, max_turn, agent_name=self.name, peer_names=peer_names
         )
 
         if self.llm_handler.logger:
@@ -92,13 +94,13 @@ class Agent:
     # ---------------- チャンク化 ---------------- #
     @staticmethod
     def _chunk_utterance(text: str) -> List[str]:
-        parts = re.split(r"([、。！？])", text)
+        parts = re.split(r"([。！？])", text)
         chunks, buf = [], ""
         for p in parts:
             if not p:
                 continue
             buf += p
-            if p in "、。！？":
+            if p in "。！？":
                 chunks.append(buf)
                 buf = ""
         if buf:

@@ -1,9 +1,10 @@
-"""llama-cpp-python をラップするシングルトン LLMHandler"""
+
+"""llama-cpp-python をラップするシングルトン LLMHandler（エージェント名対応版）"""
 from __future__ import annotations
 
 import json
 from pathlib import Path
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Optional, Sequence
 
 from llama_cpp import Llama
 from . import prompts
@@ -44,14 +45,39 @@ class LLMHandler:
         )
         print("[LLMHandler] ✅ モデル読み込み完了")
 
-    # ======================  公開 API  ====================== #
-    def _build_system_prompt(self, max_turn: int, turn: int) -> str:
+    # ======================  内部: システムプロンプト構築  ====================== #
+    def _build_system_prompt(
+        self,
+        max_turn: int,
+        turn: int,
+        *,
+        name: str = "あなた",
+        peer_names: Optional[Sequence[str]] = None,
+    ) -> str:
+        """Assemble system prompt string with per-agent names.
+
+        Only the first two peer names are used; missing names are auto-filled.
+        """
+        p1 = p2 = "他のエージェント"
+        if peer_names:
+            if len(peer_names) >= 1:
+                p1 = peer_names[0]
+            if len(peer_names) >= 2:
+                p2 = peer_names[1]
+            if len(peer_names) > 2:
+                # collapse extras into p2 for debugging visibility
+                p2 = "・".join(peer_names[1:])
+
         return prompts.SYSTEM_PROMPT.format(
+            name=name,
+            peer1=p1,
+            peer2=p2,
             max_turn=max_turn,
             turn=turn,
             turns_left=max_turn - turn,
         )
 
+    # ======================  公開 API  ====================== #
     def generate_action(
         self,
         user_prompt: str,
@@ -59,9 +85,12 @@ class LLMHandler:
         max_turn: int,
         *,
         agent_name: str | None = None,
+        peer_names: Optional[Sequence[str]] = None,
     ) -> Dict[str, Any]:
         phase = "plan"
-        system_prompt = self._build_system_prompt(max_turn, turn)
+        system_prompt = self._build_system_prompt(
+            max_turn, turn, name=agent_name or "あなた", peer_names=peer_names
+        )
 
         messages = [
             {"role": "system", "content": system_prompt},
@@ -88,9 +117,12 @@ class LLMHandler:
         max_turn: int,
         *,
         agent_name: str | None = None,
+        peer_names: Optional[Sequence[str]] = None,
     ) -> str:
         phase = "utterance"
-        system_prompt = self._build_system_prompt(max_turn, turn)
+        system_prompt = self._build_system_prompt(
+            max_turn, turn, name=agent_name or "あなた", peer_names=peer_names
+        )
 
         messages = [
             {"role": "system", "content": system_prompt},

@@ -1,4 +1,4 @@
-"""議論全体を統括する DiscussionManager"""
+"""議論全体を統括する DiscussionManager (peer name aware)"""
 from __future__ import annotations
 
 import json
@@ -40,12 +40,12 @@ class DiscussionManager:
 
     # ---------------- 初期化 ---------------- #
     def _initialize_discussion(self) -> None:
-        self.current_actions = {
-            ag.name: ag.plan_action(
-                "", "", self.topic, 0, self.max_turns, silence=False
+        self.current_actions = {}
+        for ag in self.agents:
+            peers = [p.name for p in self.agents if p is not ag]
+            self.current_actions[ag.name] = ag.plan_action(
+                "", "", self.topic, 0, self.max_turns, silence=False, peer_names=peers
             )
-            for ag in self.agents
-        }
         # turn0 をログ
         self.log_data.append(
             {
@@ -74,6 +74,7 @@ class DiscussionManager:
                 # interrupt か通常か判定
                 event_type = "interrupt" if self.speaker_interrupt else "utterance"
                 speaker_name = self.speaker.name
+                content = chunk  # 実際に出力したチャンクをログに保存
 
                 # 表示時に連続発言の時は名前を省略
                 if self.history and self.history[-1][0] == speaker_name:
@@ -102,6 +103,7 @@ class DiscussionManager:
         for ag in self.agents:
             if ag is self.speaker:
                 continue
+            peers = [p.name for p in self.agents if p is not ag]
             self.current_actions[ag.name] = ag.plan_action(
                 hist_str,
                 last_event,
@@ -109,6 +111,7 @@ class DiscussionManager:
                 turn,
                 self.max_turns,
                 silence=(event_type == "silence"),
+                peer_names=peers,
             )
 
         # 次ターンのスピーカー選定 -----------------------------------------
@@ -122,8 +125,7 @@ class DiscussionManager:
                 "speaker": speaker_name,
                 "content": content,
                 "agent_actions": [
-                    {"agent_name": n, "action_plan": p}
-                    for n, p in self.current_actions.items()
+                    {"agent_name": n, "action_plan": p} for n, p in self.current_actions.items()
                 ],
             }
         )
@@ -145,19 +147,21 @@ class DiscussionManager:
         if self.speaker and self.speaker.name == next_name:
             return
 
-        # interrupt 判定
+        # interrupt 判定: 現在スピーカーが残りチャンクを持っている状態で別エージェントが発話要求
         self.speaker_interrupt = (
             self.speaker is not None and self.speaker.utterance_queue
         )
         self.first_chunk = True
 
         self.speaker = next(a for a in self.agents if a.name == next_name)
+        peers = [a.name for a in self.agents if a is not self.speaker]
         self.speaker.decide_to_speak(
             self._history_as_text(HISTORY_WINDOW),
             self.topic,
             next_plan.get("thought", ""),
             current_turn + 1,
             self.max_turns,
+            peer_names=peers,
         )
         mode = "interrupt" if self.speaker_interrupt else "speak"
         print(f"[Manager] 👉 スピーカー変更: {self.speaker.name} ({mode})")
