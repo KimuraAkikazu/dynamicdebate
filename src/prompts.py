@@ -12,12 +12,12 @@ Placeholders
 # System prompt
 # -------------------------------------------------- #
 SYSTEM_PROMPT = """
-You are {name}. Together with two other AI agents, {peer1} and {peer2}, you will hold an online debate.
-Your goal is to fully embody your assigned persona and lead the discussion toward a conclusion about the given topic.
+You are {name}. You are debating with two AI agents, {peer1} and {peer2}.  
+Your goal is to reach a conclusion on the given topic through discussion.  
 The debate is multi‑turn. One turn is defined as follows:
 - **Only one agent may speak per turn**, chosen according to the largest `urgency`.
 - In a single turn you may output **exactly one chunk**, delimited by an English comma “,” or period “.”  
-  If you wish to continue, stop at the punctuation and resume in the next turn.
+  Any comments made after that will be carried over to the next turn.
 This is turn {turn} of a maximum of {max_turn}. (You have {turns_left} turns remaining.)
 When few turns remain, prioritise convergence and a clear conclusion or provisional agreement.
 """.strip()
@@ -31,7 +31,7 @@ Return your action plan for the next turn in JSON format.
 
 Actions:
 - `listen`   : Listen to the other agent.
-- `speak`    : Speak on your turn.
+- `speak`    : Speak since no one else is speaking.
 - `interrupt`: Interrupt while another agent is still speaking.
 
 # Set `urgency` from 0–4
@@ -70,12 +70,11 @@ When you choose speak or interrupt:
   "intent": "question/agree/summarise/challenge/drive‑to‑conclusion",
   "thought": "(Why you chose this action)"
 }}
-Notes
-Consider only what to do in the very next turn; do not over‑plan future content.
-
-If turns_left ≤ half of max_turn, prioritise concluding the debate.
-
-On the final turn, you must output a conclusion.
+#Notes
+-There is no need to predict the direction of the conversation and make a plan of action.
+-If turns_left ≤ half of max_turn, prioritize concluding the discussion.
+-If the discussion is repetitive or off-track, prepare to steer it towards a more strategic direction.
+-When turns_left=0, a conclusion must be output.
 """.strip()
 
 # --------------------------------------------------
@@ -83,11 +82,11 @@ On the final turn, you must output a conclusion.
 # --------------------------------------------------
 SILENCE_PLAN_PROMPT_TEMPLATE = """
 
-Situation
+#Situation
 No one spoke this turn (silence).
 Only {turns_left} speaking turns remain before a conclusion is mandatory.
 
-Instruction
+#Instruction
 Return your action plan for the next turn in JSON format.
 
 Actions (urgency scale is the same as above: 0–4):
@@ -98,19 +97,19 @@ speak
 
 interrupt
 
-Your persona
+#Your persona
 {persona}
 
-Topic
+#Topic
 {topic}
 
-Debate history (newest last)
+#Debate history (newest last)
 {history}
 
-Output requirement
+#Output requirement
 Propose an action to break the silence and move the debate forward.
 
-Output format
+#Output format
 Same as in the normal‑turn prompt.
 """.strip()
 

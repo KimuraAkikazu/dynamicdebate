@@ -115,7 +115,8 @@ class DiscussionManager:
             )
 
         # 次ターンのスピーカー選定 -----------------------------------------
-        self._determine_next_speaker(turn)
+        if turn < self.max_turns:
+            self._determine_next_speaker(turn)
 
         # ログ -------------------------------------------------------------
         self.log_data.append(

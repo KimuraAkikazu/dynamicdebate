@@ -8,7 +8,7 @@ from typing import Any, Deque, List, Optional, Sequence
 from . import prompts
 from .llm_handler import LLMHandler
 
-THOUGHT_WINDOW = 20  # 思考履歴を何件まで渡すか
+THOUGHT_WINDOW = 2  # 思考履歴を何件まで渡すか
 
 
 class Agent:

@@ -105,6 +105,7 @@ class LLMHandler:
                 messages=messages,
                 response_format={"type": "json_object"},
             )
+            print(resp["choices"][0]["message"]["content"])
             raw = resp["choices"][0]["message"]["content"]
             return json.loads(raw)
         except Exception:
