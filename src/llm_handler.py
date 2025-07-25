@@ -1,5 +1,3 @@
-
-"""llama-cpp-python をラップするシングルトン LLMHandler（エージェント名対応版）"""
 from __future__ import annotations
 
 import json
@@ -30,7 +28,9 @@ class LLMHandler:
         self._initialized = True
 
         self.logger = prompt_logger
-        self.model_path = Path(__file__).resolve().parents[1] / "models" / config["filename"]
+        self.model_path = (
+            Path(__file__).resolve().parents[1] / "models" / config["filename"]
+        )
         if not self.model_path.exists():
             raise FileNotFoundError(f"モデルが見つかりません: {self.model_path}")
 
@@ -45,31 +45,24 @@ class LLMHandler:
         )
         print("[LLMHandler] ✅ モデル読み込み完了")
 
-    # ======================  内部: システムプロンプト構築  ====================== #
+    # ======================  Internal – build system prompt  ====================== #
     def _build_system_prompt(
         self,
+        *,
+        name: str,
+        peer_names: Sequence[str],
+        persona: str,
+        topic: str,
         max_turn: int,
         turn: int,
-        *,
-        name: str = "あなた",
-        peer_names: Optional[Sequence[str]] = None,
     ) -> str:
-        """Assemble system prompt string with per-agent names.
-
-        Only the first two peer names are used; missing names are auto-filled.
-        """
-        p1 = p2 = "他のエージェント"
-        if peer_names:
-            if len(peer_names) >= 1:
-                p1 = peer_names[0]
-            if len(peer_names) >= 2:
-                p2 = peer_names[1]
-            if len(peer_names) > 2:
-                # collapse extras into p2 for debugging visibility
-                p2 = "・".join(peer_names[1:])
-
+        """Assemble system‑prompt string."""
+        p1 = peer_names[0] if len(peer_names) >= 1 else "Another agent"
+        p2 = peer_names[1] if len(peer_names) >= 2 else "Another agent"
         return prompts.SYSTEM_PROMPT.format(
             name=name,
+            persona=persona,
+            topic=topic,
             peer1=p1,
             peer2=p2,
             max_turn=max_turn,
@@ -77,19 +70,26 @@ class LLMHandler:
             turns_left=max_turn - turn,
         )
 
-    # ======================  公開 API  ====================== #
+    # ======================  Public API  ====================== #
     def generate_action(
         self,
         user_prompt: str,
+        *,
         turn: int,
         max_turn: int,
-        *,
-        agent_name: str | None = None,
-        peer_names: Optional[Sequence[str]] = None,
+        agent_name: str,
+        persona: str,
+        topic: str,
+        peer_names: Sequence[str],
     ) -> Dict[str, Any]:
         phase = "plan"
         system_prompt = self._build_system_prompt(
-            max_turn, turn, name=agent_name or "あなた", peer_names=peer_names
+            name=agent_name,
+            peer_names=peer_names,
+            persona=persona,
+            topic=topic,
+            max_turn=max_turn,
+            turn=turn,
         )
 
         messages = [
@@ -97,32 +97,39 @@ class LLMHandler:
             {"role": "user", "content": user_prompt},
         ]
 
-        if self.logger and agent_name:
+        if self.logger:
             self.logger.log(agent_name, phase, turn, system_prompt, user_prompt)
 
         try:
             resp = self.model.create_chat_completion(
-                messages=messages,
-                response_format={"type": "json_object"},
+                messages=messages, response_format={"type": "json_object"},
+                max_tokens=256
             )
-            print(resp["choices"][0]["message"]["content"])
             raw = resp["choices"][0]["message"]["content"]
+            print(raw)
             return json.loads(raw)
         except Exception:
-            return {"action": "listen", "thought": "JSON 解析失敗→listen"}
+            return {"action": "listen", "thought": "JSON parse error → listen"}
 
     def generate_utterance(
         self,
         user_prompt: str,
+        *,
         turn: int,
         max_turn: int,
-        *,
-        agent_name: str | None = None,
-        peer_names: Optional[Sequence[str]] = None,
+        agent_name: str,
+        persona: str,
+        topic: str,
+        peer_names: Sequence[str],
     ) -> str:
         phase = "utterance"
         system_prompt = self._build_system_prompt(
-            max_turn, turn, name=agent_name or "あなた", peer_names=peer_names
+            name=agent_name,
+            peer_names=peer_names,
+            persona=persona,
+            topic=topic,
+            max_turn=max_turn,
+            turn=turn,
         )
 
         messages = [
@@ -130,12 +137,11 @@ class LLMHandler:
             {"role": "user", "content": user_prompt},
         ]
 
-        if self.logger and agent_name:
+        if self.logger:
             self.logger.log(agent_name, phase, turn, system_prompt, user_prompt)
 
         try:
             resp = self.model.create_chat_completion(messages=messages)
-            print(resp["choices"][0]["message"]["content"])
             return resp["choices"][0]["message"]["content"].strip()
         except Exception:
             return "…"

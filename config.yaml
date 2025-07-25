@@ -12,14 +12,14 @@ llm:
 
 # 議論全体の設定
 discussion:
-  topic: "Solve the equation:sqrt(x^2 + 3x + 7) - sqrt(x^2 - x + 10) = 1 \n What is the value of x? \n Please lead the value of x in the form of a decimal number."
+  topic: "Solve the equation:sqrt(x^2 + 3x + 7) - sqrt(x^2 - x + 10) = 1 \n What is the value of x? "
   max_turns: 30
 
 # 参加エージェントの設定
 agents:
   - name: "Takahashi"
-    persona: "You always take a critical perspective, looking for flaws in the arguments, and your remarks are consistently calm and logical."
+    persona: “You have high Extraversion, high Conscientiousness, high Agreeableness, high Openness, and low Neuroticism.”
   - name: "Tanaka"
-    persona: "You are optimistic and enjoy discovering new possibilities."
+    persona: "You have high Extraversion, high Conscientiousness, low Agreeableness, high Openness, and low Neuroticism."
   - name: "Suzuki"
-    persona: "You aim to mediate between both sides, prevent the discussion from stagnating, and promote consensus, placing importance on overall balance."
+    persona: "You have high Extraversion, high Conscientiousness, high Agreeableness, high Openness, and high Neuroticism."

@@ -12,14 +12,23 @@ Placeholders
 # System prompt
 # -------------------------------------------------- #
 SYSTEM_PROMPT = """
-You are {name}. You are debating with two AI agents, {peer1} and {peer2}.  
-Your goal is to reach a conclusion on the given topic through discussion.  
+You are {name}.
+
+#Your persona
+{persona}
+
+# Debate topic
+{topic}
+
+You are debating with two AI agents, {peer1} and {peer2}.
+
 The debate is multi‑turn. One turn is defined as follows:
-- **Only one agent may speak per turn**, chosen according to the largest `urgency`.
-- In a single turn you may output **exactly one chunk**, delimited by an English comma “,” or period “.”  
-  Any comments made after that will be carried over to the next turn.
-This is turn {turn} of a maximum of {max_turn}. (You have {turns_left} turns remaining.)
-When few turns remain, prioritise convergence and a clear conclusion or provisional agreement.
+- **Only one agent may speak per turn**, chosen by the largest `urgency`.
+- In a single turn you must output **exactly one chunk**, ending with a comma “,” or period “.”.  
+  Further comments will be carried over to the next turn.
+
+This is turn {turn} of {max_turn}. (**{turns_left} turns remain**.)  
+When only a few turns remain, *prioritise convergence on a clear conclusion*.
 """.strip()
 
 # -------------------------------------------------- #
@@ -27,31 +36,21 @@ When few turns remain, prioritise convergence and a clear conclusion or provisio
 # -------------------------------------------------- #
 PLAN_ACTION_PROMPT_TEMPLATE = """
 # Instruction
-Return your action plan for the next turn in JSON format.
+Return your action plan for the **next turn** in JSON format.
 
-Actions:
-- `listen`   : Listen to the other agent.
-- `speak`    : Speak since no one else is speaking.
+*Actions:*
+- `listen`   : Listen to the other agents.
+- `speak`    : Speak because no one else is speaking.
 - `interrupt`: Interrupt while another agent is still speaking.
 
-# Set `urgency` from 0–4
-  0: I would like to observe and listen for now.
-  1: I have some general thoughts to share with the group.
-  2: I have something critical and specific to contribute.
-  3: It is absolutely urgent that I speak next.
-  4: Someone has addressed me directly and I must respond.
+*If you choose to get the ball rolling or interrupt. Set `urgency` from 1–4.*
+1: Share a general thought.  
+2: Contribute something specific.  
+3: It is urgent that you speak.  
+4: You were addressed directly and must respond.
 
-# Your persona
-{persona}
-
-# Topic
-{topic}
-
-# Debate history (newest last)
-{history}
-
-# Your thought history (newest last)
-{thought_history}
+# Turn‑wise history (newest last)
+{turn_log}
 
 # Last utterance in this turn
 {last_event}
@@ -59,22 +58,17 @@ Actions:
 # Output format
 When you choose `listen`:
 ```json
-{{
-  "action": "listen",
-  "thought": "(Why you chose listen)"
-}}
+{{ "action": "listen", "thought": "(Your current thinking)" }}
 When you choose speak or interrupt:
-{{
-  "action": "speak|interrupt",
-  "urgency": 0-4,
-  "intent": "question/agree/summarise/challenge/drive‑to‑conclusion",
-  "thought": "(Why you chose this action)"
-}}
+{{ "action": "speak|interrupt",
+  "urgency": 0‑4,
+  "intent": "question/agree/summarise/deny/conclude",
+  "thought": "(Your current thinking)" }}
 #Notes
 -There is no need to predict the direction of the conversation and make a plan of action.
--If turns_left ≤ half of max_turn, prioritize concluding the discussion.
--If the discussion is repetitive or off-track, prepare to steer it towards a more strategic direction.
--When turns_left=0, a conclusion must be output.
+-Only interrupt when you believe it will improve the overall quality of the discussion.
+-When few turns remain, prioritise convergence and a clear conclusion or provisional agreement.
+-When 0 turns remain, a conclusion must be output.
 """.strip()
 
 # --------------------------------------------------
@@ -82,35 +76,41 @@ When you choose speak or interrupt:
 # --------------------------------------------------
 SILENCE_PLAN_PROMPT_TEMPLATE = """
 
-#Situation
-No one spoke this turn (silence).
-Only {turns_left} speaking turns remain before a conclusion is mandatory.
+# Situation
+-Debate history (newest last)
+{turn_log}
+-Last utterance in this turn
+No agent spoke this turn. Only {turns_left} turns remain.
 
 #Instruction
-Return your action plan for the next turn in JSON format.
+Return your action plan for the **next turn** in JSON format.
 
-Actions (urgency scale is the same as above: 0–4):
+Actions:
+- `listen`   : Listen to the other agents.
+- `speak`    : Speak because no one else is speaking.
+- `interrupt`: Interrupt while another agent is still speaking.
 
-listen
+If you choose to get the ball rolling or interrupt. Set `urgency` from 1–4.  
+1: Share a general thought.  
+2: Contribute something specific.  
+3: It is urgent that you speak.  
+4: You were addressed directly and must respond.
 
-speak
+# Output format
+-When you choose `listen`:
+{{ "action": "listen", "thought": "(reason)" }}
+-When you choose speak or interrupt:
+{{ "action": "speak|interrupt",
+  "urgency": 1‑4,
+  "intent": "question/agree/summarise/challenge/drive‑to‑conclusion/conclude",
+  "thought": "(reason)" }}
 
-interrupt
+# Notes
+-There is no need to predict the direction of the conversation and make a plan of action.
+-Only interrupt when you believe it will improve the overall quality of the discussion.
+-When few turns remain, prioritise convergence and a clear conclusion or provisional agreement.
+-When 0 turns remain, a conclusion must be output.
 
-#Your persona
-{persona}
-
-#Topic
-{topic}
-
-#Debate history (newest last)
-{history}
-
-#Output requirement
-Propose an action to break the silence and move the debate forward.
-
-#Output format
-Same as in the normal‑turn prompt.
 """.strip()
 
 # --------------------------------------------------
@@ -118,31 +118,25 @@ Same as in the normal‑turn prompt.
 # --------------------------------------------------
 GENERATE_UTTERANCE_PROMPT_TEMPLATE = """
 
-Instruction
-You have the right to speak. Generate your utterance in line with your persona and the debate flow.
-Only {turns_left} turns remain.
+#Instruction
+-In the previous turn, you requested to speak for the reasons stated in *Reason for speaking (your thoughts)*, 
+and you were granted the right to speak.
+Refer to the character and *Debate History* and generate a utterance that will lead the discussion to a conclusion.
 
-Your persona
-{persona}
+# Turn‑wise history (newest last)
+{turn_log}
 
-Topic
-{topic}
+# Reason for speaking
+Thought : {thought}  
+Intent  : {intent}
 
-Debate history (newest last)
-{history}
-
-Reason for speaking (your thought)
-{thought}
-
-Utterance
+#Utterance
 Write your utterance in concise, clear English.
 
-Notes
-Omit pleasantries; state your point directly.
-
-Base your utterance on the debate history.
-
-Output exactly one chunk ending with a comma “,” or period “.”
-Stop there; continue in the next turn if needed.
+#Notes
+-Omit pleasantries; state your point directly.
+-When few turns remain, prioritise convergence and a clear conclusion or provisional agreement.
+-Once all members have reached an agreement, please provide your response.
+-Base your utterance on the debate history.
 """.strip()
 
