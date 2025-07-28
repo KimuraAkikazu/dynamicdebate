@@ -9,7 +9,7 @@ from typing import Any, List, Optional, Sequence, Tuple
 
 from .agent import Agent
 
-HISTORY_WINDOW = 100  # 直近何行の履歴を渡すか
+HISTORY_WINDOW = 10  # 直近何行の履歴を渡すか
 
 
 class DiscussionManager:

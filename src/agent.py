@@ -8,7 +8,7 @@ from typing import Any, Deque, List, Optional, Sequence
 from . import prompts
 from .llm_handler import LLMHandler
 
-THOUGHT_WINDOW = 100  # not used any more but kept for future tweaks
+THOUGHT_WINDOW = 10  # not used any more but kept for future tweaks
 
 
 class Agent:
