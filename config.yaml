@@ -12,7 +12,7 @@ llm:
 
 # 議論全体の設定
 discussion:
-  topic: "Solve the equation:sqrt(x^2 + 3x + 7) - sqrt(x^2 - x + 10) = 1 \n What is the value of x? "
+  topic: "Find all zeros in the indicated finite field of the given polynomial with coefficients in that field. x^5 + 3x^3 + x^2 + 2x in Z_5.\nA: 0 \nB: 1\nC: 0,1\nD: 0,4"
   max_turns: 30
 
 # 参加エージェントの設定

@@ -40,8 +40,15 @@ When only a few turns remain, *prioritise convergence on a clear conclusion*.
 # Plan‑action prompt (normal turn)
 # -------------------------------------------------- #
 PLAN_ACTION_PROMPT_TEMPLATE = """
+
+# Turn‑wise history (newest last)
+{turn_log}
+
+# Utterance in this turn
+{last_event}
+
 # Instruction
-Return your action plan for the **next turn** in JSON format.
+Listen to 'Utterance in this turn', and then return your action plan for the **next turn** in JSON format.
 
 *Actions:*
 - `listen`   : I observe and listen for now.
@@ -54,24 +61,21 @@ Return your action plan for the **next turn** in JSON format.
 3: It is urgent that you speak.  
 4: You were addressed directly and must respond.
 
-# Turn‑wise history (newest last)
-{turn_log}
-
-# Last utterance in this turn
-{last_event}
 
 # Output format
-When you choose `listen`:
+If you choose `listen`:
 ```json
-{{ "action": "listen", "thought": "(Your current thinking)" }}
-When you choose speak or interrupt:
+{{ "action": "listen",
+   "thought": "(Your emotion)" }}
+Else if you choose 'speak' or 'interrupt':
 {{ "action": "speak|interrupt",
-  "urgency": 0‑4,
+  "urgency": 1‑4,
   "intent": "question/agree/summarise/deny/conclude",
-  "thought": "(Your thinking)" }}
+  "thought": "(Your emotion)" }}
 #Notes
 -There is no need to predict the direction of the conversation and make a plan of action.
 -Only interrupt when you believe it will improve the overall quality of the discussion.
+-Be careful not to get caught up in endless debate.
 -When few turns remain, prioritise convergence and a clear conclusion or provisional agreement.
 -When 0 turns remain,you must output the answer.
 """.strip()
