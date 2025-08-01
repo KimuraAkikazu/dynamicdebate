@@ -9,7 +9,7 @@ from typing import Any, List, Optional, Sequence, Tuple
 
 from .agent import Agent
 
-HISTORY_WINDOW = 10  # 直近何行の履歴を渡すか
+HISTORY_WINDOW = 30  # 直近何行の履歴を渡すか
 
 
 class DiscussionManager:
@@ -33,11 +33,11 @@ class DiscussionManager:
 
     # ───────────────────────── 公開 API ───────────────────────── #
     def run_discussion(self) -> None:
-        print(f"=== 議論開始: {self.topic} ===")
+        print(f"=== Debate Start: {self.topic} ===")
         self._initialize_discussion()
         for turn in range(1, self.max_turns + 1):
             self._run_turn(turn)
-        print("=== 議論終了 ===")
+        print("=== Debate End ===")
 
     # ───────────────────── Turn‑wise log (per agent) ───────────────────── #
     def _build_turn_log(self, agent_name: str, limit: int) -> str:

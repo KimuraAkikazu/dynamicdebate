@@ -12,12 +12,16 @@ Placeholders
 # System prompt
 # -------------------------------------------------- #
 SYSTEM_PROMPT = """
-You are {name}.You are debating with two AI agents, {peer1} and {peer2}.
+You are debating with other AI agents.
+Your goal is to work with other agents to find the answer to the given question.
 
-#Your persona
+# Your Profile
+- Your name is {name}.
+- Debating with {peer1}, {peer2}.
+- Your persona:
 {persona}
 
-# Debate topic
+# question
 {topic}
 # Debate rules
 # The debate is multi‑turn. One turn is defined as follows:
@@ -31,6 +35,7 @@ You are {name}.You are debating with two AI agents, {peer1} and {peer2}.
 - Look for incomplete sentences, "and...", "but...", logical flow breaks
 - Interruption is natural but should be purposeful, not repetitive
 - Avoid circular arguments - build on previous points
+-If no conclusion is reached by the maximum turn, you will be deemed defeated.
 
 This is turn {turn} of {max_turn}. (**{turns_left} turns remain**.)  
 When only a few turns remain, *prioritise convergence on a clear conclusion*.
@@ -48,10 +53,12 @@ PLAN_ACTION_PROMPT_TEMPLATE = """
 {last_event}
 
 # Instruction
-Listen to 'Utterance in this turn', and then return your action plan for the **next turn** in JSON format.
+-Listen to the “Utterance in this turn” and output your action plan for the next turn in JSON format.
+-Consider that the speaker may still be talking, and choose the best course of action to move the discussion forward.
+
 
 *Actions:*
-- `listen`   : I observe and listen for now.
+- `listen`   : I observe and listen for now to advance the discussion.
 - `speak`    : I speak because no one else is speaking.
 - `interrupt`: I interrupt while another agent is still speaking.
 
@@ -63,15 +70,17 @@ Listen to 'Utterance in this turn', and then return your action plan for the **n
 
 
 # Output format
-If you choose `listen`:
+-If you choose `listen`:
 ```json
-{{ "action": "listen",
-   "thought": "(Your emotion)" }}
-Else if you choose 'speak' or 'interrupt':
-{{ "action": "speak|interrupt",
-  "urgency": 1‑4,
-  "intent": "question/agree/summarise/deny/conclude",
-  "thought": "(Your emotion)" }}
+{{ "thought": "(Reasons for selecting that action)" , //How crucial is it for you to contribute to the debate right now? Explain your reasoning in one or two sentences. Avoid using violent or harmful language.
+   "action": "listen" //
+   }}
+-Else if you choose 'speak' or 'interrupt':
+{{ "thought": "(Reasons for selecting that action)" , //How crucial is it for you to contribute to the debate right now? Explain your reasoning in one or two sentences. Avoid using violent or harmful language.
+  "action": "speak|interrupt", //If no other agent is speaking, select “speak”; if you want to interrupt someone who is speaking, select “interrupt.”
+  "urgency": 1‑4, //Please output the urgency of the statement based on your reasons. Response is a single number from:   "1" | "2" | "3" | "4"
+  "intent": "question/agree/summarise/deny/conclude", //Please output the type of statement based on your reason.
+  }}
 #Notes
 -There is no need to predict the direction of the conversation and make a plan of action.
 -Only interrupt when you believe it will improve the overall quality of the discussion.
@@ -111,7 +120,7 @@ If you choose to get the ball rolling or interrupt. Set `urgency` from 1–4.
 -When you choose speak or interrupt:
 {{ "action": "speak|interrupt",
   "urgency": 1‑4,
-  "intent": "question/agree/summarise/challenge/drive‑to‑conclusion/conclude",
+  "intent": "question/agree/summarise/challenge/conclude",
   "thought": "(reason)" }}
 
 # Notes
