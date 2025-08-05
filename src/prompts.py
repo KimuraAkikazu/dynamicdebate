@@ -14,20 +14,18 @@ Placeholders
 # -------------------------------------------------- #
 INITIAL_ANSWER_PROMPT_TEMPLATE = """
 
-# Instruction
-- The following is a multiple-choice question. Please choose the single most appropriate option and provide its label (e.g., A, B, C).
-
-# Question
+# Question text
 {topic}
 
-
-# Output format
-- Output JSON only with two keys: "answer" and "reasoning".
+# Instruction
+-Please cooperate with the three agents, including you, to tackle the four questions you are about to be given.
+-Please begin by telling us your answer and why you chose that option.
 - Do NOT include any additional keys or natural language outside the JSON.
+# Output format
 ```json
 {{  
-    "answer": "string",  //Please output the answer choices for the question.
-    "reasoning": "string"  //Please share your thoughts on why you gave that answer.
+    "reasoning": "string",  //Why you chose that answer.
+    "answer": "string"  //Please output the answer label for the question.(e.g., A, B, C)
 }}
 
 """.strip()
@@ -47,15 +45,16 @@ FINAL_ANSWER_PROMPT_TEMPLATE = """
 {debate_history}
 
 # Instruction
--According to your initial answer and debate history,output your *final* answer in JSON with exactly two keys.
-- Output JSON only with two keys: "answer" (one of A–D etc.) and "reasoning" (1-2 sentences).
+- The following is a multiple-choice question. Please choose the single most appropriate option and provide its label (e.g., A, B, C).
+- According to your initial answer and debate history,output your *final* answer in JSON with exactly two keys.
+- Output JSON only with two keys: "answer"  and "reasoning".
 - Do NOT include any additional keys or natural language outside the JSON.
 
 # Output format
 ```json
 {{  
-    "answer": "string",  //Please provide your final answer based on your initial answer and discussion, such as A, B, C, or D.
-    "reasoning": "string"  //Please explain why you chose your final answer.
+    "answer": "string",  //Please provide your final answer label based on your initial answer and discussion(e.g., A, B, C).
+    "reasoning": "string"  //Please concisely explain why you chose your final answer.
 }}
 
 """.strip()

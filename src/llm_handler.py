@@ -1,3 +1,4 @@
+# src/llm_handler.py
 from __future__ import annotations
 
 import json
@@ -48,6 +49,56 @@ class LLMHandler:
         )
         print("[LLMHandler] ✅ モデル読み込み完了")
 
+    # ──────────────────── 内部ユーティリティ ──────────────────── #
+    @staticmethod
+    def _strip_code_fence(text: str) -> str:
+        """```json ... ``` や ``` ... ``` を除去して戻す"""
+        text = text.strip()
+        # 先頭の ```json / ``` を除く
+        text = re.sub(r"^\s*```(?:json)?\s*", "", text, flags=re.I)
+        # 末尾の ``` を除く
+        text = re.sub(r"\s*```$", "", text).strip()
+        return text
+
+    @staticmethod
+    def _safe_load_json(raw_text: str) -> Dict[str, str]:
+        """
+        多少壊れた JSON でも best-effort でパースして dict を返す。
+        必須キーが無ければ空文字列で埋める。
+        """
+        # コードフェンス削除
+        txt = LLMHandler._strip_code_fence(raw_text)
+
+        # そのままチャレンジ
+        try:
+            return json.loads(txt)
+        except Exception:
+            pass
+
+        # シングルクォート → ダブルクォート
+        txt_q = txt.replace("'", '"')
+        try:
+            return json.loads(txt_q)
+        except Exception:
+            pass
+
+        # 最初の { と 最後の } でサブストリング抽出
+        first = txt.find("{")
+        last = txt.rfind("}")
+        if first != -1 and last != -1 and last > first:
+            sub = txt[first : last + 1]
+            try:
+                return json.loads(sub)
+            except Exception:
+                # サブストリングでも失敗したらあきらめ
+                pass
+
+        # ここまで来たらパース不能
+        return {
+            "answer": "",
+            "reasoning": f"failed to parse: {raw_text[:100]}..."  # 先頭100文字だけ保持
+        }
+
     # ──────────────────── 共通 JSON 生成ユーティリティ ──────────────────── #
     def _generate_json_only(
         self,
@@ -56,7 +107,7 @@ class LLMHandler:
         agent_name: str,
         persona: str,
         phase: str,
-        max_tokens: int = 128,
+        max_tokens: int = 512,
     ) -> Dict[str, str]:
         system_prompt = (
             f"You are {agent_name}. {persona}\n"
@@ -66,31 +117,42 @@ class LLMHandler:
             {"role": "system", "content": system_prompt},
             {"role": "user", "content": user_prompt},
         ]
-        try:
-            # print(messages)
-            resp = self.model.create_chat_completion(
-                messages=messages,
-                response_format={"type": "json_object"},
-                max_tokens=max_tokens,
+
+        # llama-cpp-python は response_format を無視することがあるが
+        # 付けても害はないので一応付けておく
+        resp = self.model.create_chat_completion(
+            messages=messages,
+            response_format={"type": "json_object"},
+            max_tokens=max_tokens,
+        )
+
+        content = resp["choices"][0]["message"]["content"]
+
+        # まれに dict で返ってくる場合もある
+        if isinstance(content, dict):
+            parsed = content
+        else:
+            parsed = self._safe_load_json(str(content))
+
+        # 念のため必須キーを保証
+        parsed.setdefault("reasoning", "")
+        parsed.setdefault("answer", "")
+        
+
+        if self.logger:
+            self.logger.log_generated(
+                agent_name=agent_name,
+                turn=0 if phase == "Initial" else 30,  # 初回/最終は負数で区別
+                full_text=str(content),
             )
-            print(resp)
-            raw = resp["choices"][0]["message"]["content"]
-            print(f"[{phase}-raw] {agent_name} >>> {raw}")
-            return json.loads(raw)
-        except Exception:
-            # JSON が壊れている場合は {...} を抜き出す
-            try:
-                json_str = re.search(r"\{.*\}", raw, re.S).group(0)  # type: ignore
-                return json.loads(json_str)
-            except Exception:
-                return {"answer": "", "reasoning": "failed to parse"}
+
+        return parsed
 
     # 初回回答
     def generate_initial_answer(
         self, topic: str, *, agent_name: str, persona: str
     ) -> Dict[str, str]:
         prompt = prompts.INITIAL_ANSWER_PROMPT_TEMPLATE.format(topic=topic)
-
         return self._generate_json_only(
             prompt, agent_name=agent_name, persona=persona, phase="Initial"
         )
@@ -166,15 +228,12 @@ class LLMHandler:
         if self.logger:
             self.logger.log(agent_name, phase, turn, system_prompt, user_prompt)
 
-        try:
-            resp = self.model.create_chat_completion(
-                messages=messages,
-                response_format={"type": "json_object"},
-                max_tokens=256,
-            )
-            return json.loads(resp["choices"][0]["message"]["content"])
-        except Exception:
-            return {"action": "listen", "thought": "JSON parse error → listen"}
+        resp = self.model.create_chat_completion(
+            messages=messages,
+            response_format={"type": "json_object"},
+            max_tokens=256,
+        )
+        return self._safe_load_json(resp["choices"][0]["message"]["content"])
 
     def generate_utterance(
         self,
@@ -203,8 +262,5 @@ class LLMHandler:
         if self.logger:
             self.logger.log(agent_name, phase, turn, system_prompt, user_prompt)
 
-        try:
-            resp = self.model.create_chat_completion(messages=messages)
-            return resp["choices"][0]["message"]["content"].strip()
-        except Exception:
-            return "…"
+        resp = self.model.create_chat_completion(messages=messages)
+        return resp["choices"][0]["message"]["content"].strip()

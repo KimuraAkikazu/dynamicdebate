@@ -176,7 +176,7 @@ class DiscussionManager:
                     if aa["agent_name"] == agent_name:
                         th = aa["action_plan"].get("thought", "")
                         if th:
-                            lines.append(f"Turn{e['turn']}   {agent_name}(thought): {th}")
+                            lines.append(f"Turn{e['turn']}   your thought: {th}")
                         break
         return "\n".join(lines)
 
