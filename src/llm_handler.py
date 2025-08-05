@@ -1,10 +1,12 @@
 from __future__ import annotations
 
 import json
+import re
 from pathlib import Path
 from typing import Any, Dict, Optional, Sequence
 
 from llama_cpp import Llama
+
 from . import prompts
 from .prompt_logger import PromptLogger
 
@@ -17,6 +19,7 @@ class LLMHandler:
             cls._instance = super().__new__(cls)
         return cls._instance
 
+    # ──────────────────── 初期化 ──────────────────── #
     def __init__(
         self,
         config: Dict[str, Any],
@@ -39,13 +42,79 @@ class LLMHandler:
             model_path=str(self.model_path),
             n_gpu_layers=config.get("n_gpu_layers", -1),
             n_ctx=config.get("n_ctx", 4096),
-            temperature=config.get("temperature", 0.7),
+            temperature=config.get("temperature", 0.0),
             max_tokens=config.get("max_tokens", 512),
             chat_format="llama-3",
         )
         print("[LLMHandler] ✅ モデル読み込み完了")
 
-    # ======================  Internal – build system prompt  ====================== #
+    # ──────────────────── 共通 JSON 生成ユーティリティ ──────────────────── #
+    def _generate_json_only(
+        self,
+        user_prompt: str,
+        *,
+        agent_name: str,
+        persona: str,
+        phase: str,
+        max_tokens: int = 128,
+    ) -> Dict[str, str]:
+        system_prompt = (
+            f"You are {agent_name}. {persona}\n"
+            "You are debating with other AI agents."
+        )
+        messages = [
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": user_prompt},
+        ]
+        try:
+            # print(messages)
+            resp = self.model.create_chat_completion(
+                messages=messages,
+                response_format={"type": "json_object"},
+                max_tokens=max_tokens,
+            )
+            print(resp)
+            raw = resp["choices"][0]["message"]["content"]
+            print(f"[{phase}-raw] {agent_name} >>> {raw}")
+            return json.loads(raw)
+        except Exception:
+            # JSON が壊れている場合は {...} を抜き出す
+            try:
+                json_str = re.search(r"\{.*\}", raw, re.S).group(0)  # type: ignore
+                return json.loads(json_str)
+            except Exception:
+                return {"answer": "", "reasoning": "failed to parse"}
+
+    # 初回回答
+    def generate_initial_answer(
+        self, topic: str, *, agent_name: str, persona: str
+    ) -> Dict[str, str]:
+        prompt = prompts.INITIAL_ANSWER_PROMPT_TEMPLATE.format(topic=topic)
+
+        return self._generate_json_only(
+            prompt, agent_name=agent_name, persona=persona, phase="Initial"
+        )
+
+    # 最終回答
+    def generate_final_answer(
+        self,
+        topic: str,
+        initial_answer_str: str,
+        debate_history: str,
+        *,
+        agent_name: str,
+        persona: str,
+    ) -> Dict[str, str]:
+        prompt = prompts.FINAL_ANSWER_PROMPT_TEMPLATE.format(
+            topic=topic,
+            initial_answer=initial_answer_str,
+            debate_history=debate_history,
+        )
+        return self._generate_json_only(
+            prompt, agent_name=agent_name, persona=persona, phase="Final"
+        )
+
+    # ======================  内部: system prompt ====================== #
     def _build_system_prompt(
         self,
         *,
@@ -56,7 +125,6 @@ class LLMHandler:
         max_turn: int,
         turn: int,
     ) -> str:
-        """Assemble system‑prompt string."""
         p1 = peer_names[0] if len(peer_names) >= 1 else "Another agent"
         p2 = peer_names[1] if len(peer_names) >= 2 else "Another agent"
         return prompts.SYSTEM_PROMPT.format(
@@ -70,7 +138,7 @@ class LLMHandler:
             turns_left=max_turn - turn,
         )
 
-    # ======================  Public API  ====================== #
+    # ======================  行動計画 / 発話生成 ====================== #
     def generate_action(
         self,
         user_prompt: str,
@@ -91,23 +159,20 @@ class LLMHandler:
             max_turn=max_turn,
             turn=turn,
         )
-
         messages = [
             {"role": "system", "content": system_prompt},
             {"role": "user", "content": user_prompt},
         ]
-
         if self.logger:
             self.logger.log(agent_name, phase, turn, system_prompt, user_prompt)
 
         try:
             resp = self.model.create_chat_completion(
-                messages=messages, response_format={"type": "json_object"},
-                max_tokens=256
+                messages=messages,
+                response_format={"type": "json_object"},
+                max_tokens=256,
             )
-            raw = resp["choices"][0]["message"]["content"]
-            print(raw)
-            return json.loads(raw)
+            return json.loads(resp["choices"][0]["message"]["content"])
         except Exception:
             return {"action": "listen", "thought": "JSON parse error → listen"}
 
@@ -131,12 +196,10 @@ class LLMHandler:
             max_turn=max_turn,
             turn=turn,
         )
-
         messages = [
             {"role": "system", "content": system_prompt},
             {"role": "user", "content": user_prompt},
         ]
-
         if self.logger:
             self.logger.log(agent_name, phase, turn, system_prompt, user_prompt)
 

@@ -1,4 +1,4 @@
-"""Agent class (turn‑wise history & intent aware)"""
+"""Agent class (turn-wise history & intent aware)"""
 from __future__ import annotations
 
 import re
@@ -8,19 +8,41 @@ from typing import Any, Deque, List, Optional, Sequence
 from . import prompts
 from .llm_handler import LLMHandler
 
-THOUGHT_WINDOW = 10  # not used any more but kept for future tweaks
-
 
 class Agent:
     def __init__(self, name: str, persona: str, llm_handler: LLMHandler):
         self.name = name
         self.persona = persona
         self.llm_handler = llm_handler
-        self.utterance_queue: Deque[str] = deque()
-        # keep (turn, thought) tuples
-        self.thought_history: List[tuple[int, str]] = []
 
-    # ───────────────────── Action planning ─────────────────────
+        # runtime state
+        self.utterance_queue: Deque[str] = deque()
+        self.thought_history: List[tuple[int, str]] = []
+        self.initial_answer: dict[str, str] = {}
+        self.initial_answer_str: str = ""
+        self.all_initial_answers_str: str = ""  # 全員分
+
+    # ──────────────────── 初回回答 ──────────────────── #
+    def generate_initial_answer(self, topic: str) -> None:
+        self.initial_answer = self.llm_handler.generate_initial_answer(
+            topic, agent_name=self.name, persona=self.persona
+        )
+        self.initial_answer_str = (
+            f"Answer: {self.initial_answer.get('answer','')}, "
+            f"Reason: {self.initial_answer.get('reasoning','')}"
+        )
+
+    # ──────────────────── 最終回答 ──────────────────── #
+    def generate_final_answer(self, topic: str, debate_history: str) -> dict[str, str]:
+        return self.llm_handler.generate_final_answer(
+            topic,
+            self.initial_answer_str,
+            debate_history,
+            agent_name=self.name,
+            persona=self.persona,
+        )
+
+    # ───────────────────── Action planning ───────────────────── #
     def plan_action(
         self,
         turn_log: str,
@@ -32,7 +54,6 @@ class Agent:
         silence: bool,
         peer_names: Sequence[str],
     ) -> dict[str, Any]:
-        """Ask LLM for the next‑turn action plan."""
         template = (
             prompts.SILENCE_PLAN_PROMPT_TEMPLATE
             if silence
@@ -42,8 +63,8 @@ class Agent:
             turn_log=turn_log,
             last_event=last_event,
             turns_left=max_turn - turn,
+            initial_answer=self.all_initial_answers_str,
         )
-
         action_plan = self.llm_handler.generate_action(
             prompt,
             turn=turn,
@@ -53,14 +74,11 @@ class Agent:
             topic=topic,
             peer_names=peer_names,
         )
-
-        # store thought with turn index
         if isinstance(action_plan, dict) and "thought" in action_plan:
             self.thought_history.append((turn, action_plan["thought"]))
-
         return action_plan
 
-    # ───────────────────── Prepare utterance ───────────────────
+    # ───────────────────── Prepare utterance ─────────────────── #
     def decide_to_speak(
         self,
         turn_log: str,
@@ -72,16 +90,14 @@ class Agent:
         *,
         peer_names: Sequence[str],
     ) -> None:
-        """Generate utterance, chunk it, and queue."""
         self.utterance_queue.clear()
-
         utterance_prompt = prompts.GENERATE_UTTERANCE_PROMPT_TEMPLATE.format(
             turn_log=turn_log,
             thought=thought,
             intent=intent,
             turns_left=max_turn - turn,
+            initial_answer=self.all_initial_answers_str,
         ).strip()
-
         full_text = self.llm_handler.generate_utterance(
             utterance_prompt,
             turn=turn,
@@ -91,15 +107,13 @@ class Agent:
             topic=topic,
             peer_names=peer_names,
         )
-
         if self.llm_handler.logger:
             self.llm_handler.logger.log_generated(
                 agent_name=self.name, turn=turn, full_text=full_text
             )
-
         self.utterance_queue.extend(self._chunk_utterance(full_text))
 
-    # ───────────────────── Chunk utilities ─────────────────────
+    # ───────────────────── Chunk utilities ───────────────────── #
     @staticmethod
     def _chunk_utterance(text: str) -> List[str]:
         parts = re.split(r"([。！？,.?!])", text)
@@ -115,6 +129,5 @@ class Agent:
             chunks.append(buf)
         return chunks
 
-    # ───────────────────── Next chunk ──────────────────────────
     def get_next_chunk(self) -> Optional[str]:
         return self.utterance_queue.popleft() if self.utterance_queue else None

@@ -12,8 +12,8 @@ llm:
 
 # 議論全体の設定
 discussion:
-  topic: "Find all zeros in the indicated finite field of the given polynomial with coefficients in that field. x^5 + 3x^3 + x^2 + 2x in Z_5.\nA: 0 \nB: 1\nC: 0,1\nD: 0,4"
-  max_turns: 30
+  topic: "Question: Let V be the set of all real polynomials p(x). Let D be the differentiation operator and let T be the operator T(p(x)) = xp(x). Then DT - TD is equal to which of the following?(A) 0  (B) I (the identity operator)  (C) -I  (D) 2D  (E) 2T  (F) x  (G) p(x)  (H) -p(x)  (I) x^2  (J) D^2  "
+  max_turns: 10
 
 # 参加エージェントの設定
 agents:

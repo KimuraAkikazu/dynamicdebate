@@ -1,15 +1,15 @@
-"""議論全体を統括する DiscussionManager (per‑agent turn‑wise history & random tie‑break)"""
+"""議論全体を統括する DiscussionManager (per-agent turn-wise history & random tie-break)"""
 from __future__ import annotations
 
 import json
-import random           # ★ 追加
+import random
 from datetime import datetime
 from pathlib import Path
-from typing import Any, List, Optional, Sequence, Tuple
+from typing import Any, List, Optional, Tuple
 
 from .agent import Agent
 
-HISTORY_WINDOW = 30  # 直近何行の履歴を渡すか
+HISTORY_WINDOW = 10  # number of lines to pass to each agent
 
 
 class DiscussionManager:
@@ -22,7 +22,6 @@ class DiscussionManager:
         self.current_actions: dict[str, Any] = {}
         self.speaker: Optional[Agent] = None
         self.speaker_interrupt = False
-        self.first_chunk = False
 
         logs_dir = Path(__file__).resolve().parents[1] / "logs"
         logs_dir.mkdir(exist_ok=True)
@@ -31,63 +30,53 @@ class DiscussionManager:
         self.log_data: List[dict[str, Any]] = []
         self._write_log()
 
-    # ───────────────────────── 公開 API ───────────────────────── #
+    # ───────────────────────── Public API ───────────────────────── #
     def run_discussion(self) -> None:
         print(f"=== Debate Start: {self.topic} ===")
         self._initialize_discussion()
         for turn in range(1, self.max_turns + 1):
             self._run_turn(turn)
         print("=== Debate End ===")
+        self._collect_final_answers()
 
-    # ───────────────────── Turn‑wise log (per agent) ───────────────────── #
-    def _build_turn_log(self, agent_name: str, limit: int) -> str:
-        """
-        Assemble history for *agent_name*:
-          • utterance line for every turn
-          • (agent_name)(thought): ...  ← only that agent’s thought & only when they were NOT the speaker
-        """
-        lines: List[str] = []
-        for e in self.log_data[-limit:]:
-            if e["turn"] == 0:
-                continue  # skip planning turn
-            # utterance line
-            if e["event_type"] in {"utterance", "interrupt"}:
-                lines.append(f"{e['speaker']}: {e['content']}")
-            elif e["event_type"] == "silence":
-                lines.append("Silence")
-
-            # agent's own thought for that turn (if any)
-            if e["speaker"] != agent_name:  # speaker自体のターンでは thought を付けない
-                for aa in e["agent_actions"]:
-                    if aa["agent_name"] == agent_name:
-                        th = aa["action_plan"].get("thought", "")
-                        if th:
-                            lines.append(f"  {agent_name}(thought): {th}")
-                        break
-        return "\n".join(lines)
-
-    # ───────────────────────── 初期化 ───────────────────────── #
+    # ───────────────────────── Initialization ───────────────────────── #
     def _initialize_discussion(self) -> None:
+        # ---- 1. initial answers ----
+        for ag in self.agents:
+            ag.generate_initial_answer(self.topic)
+            print(f"[Init] {ag.name} → {ag.initial_answer_str}")
+
+        # ---- 2. share all initial answers ----
+        all_lines = [
+            f"{ag.name}: Answer={ag.initial_answer.get('answer','')}, "
+            f"Reason={ag.initial_answer.get('reasoning','')}"
+            for ag in self.agents
+        ]
+        all_initial = "\n".join(all_lines)
+        for ag in self.agents:
+            ag.all_initial_answers_str = all_initial
+
+        # ---- 3. first action planning (turn 0) ----
         self.current_actions.clear()
         for ag in self.agents:
             peers = [p.name for p in self.agents if p is not ag]
-            turn_log = ""  # 初回は履歴なし
             self.current_actions[ag.name] = ag.plan_action(
-                turn_log,
-                "",
-                self.topic,
-                0,
-                self.max_turns,
+                turn_log="",
+                last_event="",
+                topic=self.topic,
+                turn=0,
+                max_turn=self.max_turns,
                 silence=False,
                 peer_names=peers,
             )
-        # turn0 をログ
+
         self.log_data.append(
             {
                 "turn": 0,
                 "event_type": "plan",
                 "speaker": None,
                 "content": "",
+                "initial_answers": {ag.name: ag.initial_answer for ag in self.agents},
                 "agent_actions": [
                     {"agent_name": n, "action_plan": p}
                     for n, p in self.current_actions.items()
@@ -97,11 +86,11 @@ class DiscussionManager:
         self._write_log()
         self._determine_next_speaker(0)
 
-    # ───────────────────── 1ターン処理 ───────────────────── #
+    # ───────────────────── One-turn processing ───────────────────── #
     def _run_turn(self, turn: int) -> None:
         event_type, content, speaker_name = "silence", "", None
 
-        # ---------- 発話フェーズ ----------
+        # ---- Utterance phase ----
         if self.speaker:
             chunk = self.speaker.get_next_chunk()
             if chunk:
@@ -117,9 +106,9 @@ class DiscussionManager:
                 self.speaker = None
 
         if event_type == "silence":
-            print(f"[Turn {turn}] --- 沈黙 ---")
+            print(f"[Turn {turn}] --- Silence ---")
 
-        # ---------- 行動計画フェーズ ----------
+        # ---- Plan phase ----
         self.current_actions.clear()
         last_event = (
             f"Silence:None:No one spoke in this turn({turn}/{self.max_turns})"
@@ -142,11 +131,11 @@ class DiscussionManager:
                 peer_names=peers,
             )
 
-        # ---------- 次ターンのスピーカー選定 ----------
+        # ---- Next speaker ----
         if turn < self.max_turns:
             self._determine_next_speaker(turn)
 
-        # ---------- ログ ----------
+        # ---- Logging ----
         self.log_data.append(
             {
                 "turn": turn,
@@ -161,31 +150,70 @@ class DiscussionManager:
         )
         self._write_log()
 
-    # ──────────────────── スピーカー選定 ──────────────────── #
+    # ──────────────────── Build Turn Log  ← ★ 修正 ──────────────────── #
+    def _build_turn_log(self, agent_name: str, limit: int) -> str:
+        """
+        Assemble per-agent history with explicit turn numbers:
+
+        TurnX Speaker: utterance
+        TurnX   Agent(thought): ...
+        """
+        lines: List[str] = []
+        for e in self.log_data[-limit:]:
+            # skip planning turn
+            if isinstance(e["turn"], int) and e["turn"] == 0:
+                continue
+
+            # utterance / interrupt / silence lines
+            if e["event_type"] in {"utterance", "interrupt"}:
+                lines.append(f"Turn{e['turn']} {e['speaker']}: {e['content']}")
+            elif e["event_type"] == "silence":
+                lines.append(f"Turn{e['turn']} Silence")
+
+            # agent's own thought
+            if e["speaker"] != agent_name:
+                for aa in e["agent_actions"]:
+                    if aa["agent_name"] == agent_name:
+                        th = aa["action_plan"].get("thought", "")
+                        if th:
+                            lines.append(f"Turn{e['turn']}   {agent_name}(thought): {th}")
+                        break
+        return "\n".join(lines)
+
+    # ──────────────────── Collect final answers ──────────────────── #
+    def _collect_final_answers(self) -> None:
+        print("=== Collecting final answers ===")
+        debate_history = "\n".join(
+            f"{spk}: {txt}" for spk, txt in self.history[-1000:]
+        )
+        final_answers = {}
+        for ag in self.agents:
+            ans = ag.generate_final_answer(self.topic, debate_history)
+            final_answers[ag.name] = ans
+            print(f"[FINAL] {ag.name} -> {ans}")
+
+        self.log_data.append(
+            {"turn": "final", "event_type": "final_answers", "answers": final_answers}
+        )
+        self._write_log()
+
+    # ──────────────────── Speaker selection ──────────────────── #
     def _determine_next_speaker(self, current_turn: int) -> None:
-        # 候補抽出
-        candidates: List[tuple[str, dict[str, Any]]] = [
+        candidates = [
             (n, p)
             for n, p in self.current_actions.items()
             if p.get("action") in {"speak", "interrupt"}
         ]
         if not candidates:
             return
-
-        # 最大 urgency を求め，同値ならランダム
         max_u = max(p.get("urgency", 0) for _, p in candidates)
-        top: List[tuple[str, dict[str, Any]]] = [
-            (n, p) for n, p in candidates if p.get("urgency", 0) == max_u
-        ]
-        next_name, next_plan = random.choice(top)  # ★ ランダム tie‑break
+        top = [(n, p) for n, p in candidates if p.get("urgency", 0) == max_u]
+        next_name, next_plan = random.choice(top)
 
         if self.speaker and self.speaker.name == next_name:
             return
 
-        self.speaker_interrupt = (
-            self.speaker is not None and self.speaker.utterance_queue
-        )
-
+        self.speaker_interrupt = self.speaker is not None and self.speaker.utterance_queue
         self.speaker = next(a for a in self.agents if a.name == next_name)
         peers = [a.name for a in self.agents if a is not self.speaker]
         turn_log = self._build_turn_log(self.speaker.name, HISTORY_WINDOW)
@@ -199,9 +227,9 @@ class DiscussionManager:
             peer_names=peers,
         )
         mode = "interrupt" if self.speaker_interrupt else "speak"
-        print(f"[Manager] 👉 スピーカー変更: {self.speaker.name} ({mode})")
+        print(f"[Manager] 👉 Next speaker: {self.speaker.name} ({mode})")
 
-    # ──────────────────── ヘルパ: ログ書き込み ─────────────────── #
+    # ──────────────────── Log helper ──────────────────── #
     def _write_log(self) -> None:
         with open(self.log_path, "w", encoding="utf-8") as f:
             json.dump(self.log_data, f, ensure_ascii=False, indent=2)
