@@ -31,13 +31,14 @@ class DiscussionManager:
         self._write_log()
 
     # ───────────────────────── Public API ───────────────────────── #
-    def run_discussion(self) -> None:
+    def run_discussion(self) -> dict[str, dict[str, str]]:
+        """ディベートを実行して各エージェントの最終回答を返す"""
         print(f"=== Debate Start: {self.topic} ===")
         self._initialize_discussion()
         for turn in range(1, self.max_turns + 1):
             self._run_turn(turn)
         print("=== Debate End ===")
-        self._collect_final_answers()
+        return self._collect_final_answers()  # ← ★ 戻り値を追加
 
     # ───────────────────────── Initialization ───────────────────────── #
     def _initialize_discussion(self) -> None:
@@ -150,27 +151,19 @@ class DiscussionManager:
         )
         self._write_log()
 
-    # ──────────────────── Build Turn Log  ← ★ 修正 ──────────────────── #
+    # ──────────────────── Build Turn Log ──────────────────── #
     def _build_turn_log(self, agent_name: str, limit: int) -> str:
-        """
-        Assemble per-agent history with explicit turn numbers:
-
-        TurnX Speaker: utterance
-        TurnX   Agent(thought): ...
-        """
         lines: List[str] = []
         for e in self.log_data[-limit:]:
             # skip planning turn
             if isinstance(e["turn"], int) and e["turn"] == 0:
                 continue
 
-            # utterance / interrupt / silence lines
             if e["event_type"] in {"utterance", "interrupt"}:
                 lines.append(f"Turn{e['turn']} {e['speaker']}: {e['content']}")
             elif e["event_type"] == "silence":
                 lines.append(f"Turn{e['turn']} Silence")
 
-            # agent's own thought
             if e["speaker"] != agent_name:
                 for aa in e["agent_actions"]:
                     if aa["agent_name"] == agent_name:
@@ -181,12 +174,12 @@ class DiscussionManager:
         return "\n".join(lines)
 
     # ──────────────────── Collect final answers ──────────────────── #
-    def _collect_final_answers(self) -> None:
+    def _collect_final_answers(self) -> dict[str, dict[str, str]]:
         print("=== Collecting final answers ===")
         debate_history = "\n".join(
             f"{spk}: {txt}" for spk, txt in self.history[-1000:]
         )
-        final_answers = {}
+        final_answers: dict[str, dict[str, str]] = {}
         for ag in self.agents:
             ans = ag.generate_final_answer(self.topic, debate_history)
             final_answers[ag.name] = ans
@@ -196,8 +189,16 @@ class DiscussionManager:
             {"turn": "final", "event_type": "final_answers", "answers": final_answers}
         )
         self._write_log()
+        return final_answers  # ← ★ 追加
 
     # ──────────────────── Speaker selection ──────────────────── #
+    def _urgency_value(self, plan: dict[str, Any]) -> int:
+        """urgency フィールドを安全に int 化"""
+        try:
+            return int(plan.get("urgency", 0))
+        except (ValueError, TypeError):
+            return 0
+
     def _determine_next_speaker(self, current_turn: int) -> None:
         candidates = [
             (n, p)
@@ -206,8 +207,10 @@ class DiscussionManager:
         ]
         if not candidates:
             return
-        max_u = max(p.get("urgency", 0) for _, p in candidates)
-        top = [(n, p) for n, p in candidates if p.get("urgency", 0) == max_u]
+
+        max_u = max(self._urgency_value(p) for _, p in candidates)
+        top = [(n, p) for n, p in candidates if self._urgency_value(p) == max_u]
+
         next_name, next_plan = random.choice(top)
 
         if self.speaker and self.speaker.name == next_name:

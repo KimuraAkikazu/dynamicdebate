@@ -24,8 +24,8 @@ INITIAL_ANSWER_PROMPT_TEMPLATE = """
 # Output format
 ```json
 {{  
-    "reasoning": "string",  //Why you chose that answer.
-    "answer": "string"  //Please output the answer label for the question.(e.g., A, B, C)
+    "reasoning": "string",  //please explain why you chose that answer.
+    "answer": "string"  //Please output the answer label for the question.(e.g., A, B, C, D)
 }}
 
 """.strip()
@@ -34,21 +34,22 @@ INITIAL_ANSWER_PROMPT_TEMPLATE = """
 # Final answer prompt (after the debate)
 # -------------------------------------------------- #
 FINAL_ANSWER_PROMPT_TEMPLATE = """
+You are debating with other AI agents.
+Your goal is to work with other agents to find a single answer.
 
 # Debated question
 {topic}
 
-# Your initial answer (pre-debate)
+# initial answer of all agents
 {initial_answer}
 
 # Full debate history (newest last, truncated)
 {debate_history}
 
 # Instruction
-- The following is a multiple-choice question. Please choose the single most appropriate option and provide its label (e.g., A, B, C).
-- According to your initial answer and debate history,output your *final* answer in JSON with exactly two keys.
+- Please begin by telling us your answer and why you chose that option.
+- Refer to your initial answer and debate history,output your *final* answer and reasoning.
 - Output JSON only with two keys: "answer"  and "reasoning".
-- Do NOT include any additional keys or natural language outside the JSON.
 
 # Output format
 ```json
@@ -56,7 +57,8 @@ FINAL_ANSWER_PROMPT_TEMPLATE = """
     "answer": "string",  //Please provide your final answer label based on your initial answer and discussion(e.g., A, B, C).
     "reasoning": "string"  //Please concisely explain why you chose your final answer.
 }}
-
+# Notes
+- Do NOT include any additional keys or natural language outside the JSON.
 """.strip()
 
 # -------------------------------------------------- #
@@ -82,7 +84,7 @@ Your goal is to work with other agents to find a single answer.
 
 # NATURAL CONVERSATION RULES:
 - You must infer if others are mid-speech from context (like humans do)
-- Look for incomplete sentences, "and...", "but...", logical flow breaks
+- Please be careful not to interrupt when the speaker has clearly started speaking, as this may stall the discussion.
 - Interruption is natural but should be purposeful, not repetitive
 - Avoid circular arguments - build on previous points
 -If no conclusion is reached by the maximum turn, you will be deemed defeated.
@@ -101,7 +103,7 @@ PLAN_ACTION_PROMPT_TEMPLATE = """
 # initial answer of all agents
 {initial_answer}
 
-# Turn‑wise history (newest last)
+# debate history
 {turn_log}
 
 # Utterance in this turn
@@ -120,9 +122,9 @@ PLAN_ACTION_PROMPT_TEMPLATE = """
 4: You were addressed directly and must respond.
 
 # Instruction
--Listen to the “Utterance in this turn” and output your action plan for the next turn in JSON format.
--Consider that the speaker may still be talking, and choose the best course of action to move the discussion forward.
-
+- Listen to the “Utterance in this turn” and output your action plan for the next turn in JSON format.
+- Consider the possibility that the speaker may still be speaking, and choose the best action to keep the discussion flowing smoothly.
+- Only choose `interrupt` if you are confident the speaker has finished their main point, or if the interruption is absolutely necessary for the debate to proceed correctly.
 
 # Output format
 -If you choose `listen`:
@@ -147,7 +149,7 @@ PLAN_ACTION_PROMPT_TEMPLATE = """
 # Plan‑action prompt (silence turn)
 # --------------------------------------------------
 SILENCE_PLAN_PROMPT_TEMPLATE = """
-# Your initial answer
+# initial answer of all agents
 {initial_answer}
 
 # Situation
@@ -189,7 +191,7 @@ If you choose to get the ball rolling or interrupt. Set `urgency` from 1–4.
 # Utterance‑generation prompt
 # --------------------------------------------------
 GENERATE_UTTERANCE_PROMPT_TEMPLATE = """
-# Your initial answer
+# initial answer of all agents
 {initial_answer}
 
 #Instruction
