@@ -18,16 +18,17 @@ INITIAL_ANSWER_PROMPT_TEMPLATE = """
 {topic}
 
 # Instruction
--Please cooperate with the three agents, including you, to tackle the four questions you are about to be given.
--Please begin by telling us your answer and why you chose that option.
-- Do NOT include any additional keys or natural language outside the JSON.
+- Please cooperate with the three agents, including you, to tackle the four questions you are about to be given.
+- Please begin by telling us your answer and why you chose that option.
+- Output JSON only with two keys: "reasoning" and "answer".
 # Output format
 ```json
 {{  
     "reasoning": "string",  //please explain why you chose that answer.
     "answer": "string"  //Please output the answer label for the question.(e.g., A, B, C, D)
 }}
-
+# Notes
+- Do NOT include any additional keys or natural language outside the JSON.
 """.strip()
 
 # -------------------------------------------------- #
@@ -65,13 +66,10 @@ Your goal is to work with other agents to find a single answer.
 # System prompt
 # -------------------------------------------------- #
 SYSTEM_PROMPT = """
-You are debating with other AI agents.
-Your goal is to work with other agents to find a single answer.
+Your name is {name}.You are debating with {peer1}, {peer2}.
+Your goal is to work with other agents to find a question answer.
 
-# Your Profile
-- Your name is {name}.
-- Debating with {peer1}, {peer2}.
-- Your persona:
+# Your persona:
 {persona}
 
 # Question
@@ -87,7 +85,7 @@ Your goal is to work with other agents to find a single answer.
 - Please be careful not to interrupt when the speaker has clearly started speaking, as this may stall the discussion.
 - Interruption is natural but should be purposeful, not repetitive
 - Avoid circular arguments - build on previous points
--If no conclusion is reached by the maximum turn, you will be deemed defeated.
+- If no conclusion is reached by the maximum turn, you will be deemed defeated.
 
 This is turn {turn} of {max_turn}. (**{turns_left} turns remain**.)  
 When only a few turns remain, *prioritise convergence on a clear conclusion*.
@@ -106,11 +104,11 @@ PLAN_ACTION_PROMPT_TEMPLATE = """
 # debate history
 {turn_log}
 
-# Utterance in this turn
+# events in this turn
 {last_event}
 
 
-*Actions:*
+*actions:*
 - `listen`   : I observe and listen for now to advance the discussion.
 - `speak`    : I speak because no one else is speaking now.
 - `interrupt`: I interrupt while another agent is still speaking.
@@ -122,27 +120,29 @@ PLAN_ACTION_PROMPT_TEMPLATE = """
 4: You were addressed directly and must respond.
 
 # Instruction
-- Listen to the “Utterance in this turn” and output your action plan for the next turn in JSON format.
+- Refer to the “events in this turn” and output your action plan for the next turn in JSON format.
 - Consider the possibility that the speaker may still be speaking, and choose the best action to keep the discussion flowing smoothly.
 - Only choose `interrupt` if you are confident the speaker has finished their main point, or if the interruption is absolutely necessary for the debate to proceed correctly.
 
+# Constraints
+- There is no need to predict the direction of the conversation and make a plan of action.
+- Only interrupt when you believe it will improve the overall quality of the discussion.
+- Be careful not to get caught up in endless debate.
+- When few turns remain, prioritise convergence and a clear conclusion or provisional agreement.
+
 # Output format
--If you choose `listen`:
+- If you choose `listen`:
 ```json
 {{ "thought": "string" , //How crucial is it for you to contribute to the debate right now? Explain your reasoning in one or two sentences. Avoid using violent or harmful language.
    "action": "string" //If you choose to listen, select “listen” as the action.
    }}
--Else if you choose 'speak' or 'interrupt':
+- Else if you choose 'speak' or 'interrupt':
 {{ "thought": "string" , //How crucial is it for you to contribute to the debate right now? Explain your reasoning in one or two sentences. Avoid using violent or harmful language.
   "action": "string", //If no other agent is speaking, select “speak”; if you want to interrupt someone who is speaking, select “interrupt.”
   "urgency": "string", //Please output the urgency of the statement based on your reasons. Response is a single number from:   "1" | "2" | "3" | "4"
   "intent": "string", //Please output the type of statement based on your reason, such as question, agree, summarise, deny, conclude.
   }}
-#Notes
--There is no need to predict the direction of the conversation and make a plan of action.
--Only interrupt when you believe it will improve the overall quality of the discussion.
--Be careful not to get caught up in endless debate.
--When few turns remain, prioritise convergence and a clear conclusion or provisional agreement.
+
 """.strip()
 
 # --------------------------------------------------
@@ -155,7 +155,7 @@ SILENCE_PLAN_PROMPT_TEMPLATE = """
 # Situation
 -Debate history (newest last)
 {turn_log}
--Last utterance in this turn
+-action in this turn
 No agent spoke this turn. Only {turns_left} turns remain.
 
 #Instruction
@@ -181,7 +181,7 @@ If you choose to get the ball rolling or interrupt. Set `urgency` from 1–4.
   "intent": "question/agree/summarise/challenge/conclude",
   "thought": "(reason)" }}
 
-# Notes
+# Constraints
 -There is no need to predict the direction of the conversation and make a plan of action.
 -Only interrupt when you believe it will improve the overall quality of the discussion.
 -When few turns remain, prioritise convergence and a clear conclusion or provisional agreement.
@@ -191,29 +191,28 @@ If you choose to get the ball rolling or interrupt. Set `urgency` from 1–4.
 # Utterance‑generation prompt
 # --------------------------------------------------
 GENERATE_UTTERANCE_PROMPT_TEMPLATE = """
-# initial answer of all agents
+#Context
+- Answer before the start of the debate by the previous agent:
+<INITIAL_ANSWERS>
 {initial_answer}
-
-#Instruction
--In the previous turn, you requested to speak for the reasons stated in *Reason for speaking*, 
-and you were granted the right to speak.
-Refer to the character and *Debate History* and generate a utterance that will lead the discussion to a conclusion.
-
-# Turn‑wise history (newest last)
+</INITIAL_ANSWERS>
+- Debate history (newest last):
+<DEBATE_HISTORY>
 {turn_log}
+</DEBATE_HISTORY>
+- Reason for speaking
+<REASON_SPEAKING>
+reasoning:{thought}
+intent:{intent}
+</REASON_SPEAKING>
 
-# Reason for speaking
-Thought : {thought}  
-Intent  : {intent}
+# Instruction
+You requested to speak last turn and were granted the floor.
+Refer to *Your persona* and *Debate history*, and 
+generate your utterance to other participants.
 
-#Utterance
-Write your utterance in concise, clear English.
-
-#Notes
--Omit pleasantries; state your point directly.
--When few turns remain, prioritise convergence and a clear conclusion or provisional agreement.
--Once all members have reached an agreement, please provide your response.
--Base your utterance on the debate history.
--When 0 turns remain,you must output the answer.
+# Constraints
+- Omit pleasantries; state your point directly.
+- When few turns remain, prioritise agreement.
 """.strip()
 
