@@ -1,12 +1,15 @@
 """
 MMLU の問題を順次読み込み、エージェントにディベートさせた最終回答を
-正解ラベルと照合して精度を算出するスクリプト
+正解ラベルと照合して精度を算出しつつ、
+各問題の正誤と最終 Accuracy を JSON Lines で記録するスクリプト
 """
 from __future__ import annotations
 
 import copy
+import json
 from datetime import datetime
 from pathlib import Path
+from typing import List
 
 import yaml
 from datasets import load_dataset
@@ -16,9 +19,10 @@ from src.llm_handler import LLMHandler
 from src.manager import DiscussionManager
 from src.prompt_logger import PromptLogger
 
-LABELS = ["A", "B", "C", "D", "E", "F"]  # 最大 6 択
+LABELS: List[str] = ["A", "B", "C", "D", "E", "F"]  # 最大 6 択
 
 
+# ---------- ユーティリティ ---------- #
 def load_config() -> dict:
     cfg_path = Path(__file__).resolve().parent / "config.yaml"
     with open(cfg_path, "r", encoding="utf-8") as f:
@@ -41,69 +45,101 @@ def idx_to_label(idx: int | str) -> str:
         return str(idx).strip().upper()
 
 
+# ---------- メイン ---------- #
 def main() -> None:
-    # ---------- 設定 ----------
     base_cfg = load_config()
 
-    # ---------- 実行 ID 直下フォルダ ----------
+    # 実行フォルダ作成
     run_ts = datetime.now().strftime("%Y%m%d_%H%M%S")
     run_root = Path(__file__).resolve().parent / "logs" / f"run_{run_ts}"
     run_root.mkdir(parents=True, exist_ok=True)
 
-    # ---------- LLM (logger なしで一度だけロード) ----------
+    # 結果を書き込む JSONL ファイル
+    result_file = run_root / "accuracy_log.jsonl"
+    result_fp = result_file.open("w", encoding="utf-8")
+
+    # LLM は 1 度だけロード
     llm_handler = LLMHandler(base_cfg["llm"], prompt_logger=None)
 
-    # ---------- データセット ----------
+    # データセット読み込み
     ds = load_dataset("cais/mmlu", "all", split="test")
-    NUM_QUESTIONS = 50  # デモ
+    NUM_QUESTIONS = 50  # デモ用
 
     correct = 0
     for idx, ex in enumerate(ds, 1):
         if idx > NUM_QUESTIONS:
             break
 
-        # ----- 問題フォルダ -----
+        # ---- 問題フォルダ ----
         prob_dir = run_root / f"problem_{idx:03d}"
         prob_dir.mkdir(parents=True, exist_ok=True)
 
-        # ----- PromptLogger を問題フォルダに作成 -----
+        # ---- PromptLogger ----
         prompt_logger = PromptLogger(prob_dir)
         llm_handler.logger = prompt_logger  # シングルトンに紐付け
 
-        # ----- トピック -----
+        # ---- トピック ----
         topic = format_topic(ex["question"], ex["choices"])
 
-        # ----- config コピーしてトピック差し替え -----
+        # ---- config 差し替え ----
         cfg = copy.deepcopy(base_cfg)
         cfg["discussion"]["topic"] = topic
 
-        # ----- エージェント生成 -----
+        # ---- エージェント生成 ----
         agents = [Agent(a["name"], a["persona"], llm_handler) for a in cfg["agents"]]
 
-        # ----- ディベート実行（logs は prob_dir 内） -----
+        # ---- ディベート実行 ----
         manager = DiscussionManager(agents, cfg, log_dir=prob_dir)
-        final = manager.run_discussion()  # {agent: {...}}
+        final = manager.run_discussion()
 
-        # ----- 多数決予測 -----
+        # ---- 予測 ----
         preds = [ans.get("answer", "").strip().upper() for ans in final.values()]
         pred_label = majority_vote(preds)
-
-        # ----- ゴールド -----
         gold_label = idx_to_label(ex["answer"])
 
-        # ----- 精度集計 -----
-        if pred_label == gold_label:
+        is_correct = pred_label == gold_label
+        if is_correct:
             correct += 1
 
+        # ---- コンソール表示 ----
         print(
             f"[Q{idx:03}] Pred={pred_label} | Gold={gold_label} | "
-            f"{'✅ 正解' if pred_label == gold_label else '❌ 不正解'}"
+            f"{'✅ 正解' if is_correct else '❌ 不正解'}"
         )
 
-    print(
-        f"\nAccuracy: {correct}/{NUM_QUESTIONS} = "
-        f"{correct / NUM_QUESTIONS:.2%}"
+        # ---- 結果を JSON Lines に追記 ----
+        result_fp.write(
+            json.dumps(
+                {
+                    "question_id": idx,
+                    "pred": pred_label,
+                    "gold": gold_label,
+                    "correct": is_correct,
+                },
+                ensure_ascii=False,
+            )
+            + "\n"
+        )
+        result_fp.flush()
+
+    # ---- 最終 Accuracy ----
+    accuracy = correct / NUM_QUESTIONS
+    print(f"\nAccuracy: {correct}/{NUM_QUESTIONS} = {accuracy:.2%}")
+
+    # ---- Accuracy を記録ファイルに追記 ----
+    result_fp.write(
+        json.dumps(
+            {
+                "summary": "accuracy",
+                "correct": correct,
+                "total": NUM_QUESTIONS,
+                "accuracy": accuracy,
+            },
+            ensure_ascii=False,
+        )
+        + "\n"
     )
+    result_fp.close()
 
 
 if __name__ == "__main__":

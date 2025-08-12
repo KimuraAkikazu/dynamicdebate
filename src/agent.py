@@ -98,7 +98,9 @@ class Agent:
             turns_left=max_turn - turn,
             initial_answer=self.all_initial_answers_str,
         ).strip()
-        full_text = self.llm_handler.generate_utterance(
+
+        # --- 変更点: generate_utterance から (utterance_text, raw_text) を受け取る ---
+        result = self.llm_handler.generate_utterance(
             utterance_prompt,
             turn=turn,
             max_turn=max_turn,
@@ -107,11 +109,20 @@ class Agent:
             topic=topic,
             peer_names=peer_names,
         )
+        if isinstance(result, tuple):
+            utterance_text, raw_text = result
+        else:
+            # 後方互換：タプルでない場合はそのまま文字列とみなす
+            utterance_text = raw_text = result  # type: ignore
+
+        # ログにはモデルの生出力を保存
         if self.llm_handler.logger:
             self.llm_handler.logger.log_generated(
-                agent_name=self.name, turn=turn, full_text=full_text
+                agent_name=self.name, turn=turn, full_text=raw_text
             )
-        self.utterance_queue.extend(self._chunk_utterance(full_text))
+
+        # 発話キューには "utterance" フィールドのみを格納
+        self.utterance_queue.extend(self._chunk_utterance(utterance_text))
 
     # ───────────────────── Chunk utilities ───────────────────── #
     @staticmethod

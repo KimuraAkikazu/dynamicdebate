@@ -13,22 +13,28 @@ Placeholders
 # Initial answer prompt (before the debate)
 # -------------------------------------------------- #
 INITIAL_ANSWER_PROMPT_TEMPLATE = """
+# Instruction
+- Please cooperate with the three agents, including you, to tackle the four questions you are about to be given.
+- Please begin by telling us your answer and why you chose that option.
+- Output JSON only with two keys: "reason" and "answer".
+
+# Output format
+```json
+{{  
+    "reason": "Please briefly explain why you chose that answer in 100 words or less.",  
+    "answer": "A|B|C|D",  //answer to the question, one of A, B, C, D
+}}
+
+# Constraints
+- Do NOT include any additional keys or natural language outside the JSON.
+- You must generate reasoning in 100 words or less.
+- Please choose only one answer opinion.
 
 # Question text
 {topic}
 
-# Instruction
-- Please cooperate with the three agents, including you, to tackle the four questions you are about to be given.
-- Please begin by telling us your answer and why you chose that option.
-- Output JSON only with two keys: "reasoning" and "answer".
-# Output format
-```json
-{{  
-    "reasoning": "string",  //please explain why you chose that answer.
-    "answer": "string"  //Please output the answer label for the question.(e.g., A, B, C, D)
-}}
-# Notes
-- Do NOT include any additional keys or natural language outside the JSON.
+
+
 """.strip()
 
 # -------------------------------------------------- #
@@ -38,28 +44,38 @@ FINAL_ANSWER_PROMPT_TEMPLATE = """
 You are debating with other AI agents.
 Your goal is to work with other agents to find a single answer.
 
-# Debated question
-{topic}
-
-# initial answer of all agents
-{initial_answer}
-
-# Full debate history (newest last, truncated)
-{debate_history}
-
 # Instruction
-- Please begin by telling us your answer and why you chose that option.
-- Refer to your initial answer and debate history,output your *final* answer and reasoning.
-- Output JSON only with two keys: "answer"  and "reasoning".
+- Refer to your initial answer and debate history,output your answer and reason for the question.
+- Output JSON only with two keys: "reason" and "answer".
 
 # Output format
 ```json
 {{  
-    "answer": "string",  //Please provide your final answer label based on your initial answer and discussion(e.g., A, B, C).
-    "reasoning": "string"  //Please concisely explain why you chose your final answer.
+    "reason": "Please briefly explain why you chose that answer in 100 words or less.", 
+    "answer": "A|B|C|D", //answer to the question, one of A, B, C, D  
 }}
-# Notes
+
+# Constraints
 - Do NOT include any additional keys or natural language outside the JSON.
+- You must generate reasoning in 100 words or less.
+- Please choose only one answer opinion.
+
+# Debated question
+<QUESTION>
+{topic}
+</QUESTION>
+
+# initial answer of all agents
+<INITIAL_ANSWERS>
+{initial_answer}
+</INITIAL_ANSWERS>
+# Debate history
+<DEBATE_HISTORY>
+{debate_history}
+</DEBATE_HISTORY>
+
+
+
 """.strip()
 
 # -------------------------------------------------- #
@@ -75,7 +91,8 @@ Your goal is to work with other agents to find a question answer.
 # Question
 {topic}
 # Debate rules
-# The debate is multi‑turn. One turn is defined as follows:
+This debate is a maximum of {max_turn} turns.
+One turn is defined as follows:
 - Only one agent may speak per turn.
 - If there are multiple agents who wish to speak, the agent with the highest priority level will be allowed to speak.
 
@@ -87,7 +104,7 @@ Your goal is to work with other agents to find a question answer.
 - Avoid circular arguments - build on previous points
 - If no conclusion is reached by the maximum turn, you will be deemed defeated.
 
-This is turn {turn} of {max_turn}. (**{turns_left} turns remain**.)  
+This is turn {turn}. (**{turns_left} turns remain**.)  
 When only a few turns remain, *prioritise convergence on a clear conclusion*.
 """.strip()
 
@@ -98,49 +115,56 @@ When only a few turns remain, *prioritise convergence on a clear conclusion*.
 # Plan‑action prompt (normal turn)
 # -------------------------------------------------- #
 PLAN_ACTION_PROMPT_TEMPLATE = """
-# initial answer of all agents
+#Context
+- Answer before the start of the debate by the previous agent:
+<INITIAL_ANSWERS>
 {initial_answer}
-
-# debate history
+</INITIAL_ANSWERS>
+- Debate history (newest last):
+<DEBATE_HISTORY>
 {turn_log}
+</DEBATE_HISTORY>
 
-# events in this turn
+# Events in this turn
+<EVENTS_THIS_TURN>
 {last_event}
+</EVENTS_THIS_TURN>
+
+# Instruction
+- Consider the possibility that the speaker may still be speaking, and choose the best action to keep the discussion flowing smoothly.
+- Based on the information provided and the events of this turn, output the action plan for the next turn in JSON format.
 
 
-*actions:*
-- `listen`   : I observe and listen for now to advance the discussion.
-- `speak`    : I speak because no one else is speaking now.
-- `interrupt`: I interrupt while another agent is still speaking.
+# Constraints
+- Only choose `interrupt` if you are confident the speaker has finished their main statement, or if the interruption is absolutely necessary for the debate to proceed correctly.
+- There is no need to predict the direction of the conversation and make a plan of action.
+- When few turns remain, prioritise convergence and a clear conclusion or provisional agreement.
 
-*If you choose to get speak or interrupt. Set `urgency` from 1–4.*
+# All actions:
+- `listen`   : Focus on listening to move the discussion forward now.
+- `speak`    : Start talking now that the other person has finished talking.
+- `interrupt`: Interrupting someone else while they are speaking
+
+# If you choose to get speak or interrupt. Set `urgency` from 1–4.
 1: Share a general thought.  
 2: Contribute something specific.  
 3: It is urgent that you speak.  
 4: You were addressed directly and must respond.
 
-# Instruction
-- Refer to the “events in this turn” and output your action plan for the next turn in JSON format.
-- Consider the possibility that the speaker may still be speaking, and choose the best action to keep the discussion flowing smoothly.
-- Only choose `interrupt` if you are confident the speaker has finished their main point, or if the interruption is absolutely necessary for the debate to proceed correctly.
-
-# Constraints
-- There is no need to predict the direction of the conversation and make a plan of action.
-- Only interrupt when you believe it will improve the overall quality of the discussion.
-- Be careful not to get caught up in endless debate.
-- When few turns remain, prioritise convergence and a clear conclusion or provisional agreement.
-
 # Output format
 - If you choose `listen`:
 ```json
-{{ "thought": "string" , //How crucial is it for you to contribute to the debate right now? Explain your reasoning in one or two sentences. Avoid using violent or harmful language.
-   "action": "string" //If you choose to listen, select “listen” as the action.
+{{ 
+  "thought": "string" , //How crucial is it for you to contribute to the debate right now? Explain your reasoning in one or two sentences. Avoid using violent or harmful language.
+  "action": "listen",
    }}
-- Else if you choose 'speak' or 'interrupt':
-{{ "thought": "string" , //How crucial is it for you to contribute to the debate right now? Explain your reasoning in one or two sentences. Avoid using violent or harmful language.
-  "action": "string", //If no other agent is speaking, select “speak”; if you want to interrupt someone who is speaking, select “interrupt.”
-  "urgency": "string", //Please output the urgency of the statement based on your reasons. Response is a single number from:   "1" | "2" | "3" | "4"
-  "intent": "string", //Please output the type of statement based on your reason, such as question, agree, summarise, deny, conclude.
+- If you choose 'speak' or 'interrupt':
+```json
+{{ 
+  "thought": "Your thoughts after hearing what was said during this turn"
+  "action": "speak|interrupt", 
+  "urgency": 1-4,
+  "intent": "Agree|Disagree|Summarize|Pointing out|confirmation", 
   }}
 
 """.strip()
@@ -149,43 +173,51 @@ PLAN_ACTION_PROMPT_TEMPLATE = """
 # Plan‑action prompt (silence turn)
 # --------------------------------------------------
 SILENCE_PLAN_PROMPT_TEMPLATE = """
-# initial answer of all agents
+#Context
+- Answer before the start of the debate by the previous agent:
+<INITIAL_ANSWERS>
 {initial_answer}
-
-# Situation
--Debate history (newest last)
+</INITIAL_ANSWERS>
+- Debate history (newest last):
+<DEBATE_HISTORY>
 {turn_log}
+</DEBATE_HISTORY>
+
 -action in this turn
-No agent spoke this turn. Only {turns_left} turns remain.
+No agent spoke this turn.{turns_left} turns remain.
+
+
+
+# All actions:
+- `listen`   : Hear someone start talking.
+- `speak`    : Start talking about your opinion
+- `interrupt`: Interrupting someone else while they are speaking
+
 
 #Instruction
-Return your action plan for the **next turn** in JSON format.
-
-Actions:
-- `listen`   : Listen to the other agents.
-- `speak`    : Speak because no one else is speaking.
-- `interrupt`: Interrupt while another agent is still speaking.
-
-If you choose to get the ball rolling or interrupt. Set `urgency` from 1–4.  
-1: Share a general thought.  
-2: Contribute something specific.  
-3: It is urgent that you speak.  
-4: You were addressed directly and must respond.
-
-# Output format
--When you choose `listen`:
-{{ "action": "listen", "thought": "(reason)" }}
--When you choose speak or interrupt:
-{{ "action": "speak|interrupt",
-  "urgency": 1‑4,
-  "intent": "question/agree/summarise/challenge/conclude",
-  "thought": "(reason)" }}
+- Based on the information provided and the events of this turn, output the action plan for the next turn in JSON format.
 
 # Constraints
--There is no need to predict the direction of the conversation and make a plan of action.
--Only interrupt when you believe it will improve the overall quality of the discussion.
--When few turns remain, prioritise convergence and a clear conclusion or provisional agreement.
+- There is no need to predict the direction of the conversation and make a plan of action.
+- Only interrupt when you believe it will improve the overall quality of the discussion.
+- When few turns remain, prioritise convergence and a clear conclusion or provisional agreement.
+
+# Output format
+-If you choose `listen`:
+{{ 
+"action": "listen", 
+"thought": "(your thinking)" }}
+-If you choose `speak`:
+{{ "action": "speak",
+  "urgency": 1-4
+  "intent": "Agree|Disagree|Summarize|Pointing out|confirmation",
+  "thought": "(your thinking)" }}
 """.strip()
+
+# # # All actions:
+# - `listen`   : Focus on listening to move the discussion forward
+# - `speak`    : Start talking when no one else is speaking.
+# - `interrupt`: Interrupting someone else while they are speaking
 
 # --------------------------------------------------
 # Utterance‑generation prompt
@@ -208,11 +240,17 @@ intent:{intent}
 
 # Instruction
 You requested to speak last turn and were granted the floor.
-Refer to *Your persona* and *Debate history*, and 
-generate your utterance to other participants.
+Based on the information provided, act as the given persona and generate statements to other participants.
 
 # Constraints
-- Omit pleasantries; state your point directly.
 - When few turns remain, prioritise agreement.
+- Be careful not to repeat the same thing over and over again in discussions.
+- Consistently act out your persona.
+- When making a new statement, be sure to take into account what the other person said immediately before.
+# Output format
+```json
+{{
+    "utterance": "string"  //Please output your utterance to the other agents.
+}}
 """.strip()
 

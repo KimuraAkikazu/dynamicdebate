@@ -4,13 +4,22 @@ from __future__ import annotations
 import json
 import re
 from pathlib import Path
-from typing import Any, Dict, Optional, Sequence
+from typing import Any, Dict, Optional, Sequence, Tuple
 
 from llama_cpp import Llama
 
 from . import prompts
 from .prompt_logger import PromptLogger
 
+qa_schema = {
+    "type": "object",
+    "properties": {
+        "reason": {"type": "string", "maxLength": 700},  # 100語≒~700文字目安
+        "answer": {"type": "string", "enum": ["A", "B", "C", "D"]}
+    },
+    "required": ["reason", "answer"],
+    "additionalProperties": False
+}
 
 class LLMHandler:
     _instance: "LLMHandler" | None = None
@@ -54,9 +63,7 @@ class LLMHandler:
     def _strip_code_fence(text: str) -> str:
         """```json ... ``` や ``` ... ``` を除去して戻す"""
         text = text.strip()
-        # 先頭の ```json / ``` を除く
         text = re.sub(r"^\s*```(?:json)?\s*", "", text, flags=re.I)
-        # 末尾の ``` を除く
         text = re.sub(r"\s*```$", "", text).strip()
         return text
 
@@ -64,25 +71,23 @@ class LLMHandler:
     def _safe_load_json(raw_text: str) -> Dict[str, str]:
         """
         多少壊れた JSON でも best-effort でパースして dict を返す。
-        必須キーが無ければ空文字列で埋める。
         """
-        # コードフェンス削除
         txt = LLMHandler._strip_code_fence(raw_text)
 
-        # そのままチャレンジ
+        # try-as-is
         try:
             return json.loads(txt)
         except Exception:
             pass
 
-        # シングルクォート → ダブルクォート
+        # single quotes → double quotes
         txt_q = txt.replace("'", '"')
         try:
             return json.loads(txt_q)
         except Exception:
             pass
 
-        # 最初の { と 最後の } でサブストリング抽出
+        # substring between first { ... last }
         first = txt.find("{")
         last = txt.rfind("}")
         if first != -1 and last != -1 and last > first:
@@ -90,14 +95,9 @@ class LLMHandler:
             try:
                 return json.loads(sub)
             except Exception:
-                # サブストリングでも失敗したらあきらめ
                 pass
 
-        # ここまで来たらパース不能
-        return {
-            "answer": "",
-            "reasoning": f"failed to parse: {raw_text[:100]}..."  # 先頭100文字だけ保持
-        }
+        return {}
 
     # ──────────────────── 共通 JSON 生成ユーティリティ ──────────────────── #
     def _generate_json_only(
@@ -110,7 +110,7 @@ class LLMHandler:
         max_tokens: int = 512,
     ) -> Dict[str, str]:
         system_prompt = (
-            f"You are {agent_name}. {persona}\n"
+            f"You are {agent_name}. Your Persona:{persona}\n"
             "You are debating with other AI agents."
         )
         messages = [
@@ -118,31 +118,25 @@ class LLMHandler:
             {"role": "user", "content": user_prompt},
         ]
 
-        # llama-cpp-python は response_format を無視することがあるが
-        # 付けても害はないので一応付けておく
         resp = self.model.create_chat_completion(
             messages=messages,
-            response_format={"type": "json_object"},
+            response_format={"type": "json_object", "schema": qa_schema},
             max_tokens=max_tokens,
         )
-
         content = resp["choices"][0]["message"]["content"]
 
-        # まれに dict で返ってくる場合もある
         if isinstance(content, dict):
             parsed = content
         else:
             parsed = self._safe_load_json(str(content))
 
-        # 念のため必須キーを保証
-        parsed.setdefault("reasoning", "")
         parsed.setdefault("answer", "")
-        
+        parsed.setdefault("reason", "")
 
         if self.logger:
             self.logger.log_generated(
                 agent_name=agent_name,
-                turn=0 if phase == "Initial" else 30,  # 初回/最終は負数で区別
+                turn=0 if phase == "Initial" else 30,
                 full_text=str(content),
             )
 
@@ -245,7 +239,12 @@ class LLMHandler:
         persona: str,
         topic: str,
         peer_names: Sequence[str],
-    ) -> str:
+    ) -> Tuple[str, str]:
+        """
+        Returns (utterance_text, raw_model_output).
+        If the model returns JSON with an "utterance" field, that value is used.
+        Otherwise the raw text itself is treated as the utterance.
+        """
         phase = "utterance"
         system_prompt = self._build_system_prompt(
             name=agent_name,
@@ -263,4 +262,14 @@ class LLMHandler:
             self.logger.log(agent_name, phase, turn, system_prompt, user_prompt)
 
         resp = self.model.create_chat_completion(messages=messages)
-        return resp["choices"][0]["message"]["content"].strip()
+        raw_text = resp["choices"][0]["message"]["content"].strip()
+
+        parsed = self._safe_load_json(raw_text)
+        utterance = parsed.get("utterance")
+        if isinstance(utterance, str) and utterance.strip():
+            utterance_text = utterance.strip()
+        else:
+            # モデルが JSON で返さなかった場合はそのまま発話とみなす
+            utterance_text = raw_text
+
+        return utterance_text, raw_text
