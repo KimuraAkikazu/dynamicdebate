@@ -37,8 +37,11 @@ class DiscussionManager:
         self.history: List[Tuple[str, str]] = []
         self.current_actions: dict[str, Any] = {}
         self.speaker: Optional[Agent] = None
-        self.speaker_interrupt = False
+        self.speaker_interrupt = False  # 既存フィールドは維持（互換のため未使用）
         self.final_answers: dict[str, dict[str, str]] = {}
+
+        # ★ 追加: interrupt を「1回だけ適用」するためのワンショットフラグ
+        self._interrupt_once: bool = False
 
         self.log_data: List[dict[str, Any]] = []
         self._write_log()
@@ -107,7 +110,9 @@ class DiscussionManager:
         if self.speaker:
             chunk = self.speaker.get_next_chunk()
             if chunk:
-                event_type = "interrupt" if self.speaker_interrupt else "utterance"
+                # ★ ここでワンショット割り込みを消費する
+                event_type = "interrupt" if self._interrupt_once else "utterance"
+                self._interrupt_once = False  # 消費（次発話からは通常の utterance）
                 speaker_name = self.speaker.name
                 content = chunk
                 if self.history and self.history[-1][0] == speaker_name:
@@ -160,7 +165,6 @@ class DiscussionManager:
         if turn < self.max_turns:
             self._determine_next_speaker(turn)
 
-        
         self._write_log()
 
     # ──────────────────── Turn-log 生成 ──────────────────── #
@@ -218,11 +222,12 @@ class DiscussionManager:
         next_name, next_plan = random.choice(top)
 
         if self.speaker and self.speaker.name == next_name:
+            # 同一話者の継続は割り込みではない
+            self._interrupt_once = False
             return
 
-        self.speaker_interrupt = (
-            self.speaker is not None and self.speaker.utterance_queue
-        )
+        # 旧スピーカーに残りのチャンクがある場合のみ、次の新スピーカー最初の1発話を「interrupt」扱い
+        self._interrupt_once = bool(self.speaker and self.speaker.utterance_queue)
         self.speaker = next(a for a in self.agents if a.name == next_name)
         peers = [a.name for a in self.agents if a is not self.speaker]
         turn_log = self._build_turn_log(self.speaker.name, HISTORY_WINDOW)
@@ -235,7 +240,7 @@ class DiscussionManager:
             self.max_turns,
             peer_names=peers,
         )
-        mode = "interrupt" if self.speaker_interrupt else "speak"
+        mode = "interrupt" if self._interrupt_once else "speak"
         print(f"[Manager] 👉 Next speaker: {self.speaker.name} ({mode})")
 
     # ──────────────────── JSON 書込み ──────────────────── #
