@@ -142,7 +142,6 @@ PLAN_ACTION_PROMPT_TEMPLATE = """
 
 # All actions:
 - `listen`   : Focus on listening to move the discussion forward now.
-- `speak`    : Start talking now that the other person has finished talking.
 - `interrupt`: Interrupting someone else while they are speaking
 
 # If you choose to get speak or interrupt. Set `urgency` from 1–4.
@@ -158,11 +157,11 @@ PLAN_ACTION_PROMPT_TEMPLATE = """
   "thought": "string" , //How crucial is it for you to contribute to the debate right now? Explain your reasoning in one or two sentences. Avoid using violent or harmful language.
   "action": "listen",
    }}
-- If you choose 'speak' or 'interrupt':
+- If you choose  or 'interrupt':
 ```json
 {{ 
   "thought": "Your thoughts after hearing what was said during this turn"
-  "action": "speak|interrupt", 
+  "action": "interrupt", 
   "urgency": 1-4,
   "intent": "Agree|Disagree|Summarize|Pointing out|confirmation", 
   }}
