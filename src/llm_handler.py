@@ -64,7 +64,7 @@ class LLMHandler:
         """```json ... ``` や ``` ... ``` を除去して戻す"""
         text = text.strip()
         text = re.sub(r"^\s*```(?:json)?\s*", "", text, flags=re.I)
-        text = re.sub(r"\s*```$", "", text).strip()
+        text = re.sub(r"\s*```", "", text).strip()
         return text
 
     @staticmethod
@@ -261,7 +261,11 @@ class LLMHandler:
         if self.logger:
             self.logger.log(agent_name, phase, turn, system_prompt, user_prompt)
 
-        resp = self.model.create_chat_completion(messages=messages)
+        # ★ 追加: 発話生成でも JSON Object を要求
+        resp = self.model.create_chat_completion(
+            messages=messages,
+            response_format={"type": "json_object"}
+        )
         raw_text = resp["choices"][0]["message"]["content"].strip()
 
         parsed = self._safe_load_json(raw_text)
