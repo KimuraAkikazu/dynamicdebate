@@ -29,7 +29,7 @@ class Agent:
         )
         self.initial_answer_str = (
             f"Answer: {self.initial_answer.get('answer','')}, "
-            f"Reason: {self.initial_answer.get('reasoning','')}"
+            f"Reason: {self.initial_answer.get('reason','')}"
         )
 
     # ──────────────────── 最終回答 ──────────────────── #
@@ -127,13 +127,13 @@ class Agent:
     # ───────────────────── Chunk utilities ───────────────────── #
     @staticmethod
     def _chunk_utterance(text: str) -> List[str]:
-        parts = re.split(r"([。！？,.?!])", text)
+        parts = re.split(r"([。！？.?])", text)
         chunks, buf = [], ""
         for p in parts:
             if not p:
                 continue
             buf += p
-            if p in ",.。！？!?":
+            if p in ".。！？?":
                 chunks.append(buf)
                 buf = ""
         if buf:
