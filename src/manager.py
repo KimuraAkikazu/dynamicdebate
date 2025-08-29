@@ -63,7 +63,7 @@ class DiscussionManager:
         # 2) 全初回回答を共有
         all_initial = "\n".join(
             f"{ag.name}: Answer={ag.initial_answer.get('answer','')}, "
-            f"Reason={ag.initial_answer.get('reasoning','')}"
+            f"Reason={ag.initial_answer.get('reason','')}"
             for ag in self.agents
         )
         for ag in self.agents:
