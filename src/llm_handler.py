@@ -14,10 +14,22 @@ from .prompt_logger import PromptLogger
 qa_schema = {
     "type": "object",
     "properties": {
-        "reason": {"type": "string", "maxLength": 700},  # 100語≒~700文字目安
+        "reason": {"type": "string", "maxLength": 750},  # 100語≒~700文字目安
         "answer": {"type": "string", "enum": ["A", "B", "C", "D"]}
     },
     "required": ["reason", "answer"],
+    "additionalProperties": False
+}
+
+plan_action_schema = {
+    "type": "object",
+    "properties": {
+        "thought": {"type": "string", "maxLength": 300},
+        "action": {"type": "string", "enum": ["listen", "speak", "interrupt"]},
+        "urgency": {"type": "integer", "minimum": 0, "maximum": 4},
+        "intent":  {"type": "string", "maxLength": 50}
+    },
+    "required": ["thought", "action", "urgency", "intent"],
     "additionalProperties": False
 }
 
@@ -112,6 +124,7 @@ class LLMHandler:
         system_prompt = (
             f"You are {agent_name}. Your Persona:{persona}\n"
             "You are debating with other AI agents."
+            "Your goal is to work with other agents to find a single answer."
         )
         messages = [
             {"role": "system", "content": system_prompt},
@@ -224,7 +237,7 @@ class LLMHandler:
 
         resp = self.model.create_chat_completion(
             messages=messages,
-            response_format={"type": "json_object"},
+            response_format={"type": "json_object", "schema": plan_action_schema},
             max_tokens=256,
         )
         return self._safe_load_json(resp["choices"][0]["message"]["content"])
