@@ -149,10 +149,10 @@ PLAN_ACTION_PROMPT_TEMPLATE = """
 # Output format
 ```json
 {{ 
-  "thought": "Your thoughts and feelings toward other agents after hearing what was said during this turn."
-  "action": "listen|speak|interrupt", 
+  "thought": "strting" //Your thoughts and feelings toward other agents after hearing what was said during this turn.
+  "action": "listen|speak|interrupt",  //Based on your thought, choose your action for the next turn.
   "urgency": 0-4,
-  "intent": "agree|disagree|summarize|confirmation|proposal", 
+  "intent": "agree|disagree|summarize|confirmation|proposal", 　/Please select the intent of your action plan.
   }}
 
 """.strip()
@@ -196,10 +196,10 @@ Please reach a conclusion within the remaining {turns_left} turns.
 
 # Output format
 {{
-  "action": "listen|speak",
+  "thought": "Your thoughts and feelings toward other agents right now", 
+  "action": "listen|speak", //Based on your thought, choose your action for the next turn.
   "urgency": 0-4,
-  "intent": "agree|disagree|summarize|confirmation|proposal",
-  "thought": "Your thoughts and feelings toward other agents right now",
+  "intent": "agree|disagree|summarize|confirmation|proposal",  //Please select the intent of your action plan.
 }}
 """.strip()
 
