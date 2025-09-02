@@ -1,12 +1,14 @@
 """
-MMLU の問題を順次読み込み、エージェントにディベートさせた最終回答を
-正解ラベルと照合して精度を算出しつつ、
+MMLU の問題をランダムに抽出した N 問について、
+エージェントにディベートさせた最終回答を正解ラベルと照合して精度を算出しつつ、
 各問題の正誤と最終 Accuracy を JSON Lines で記録するスクリプト
 """
 from __future__ import annotations
 
 import copy
 import json
+import random
+import argparse
 from datetime import datetime
 from pathlib import Path
 from typing import List
@@ -20,6 +22,7 @@ from src.manager import DiscussionManager
 from src.prompt_logger import PromptLogger
 
 LABELS: List[str] = ["A", "B", "C", "D", "E", "F"]  # 最大 6 択
+SEED = 42  # 再現性のための乱数シード
 
 
 # ---------- ユーティリティ ---------- #
@@ -47,6 +50,15 @@ def idx_to_label(idx: int | str) -> str:
 
 # ---------- メイン ---------- #
 def main() -> None:
+    parser = argparse.ArgumentParser(description="Run MMLU debate evaluation")
+    parser.add_argument(
+        "--num",
+        type=int,
+        default=50,
+        help="Number of questions to sample (default: 50, use -1 for all)",
+    )
+    args = parser.parse_args()
+
     base_cfg = load_config()
 
     # 実行フォルダ作成
@@ -63,15 +75,26 @@ def main() -> None:
 
     # データセット読み込み
     ds = load_dataset("cais/mmlu", "all", split="test")
-    NUM_QUESTIONS = 50  # デモ用
+    total_available = len(ds)
+
+    # 使用する問題数を決定
+    if args.num < 0:
+        total = total_available
+    else:
+        total = min(args.num, total_available)
+
+    # ランダムにシャッフルして total 問を抽出
+    indices = list(range(total_available))
+    rnd = random.Random(SEED)
+    rnd.shuffle(indices)
+    selected = indices[:total]
 
     correct = 0
-    for idx, ex in enumerate(ds, 1):
-        if idx > NUM_QUESTIONS:
-            break
+    for run_id, ds_idx in enumerate(selected, start=1):
+        ex = ds[ds_idx]
 
         # ---- 問題フォルダ ----
-        prob_dir = run_root / f"problem_{idx:03d}"
+        prob_dir = run_root / f"problem_{run_id:03d}"
         prob_dir.mkdir(parents=True, exist_ok=True)
 
         # ---- PromptLogger ----
@@ -103,7 +126,7 @@ def main() -> None:
 
         # ---- コンソール表示 ----
         print(
-            f"[Q{idx:03}] Pred={pred_label} | Gold={gold_label} | "
+            f"[Q{run_id:03}] (idx={ds_idx}) Pred={pred_label} | Gold={gold_label} | "
             f"{'✅ 正解' if is_correct else '❌ 不正解'}"
         )
 
@@ -111,7 +134,8 @@ def main() -> None:
         result_fp.write(
             json.dumps(
                 {
-                    "question_id": idx,
+                    "question_id": run_id,      # 実行順のID
+                    "index_in_split": ds_idx,   # 元データ内のインデックス
                     "pred": pred_label,
                     "gold": gold_label,
                     "correct": is_correct,
@@ -123,8 +147,8 @@ def main() -> None:
         result_fp.flush()
 
     # ---- 最終 Accuracy ----
-    accuracy = correct / NUM_QUESTIONS
-    print(f"\nAccuracy: {correct}/{NUM_QUESTIONS} = {accuracy:.2%}")
+    accuracy = correct / total if total else 0.0
+    print(f"\nAccuracy: {correct}/{total} = {accuracy:.2%}")
 
     # ---- Accuracy を記録ファイルに追記 ----
     result_fp.write(
@@ -132,8 +156,10 @@ def main() -> None:
             {
                 "summary": "accuracy",
                 "correct": correct,
-                "total": NUM_QUESTIONS,
+                "total": total,
                 "accuracy": accuracy,
+                "seed": SEED,
+                "sampled": True,
             },
             ensure_ascii=False,
         )
