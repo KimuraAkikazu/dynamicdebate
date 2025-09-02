@@ -123,8 +123,6 @@ class LLMHandler:
     ) -> Dict[str, str]:
         system_prompt = (
             f"You are {agent_name}. Your Persona:{persona}\n"
-            "You are debating with other AI agents."
-            "Your goal is to work with other agents to find a single answer."
         )
         messages = [
             {"role": "system", "content": system_prompt},
@@ -190,21 +188,18 @@ class LLMHandler:
         name: str,
         peer_names: Sequence[str],
         persona: str,
-        topic: str,
+        # topic は system では使わない（prompts.py 側で削除される想定）
         max_turn: int,
-        turn: int,
+        # turn/turns_left は system では渡さない
     ) -> str:
         p1 = peer_names[0] if len(peer_names) >= 1 else "Another agent"
         p2 = peer_names[1] if len(peer_names) >= 2 else "Another agent"
         return prompts.SYSTEM_PROMPT.format(
             name=name,
             persona=persona,
-            topic=topic,
             peer1=p1,
             peer2=p2,
             max_turn=max_turn,
-            turn=turn,
-            turns_left=max_turn - turn,
         )
 
     # ======================  行動計画 / 発話生成 ====================== #
@@ -224,9 +219,8 @@ class LLMHandler:
             name=agent_name,
             peer_names=peer_names,
             persona=persona,
-            topic=topic,
+            # topic, turn は system に渡さない
             max_turn=max_turn,
-            turn=turn,
         )
         messages = [
             {"role": "system", "content": system_prompt},
@@ -263,9 +257,8 @@ class LLMHandler:
             name=agent_name,
             peer_names=peer_names,
             persona=persona,
-            topic=topic,
+            # topic, turn は system に渡さない
             max_turn=max_turn,
-            turn=turn,
         )
         messages = [
             {"role": "system", "content": system_prompt},

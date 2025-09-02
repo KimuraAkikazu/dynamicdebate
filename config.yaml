@@ -22,6 +22,6 @@ agents:
   - name: "Tanaka"
     persona: "You have high Extraversion, high Conscientiousness, low Agreeableness, high Openness, and low Neuroticism."
   - name: "Suzuki"
-    persona: "You have high Extraversion, high Conscientiousness, low Agreeableness, low Openness, and high Neuroticism."
+    persona: "You have low Extraversion, high Conscientiousness, low Agreeableness, low Openness, and high Neuroticism."
 
 # Question: Let V be the set of all real polynomials p(x). Let D be the differentiation operator and let T be the operator T(p(x)) = xp(x). Then DT - TD is equal to which of the following?(A) 0  (B) I (the identity operator)  (C) -I  (D) 2D  (E) 2T  (F) x  (G) p(x)  (H) -p(x)  (I) x^2  (J) D^2

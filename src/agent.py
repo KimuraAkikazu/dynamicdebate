@@ -63,7 +63,9 @@ class Agent:
             turn_log=turn_log,
             last_event=last_event,
             turns_left=max_turn - turn,
+            turn=turn,                    # ← 追加：plan用プロンプトに {turn} を渡す
             initial_answer=self.all_initial_answers_str,
+            topic=topic,  # ← 追加：question を PLANACTION プロンプトへ渡す
         )
         action_plan = self.llm_handler.generate_action(
             prompt,
@@ -96,6 +98,7 @@ class Agent:
             thought=thought,
             intent=intent,
             turns_left=max_turn - turn,
+            turn=turn,                    # ← 追加：plan用プロンプトに {turn} を渡す
             initial_answer=self.all_initial_answers_str,
         ).strip()
 
@@ -127,13 +130,13 @@ class Agent:
     # ───────────────────── Chunk utilities ───────────────────── #
     @staticmethod
     def _chunk_utterance(text: str) -> List[str]:
-        parts = re.split(r"([。！？])", text)
+        parts = re.split(r"([.?!])", text)
         chunks, buf = [], ""
         for p in parts:
             if not p:
                 continue
             buf += p
-            if p in "。！？":
+            if p in ".!?":
                 chunks.append(buf)
                 buf = ""
         if buf:
