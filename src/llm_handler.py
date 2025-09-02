@@ -11,27 +11,37 @@ from llama_cpp import Llama
 from . import prompts
 from .prompt_logger import PromptLogger
 
-qa_schema = {
+qa_schema: Dict[str, Any] = {
     "type": "object",
     "properties": {
-        "reason": {"type": "string", "maxLength": 750},  # 100語≒~700文字目安
-        "answer": {"type": "string", "enum": ["A", "B", "C", "D"]}
+        "reason": {"type": "string", "maxLength": 750},  # ~100 words
+        "answer": {"type": "string", "enum": ["A", "B", "C", "D"]},
     },
     "required": ["reason", "answer"],
-    "additionalProperties": False
+    "additionalProperties": False,
 }
 
-plan_action_schema = {
+plan_action_schema: Dict[str, Any] = {
     "type": "object",
     "properties": {
         "thought": {"type": "string", "maxLength": 300},
         "action": {"type": "string", "enum": ["listen", "speak", "interrupt"]},
         "urgency": {"type": "integer", "minimum": 0, "maximum": 4},
-        "intent":  {"type": "string", "maxLength": 50}
+        "intent": {"type": "string", "maxLength": 50},
+        "consensus": {
+            "type": "object",
+            "properties": {
+                "agreed": {"type": "boolean"},
+                "answer": {"type": "string", "enum": ["A", "B", "C", "D","none"]},
+            },
+            "required": ["agreed"],
+            "additionalProperties": False,
+        },
     },
-    "required": ["thought", "action", "urgency", "intent"],
-    "additionalProperties": False
+    "required": ["thought", "action", "urgency", "intent", "consensus"],
+    "additionalProperties": False,
 }
+
 
 class LLMHandler:
     _instance: "LLMHandler" | None = None
@@ -80,7 +90,7 @@ class LLMHandler:
         return text
 
     @staticmethod
-    def _safe_load_json(raw_text: str) -> Dict[str, str]:
+    def _safe_load_json(raw_text: str) -> Dict[str, Any]:
         """
         多少壊れた JSON でも best-effort でパースして dict を返す。
         """
@@ -120,10 +130,8 @@ class LLMHandler:
         persona: str,
         phase: str,
         max_tokens: int = 512,
-    ) -> Dict[str, str]:
-        system_prompt = (
-            f"You are {agent_name}. Your Persona:{persona}\n"
-        )
+    ) -> Dict[str, Any]:
+        system_prompt = f"You are {agent_name}. Your Persona:{persona}\n"
         messages = [
             {"role": "system", "content": system_prompt},
             {"role": "user", "content": user_prompt},
@@ -137,7 +145,7 @@ class LLMHandler:
         content = resp["choices"][0]["message"]["content"]
 
         if isinstance(content, dict):
-            parsed = content
+            parsed: Dict[str, Any] = content
         else:
             parsed = self._safe_load_json(str(content))
 
@@ -149,6 +157,7 @@ class LLMHandler:
                 agent_name=agent_name,
                 turn=0 if phase == "Initial" else 30,
                 full_text=str(content),
+                phase="initial_generated" if phase == "Initial" else "final_generated",
             )
 
         return parsed
@@ -156,7 +165,7 @@ class LLMHandler:
     # 初回回答
     def generate_initial_answer(
         self, topic: str, *, agent_name: str, persona: str
-    ) -> Dict[str, str]:
+    ) -> Dict[str, Any]:
         prompt = prompts.INITIAL_ANSWER_PROMPT_TEMPLATE.format(topic=topic)
         return self._generate_json_only(
             prompt, agent_name=agent_name, persona=persona, phase="Initial"
@@ -171,7 +180,7 @@ class LLMHandler:
         *,
         agent_name: str,
         persona: str,
-    ) -> Dict[str, str]:
+    ) -> Dict[str, Any]:
         prompt = prompts.FINAL_ANSWER_PROMPT_TEMPLATE.format(
             topic=topic,
             initial_answer=initial_answer_str,
@@ -188,9 +197,7 @@ class LLMHandler:
         name: str,
         peer_names: Sequence[str],
         persona: str,
-        # topic は system では使わない（prompts.py 側で削除される想定）
         max_turn: int,
-        # turn/turns_left は system では渡さない
     ) -> str:
         p1 = peer_names[0] if len(peer_names) >= 1 else "Another agent"
         p2 = peer_names[1] if len(peer_names) >= 2 else "Another agent"
@@ -219,7 +226,6 @@ class LLMHandler:
             name=agent_name,
             peer_names=peer_names,
             persona=persona,
-            # topic, turn は system に渡さない
             max_turn=max_turn,
         )
         messages = [
@@ -234,7 +240,19 @@ class LLMHandler:
             response_format={"type": "json_object", "schema": plan_action_schema},
             max_tokens=256,
         )
-        return self._safe_load_json(resp["choices"][0]["message"]["content"])
+        content = resp["choices"][0]["message"]["content"]
+        parsed = self._safe_load_json(content)
+
+        # ★ 追加: plan の生出力（consensus含む）も JSONL に保存
+        if self.logger:
+            self.logger.log_generated(
+                agent_name=agent_name,
+                turn=turn,
+                full_text=str(content),
+                phase="plan_generated",
+            )
+
+        return parsed
 
     def generate_utterance(
         self,
@@ -257,7 +275,6 @@ class LLMHandler:
             name=agent_name,
             peer_names=peer_names,
             persona=persona,
-            # topic, turn は system に渡さない
             max_turn=max_turn,
         )
         messages = [
@@ -267,10 +284,9 @@ class LLMHandler:
         if self.logger:
             self.logger.log(agent_name, phase, turn, system_prompt, user_prompt)
 
-        # ★ 追加: 発話生成でも JSON Object を要求
+        # 発話生成でも JSON Object を要求
         resp = self.model.create_chat_completion(
-            messages=messages,
-            response_format={"type": "json_object"}
+            messages=messages, response_format={"type": "json_object"}
         )
         raw_text = resp["choices"][0]["message"]["content"].strip()
 
@@ -281,5 +297,14 @@ class LLMHandler:
         else:
             # モデルが JSON で返さなかった場合はそのまま発話とみなす
             utterance_text = raw_text
+
+        # 生出力も残す
+        if self.logger:
+            self.logger.log_generated(
+                agent_name=agent_name,
+                turn=turn,
+                full_text=raw_text,
+                phase="utterance_generated",
+            )
 
         return utterance_text, raw_text

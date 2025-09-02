@@ -10,7 +10,7 @@ class PromptLogger:
     """
     1 行 1 レコード (JSONL) で
       • system / user プロンプト
-      • モデルが生成した全文
+      • モデルが生成した全文（フェーズ付き）
     を保存する。
 
     - logs_root に `run_YYYYMMDD_HHMMSS` が含まれていれば
@@ -47,7 +47,7 @@ class PromptLogger:
             "timestamp": datetime.now().isoformat(timespec="seconds"),
             "turn": turn,
             "agent": agent_name,
-            "phase": phase,
+            "phase": phase,  # "plan" / "utterance" / ...
             "system": system_prompt,
             "user": user_prompt,
         }
@@ -60,12 +60,14 @@ class PromptLogger:
         agent_name: str,
         turn: int,
         full_text: str,
+        *,
+        phase: str = "generated_text",  # 例: "plan_generated" / "utterance_generated" / "initial_generated" / "final_generated"
     ) -> None:
         rec = {
             "timestamp": datetime.now().isoformat(timespec="seconds"),
             "turn": turn,
             "agent": agent_name,
-            "phase": "generated_text",
+            "phase": phase,
             "content": full_text,
         }
         self._fp.write(json.dumps(rec, ensure_ascii=False) + "\n")
