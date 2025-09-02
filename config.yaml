@@ -14,6 +14,11 @@ llm:
 discussion:
   topic: "Question:Statement 1 | A ring homomorphism is one to one if and only if the kernel is {0}. Statement 2 | Q is an ideal in R. Choice: A: True, True, B: False, False, C: True, False, D: False, True"
   max_turns: 20
+  early_stop:
+    enabled: true           # 早期終了の有効/無効
+    require_consecutive: 1  # 連続ターンでの一致を必要とする回数（例: 2なら連続2回一致で確定）
+    min_turns: 3            # 少なくともこのターン以降でのみ早期終了判定
+
 
 # 参加エージェントの設定
 agents:

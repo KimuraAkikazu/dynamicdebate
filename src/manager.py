@@ -1,11 +1,11 @@
-"""議論全体を統括する DiscussionManager (per-agent turn-wise history & random tie-break)"""
+"""議論全体を統括する DiscussionManager (per-agent turn-wise history & random tie-break + early stop + rich logging)"""
 from __future__ import annotations
 
 import json
 import random
 from datetime import datetime
 from pathlib import Path
-from typing import Any, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 from .agent import Agent
 
@@ -16,7 +16,7 @@ class DiscussionManager:
     def __init__(
         self,
         agents: List[Agent],
-        config: dict[str, Any],
+        config: Dict[str, Any],
         *,
         log_dir: Path | None = None,
     ):
@@ -35,26 +35,37 @@ class DiscussionManager:
 
         # ---------- 実行時状態 ----------
         self.history: List[Tuple[str, str]] = []
-        self.current_actions: dict[str, Any] = {}
+        self.current_actions: Dict[str, Dict[str, Any]] = {}
         self.speaker: Optional[Agent] = None
         self.speaker_interrupt = False  # 既存フィールドは維持（互換のため未使用）
-        self.final_answers: dict[str, dict[str, str]] = {}
+        self.final_answers: Dict[str, Dict[str, str]] = {}
 
         # ★ 追加: interrupt を「1回だけ適用」するためのワンショットフラグ
         self._interrupt_once: bool = False
 
-        self.log_data: List[dict[str, Any]] = []
-        self._write_log()
+        self.log_data: List[Dict[str, Any]] = []
+        # ---------- 早期終了用 ----------
+        self.last_plan_by_agent: Dict[str, Dict[str, Any]] = {}
+        self.consensus_streak: int = 0
+        self._early_stop_answer: Optional[str] = None
+        self.early_cfg: Dict[str, Any] = config.get("discussion", {}).get("early_stop", {})
+        self._early_enabled: bool = bool(self.early_cfg.get("enabled", False))
+        self._req_consec: int = int(self.early_cfg.get("require_consecutive", 1))
+        self._min_turns: int = int(self.early_cfg.get("min_turns", 1))
+
+        self._write_log()  # 空配列でファイルを作成
 
     # ───────────────────────── 公開 API ───────────────────────── #
-    def run_discussion(self) -> dict[str, dict[str, str]]:
+    def run_discussion(self) -> Dict[str, Dict[str, str]]:
         print(f"=== Debate Start: {self.topic} ===")
         self._initialize_discussion()
         for turn in range(1, self.max_turns + 1):
-            self._run_turn(turn)
+            if self._run_turn(turn):
+                print("=== Early stop: consensus reached ===")
+                break
         print("=== Debate End ===")
         self._collect_final_answers()
-        return self.final_answers  # <<< 呼び出し元へ返す
+        return self.final_answers
 
     # ───────────────────────── 初期化 ───────────────────────── #
     def _initialize_discussion(self) -> None:
@@ -85,25 +96,36 @@ class DiscussionManager:
                 silence=True,
                 peer_names=peers,
             )
+            # 初期planを保存
+            self.last_plan_by_agent[ag.name] = self.current_actions[ag.name]
 
-        self.log_data.append(
-            {
-                "turn": 0,
-                "event_type": "plan",
-                "speaker": None,
-                "content": "",
-                "initial_answers": {ag.name: ag.initial_answer for ag in self.agents},
-                "agent_actions": [
-                    {"agent_name": n, "action_plan": p}
-                    for n, p in self.current_actions.items()
-                ],
-            }
-        )
+        # 初期ログ行
+        init_record: Dict[str, Any] = {
+            "turn": 0,
+            "event_type": "plan",
+            "speaker": None,
+            "content": "",
+            "initial_answers": {ag.name: ag.initial_answer for ag in self.agents},
+            "agent_actions": [
+                {"agent_name": n, "action_plan": p}
+                for n, p in self.current_actions.items()
+            ],
+            # ★ 追加: 早期終了の設定を記録
+            "early_stop_config": {
+                "enabled": self._early_enabled,
+                "require_consecutive": self._req_consec,
+                "min_turns": self._min_turns,
+            },
+            # ★ 追加: consensus snapshot
+            "consensus_state": self._build_consensus_state_snapshot(),
+            "consensus_meta": self._build_consensus_meta_snapshot(),
+        }
+        self.log_data.append(init_record)
         self._write_log()
         self._determine_next_speaker(0)
 
     # ───────────────────── 1ターン処理 ───────────────────── #
-    def _run_turn(self, turn: int) -> None:
+    def _run_turn(self, turn: int) -> bool:
         event_type, content, speaker_name = "silence", "", None
 
         # ---------- 発話フェーズ ----------
@@ -148,24 +170,47 @@ class DiscussionManager:
                 silence=(event_type == "silence"),
                 peer_names=peers,
             )
+            # 直近planを更新
+            self.last_plan_by_agent[ag.name] = self.current_actions[ag.name]
+
         # ---------- ログ ----------
-        self.log_data.append(
-            {
-                "turn": turn,
-                "event_type": event_type,
-                "speaker": speaker_name,
-                "content": content,
-                "agent_actions": [
-                    {"agent_name": n, "action_plan": p}
-                    for n, p in self.current_actions.items()
-                ],
-            }
-        )
+        record: Dict[str, Any] = {
+            "turn": turn,
+            "event_type": event_type,
+            "speaker": speaker_name,
+            "content": content,
+            "agent_actions": [
+                {"agent_name": n, "action_plan": p}
+                for n, p in self.current_actions.items()
+            ],
+            # ★ 追加: 各ターンの consensus snapshot
+            "consensus_state": self._build_consensus_state_snapshot(),
+            "consensus_meta": self._build_consensus_meta_snapshot(),
+        }
+        self.log_data.append(record)
+
         # ---------- 次スピーカー選定 ----------
         if turn < self.max_turns:
             self._determine_next_speaker(turn)
 
         self._write_log()
+        # 早期終了判定
+        if self._early_stop_check(turn):
+            # 早期終了イベントに、スナップショットも残す
+            self.log_data.append(
+                {
+                    "turn": turn,
+                    "event_type": "early_stop",
+                    "reason": "consensus",
+                    "answer": self._early_stop_answer,
+                    "streak": self.consensus_streak,
+                    "consensus_state": self._build_consensus_state_snapshot(),
+                    "consensus_meta": self._build_consensus_meta_snapshot(),
+                }
+            )
+            self._write_log()
+            return True
+        return False
 
     # ──────────────────── Turn-log 生成 ──────────────────── #
     def _build_turn_log(self, agent_name: str, limit: int) -> str:
@@ -178,8 +223,8 @@ class DiscussionManager:
             elif e["event_type"] == "silence":
                 lines.append(f"Turn{e['turn']} Silence")
             # thought
-            if e["speaker"] != agent_name:
-                for aa in e["agent_actions"]:
+            if e.get("speaker") != agent_name:
+                for aa in e.get("agent_actions", []):
                     if aa["agent_name"] == agent_name:
                         th = aa["action_plan"].get("thought", "")
                         if th:
@@ -187,26 +232,107 @@ class DiscussionManager:
                         break
         return "\n".join(lines)
 
+    # ──────────────────── consensus スナップショット ──────────────────── #
+    def _build_consensus_state_snapshot(self) -> Dict[str, Dict[str, Any]]:
+        """
+        各エージェントについて、直近 plan の consensus を抜き出して
+        { agent_name: { "agreed": bool, "answer": "A|B|C|D" or None } } を返す
+        """
+        snap: Dict[str, Dict[str, Any]] = {}
+        for ag in self.agents:
+            plan = self.last_plan_by_agent.get(ag.name, {})
+            c = plan.get("consensus", {}) if isinstance(plan, dict) else {}
+            agreed = bool(c.get("agreed", False)) if isinstance(c, dict) else False
+            answer = c.get("answer") if isinstance(c, dict) else None
+            if isinstance(answer, str):
+                answer = answer.strip().upper() or None
+            snap[ag.name] = {"agreed": agreed, "answer": answer}
+        return snap
+
+    def _build_consensus_meta_snapshot(self) -> Dict[str, Any]:
+        snap = self._build_consensus_state_snapshot()
+        answers = [v["answer"] for v in snap.values() if v["agreed"] and v["answer"]]
+        all_agreed = len(answers) == len(self.agents) and len(set(answers)) == 1
+        return {
+            "all_agreed": all_agreed,
+            "answer_if_all": answers[0] if all_agreed else None,
+            "streak": self.consensus_streak,
+        }
+
+    # ──────────────────── 早期終了判定 ──────────────────── #
+    def _early_stop_check(self, turn: int) -> bool:
+        if not self._early_enabled:
+            return False
+        if turn < self._min_turns:
+            self.consensus_streak = 0
+            return False
+
+        # 全エージェントの最新planが揃っているか
+        plans = [self.last_plan_by_agent.get(a.name, {}) for a in self.agents]
+        if any(not p for p in plans):
+            self.consensus_streak = 0
+            return False
+
+        # consensus.agreed==True かつ answer が全員一致
+        answers: List[str] = []
+        for p in plans:
+            c = p.get("consensus", {})
+            if not isinstance(c, dict) or not c.get("agreed", False):
+                self.consensus_streak = 0
+                return False
+            ans = (c.get("answer") or "").strip().upper()
+            if ans not in {"A", "B", "C", "D"}:
+                self.consensus_streak = 0
+                return False
+            answers.append(ans)
+
+        if len(set(answers)) == 1:
+            self.consensus_streak += 1
+            if self.consensus_streak >= self._req_consec:
+                self._early_stop_answer = answers[0]
+                return True
+        else:
+            self.consensus_streak = 0
+        return False
+
     # ──────────────────── 最終回答収集 ──────────────────── #
     def _collect_final_answers(self) -> None:
         print("=== Collecting final answers ===")
-        debate_history = "\n".join(
-            f"{spk}: {txt}" for spk, txt in self.history[-1000:]
-        )
+        debate_history = "\n".join(f"{spk}: {txt}" for spk, txt in self.history[-1000:])
         self.final_answers = {}
-        for ag in self.agents:
-            ans = ag.generate_final_answer(self.topic, debate_history)
-            self.final_answers[ag.name] = ans
-            print(f"[FINAL] {ag.name} -> {ans}")
-
-        self.log_data.append(
-            {
-                "turn": "final",
-                "event_type": "final_answers",
-                "answers": self.final_answers,
-            }
-        )
-        self._write_log()
+        if self._early_stop_answer:
+            # 早期終了時は合意解答を全員の回答に採用
+            for ag in self.agents:
+                self.final_answers[ag.name] = {
+                    "answer": self._early_stop_answer,
+                    "reason": "Group consensus reached before max turns.",
+                }
+                print(f"[FINAL] {ag.name} -> {self.final_answers[ag.name]}")
+            # 収集後のスナップショットも残す
+            self.log_data.append(
+                {
+                    "turn": "final",
+                    "event_type": "final_answers",
+                    "answers": self.final_answers,
+                    "consensus_state": self._build_consensus_state_snapshot(),
+                    "consensus_meta": self._build_consensus_meta_snapshot(),
+                }
+            )
+            self._write_log()
+        else:
+            # 通常フロー
+            for ag in self.agents:
+                ans = ag.generate_final_answer(self.topic, debate_history)
+                self.final_answers[ag.name] = ans
+                print(f"[FINAL] {ag.name} -> {ans}")
+            self.log_data.append(
+                {
+                    "turn": "final",
+                    "event_type": "final_answers",
+                    "answers": self.final_answers,
+                }
+            )
+            self._write_log()
 
     # ──────────────────── スピーカー選定 ──────────────────── #
     def _determine_next_speaker(self, current_turn: int) -> None:
