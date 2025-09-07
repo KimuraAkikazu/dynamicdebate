@@ -61,6 +61,7 @@ class Agent:
         )
         if turn == 0:
             last_event = "Let's start the discussion now"
+            turn_log="The debate begins now."
         prompt = template.format(
             turn_log=turn_log,
             last_event=last_event,
