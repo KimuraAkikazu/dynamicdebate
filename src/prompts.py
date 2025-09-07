@@ -30,8 +30,8 @@ INITIAL_ANSWER_PROMPT_TEMPLATE = """
 # Output format
 ```json
 {{  
-    "reason": "string", // Give step-by-step reasoning (<=100 words total).
-    "answer": "string",  // answer to the question, one of A, B, C, D
+    "reason": "string", //Give step-by-step reasoning (<=100 words total).
+    "answer": "string",  //answer to the question, one of A, B, C, D
 }}
 """.strip()
 
@@ -112,25 +112,20 @@ PLAN_ACTION_PROMPT_TEMPLATE = """
 {turn_log}
 </DEBATE_SO_FAR>
 - This is turn {turn}.
-- You have {turns_left} chance(s) to speak left.
-- Decide on your final answer within {turns_left} turns remaining.
 - Events in this turn
 <EVENTS_THIS_TURN>
 {last_event}
 </EVENTS_THIS_TURN>
-
-You should focus on listening to the current speaker's remarks or those of other members.
-
-When you determine the current speaker has finished speaking and wish to speak yourself
-When you determine the current speaker is still speaking and wish to interrupt and speak
+- You have {turns_left} chance(s) to speak left.
+- Decide on your final answer within {turns_left} turns remaining.
 
 # All actions:
 - `listen`   : Focus on listening to the current speaker and other members as they begin to speak.
 - `speak`    : Begin speaking yourself because you judge the current speaker has finished.
-- `interrupt`: Interrupt the current speaker even if they are still speaking (e.g., to correct, rebut, agree, or for a time limit).
+- `interrupt`: interrupt the current speaker even if they are still speaking (e.g., to correct, rebut, agree, or for a time limit).
 
 # urgency scale:
- 0: Listen to others and deepen your thinking.
+ 0: For now, focus on listening.
  1: Share a general thought.
  2: State a specific opinion.
  3: I have something I want to assert right away, if possible.
@@ -154,7 +149,7 @@ When you determine the current speaker is still speaking and wish to interrupt a
 # Output format
 ```json
 {{ 
-  "thought": "strting",  // Based on the debate so far and the comments in this turn, briefly describe your current feelings and action plan for the next turn.
+  "thought": "strting",  // Based on the debate so far and the events of this turn, briefly describe your current feelings and action plan for the next turn.
   "action": "listen|speak|interrupt",  // Based on your "thought", please select the action you wish to take on your next turn.
   "urgency": 0-4, // Based on your “thought,” output a number representing the urgency of your statement in the next turn.
   "intent": "agree|disagree|summarize|confirmation|proposal|question|conclusion|think",  // Please tell us the reason behind your chosen action.
@@ -183,19 +178,19 @@ SILENCE_PLAN_PROMPT_TEMPLATE = """
 {turn_log}
 </DEBATE_SO_FAR>
 - This is turn {turn}. 
-- You have {turns_left} chance(s) to speak left.
-- Decide on your final answer within {turns_left} turns remaining.
--Events in this turn
+-Events of this turn
 <EVENTS_THIS_TURN>
 {last_event}
 </EVENTS_THIS_TURN>
+- You have {turns_left} chance(s) to speak left.
+- Decide on your final answer within {turns_left} turns remaining.
 
 # All actions:
-- `listen`   : Wait for someone to start talking and then listen.
-- `speak`    : Begin speaking to move the discussion forward.
+- `listen`   : You wait for someone to start talking and then listen.
+- `speak`    : You begin speaking to move the discussion forward.
 
 # urgency scale:
- 0: Listen to others and deepen your thinking.
+ 0: For now, focus on listening.
  1: Provide a topic.
  2: State a specific opinion.
  3: I have something I want to assert right away, if possible.
@@ -212,13 +207,11 @@ SILENCE_PLAN_PROMPT_TEMPLATE = """
     Otherwise set:
       "consensus": {{ "agreed": false , "answer": "none" }}.
 
-
 # Constraints
 - Once all members agree on the same answer, the solution is finalized and the discussion ends.
 - Be careful not to stray into discussions that are not necessary for answering the question.
-- There is no need to predict the direction of the conversation and make a plan of action.
 - When few turns remain, prioritise convergence and a clear conclusion or provisional agreement.
-
+- Prolonged silence may hinder progress in the discussion.
 
 # Output format
 {{
@@ -227,11 +220,10 @@ SILENCE_PLAN_PROMPT_TEMPLATE = """
   "urgency": 0-4, // Based on your “thought,” output a number representing the urgency of your statement in the next turn.
   "intent": "agree|disagree|summarize|confirmation|proposal|question|conclusion|think",  // Please tell us the reason behind your chosen action.
   "consensus": {{
-    "agreed": true|false,  // Once you are ready to reach a conclusion after the discussion, set "agreed" to "true".
+    "agreed": true|false,  //Once you are ready to reach a conclusion after the discussion, set "agreed" to "true".
     "answer": "A|B|C|D|none"  // If “agreed” is “true”, set agreed answer.If “agreed” is “false”, set “none”.
   }}
 }}
-
 """.strip()
 
 # # # All actions:

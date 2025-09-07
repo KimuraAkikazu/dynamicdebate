@@ -88,7 +88,7 @@ class DiscussionManager:
         for ag in self.agents:
             peers = [p.name for p in self.agents if p is not ag]
             self.current_actions[ag.name] = ag.plan_action(
-                turn_log="",
+                turn_log="The debate begins now.",
                 last_event="Let's start the discussion now",
                 topic=self.topic,
                 turn=0,
@@ -151,7 +151,7 @@ class DiscussionManager:
         # ---------- 行動計画フェーズ ----------
         self.current_actions.clear()
         last_event = (
-            f"Silence:None:No one spoke in this turn({turn}/{self.max_turns})"
+            "No one has spoken this turn"
             if event_type == "silence"
             else f"{event_type}:{speaker_name}:{content}"
         )
