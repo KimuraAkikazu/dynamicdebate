@@ -91,7 +91,7 @@ SYSTEM_PROMPT = """
 """.strip()
 
 #- In a single turn you must output **exactly one chunk**, ending with a comma “,” or period “.”.  
-  # Further comments will be carried over to the next turn.
+  # Further comments will be carried over to the this turn.
 
 # -------------------------------------------------- #
 # Plan‑action prompt (normal turn)
@@ -99,11 +99,11 @@ SYSTEM_PROMPT = """
 PLAN_ACTION_PROMPT_TEMPLATE = """
 
 #Context
--Question Text
+- Question Text
 <QUESTION>
 {topic}
 </QUESTION>
-- Answer before the start of the debate by the previous agent:
+- The initial answers provided by all members before the discussion began:
 <INITIAL_ANSWERS>
 {initial_answer}
 </INITIAL_ANSWERS>
@@ -112,7 +112,7 @@ PLAN_ACTION_PROMPT_TEMPLATE = """
 {turn_log}
 </DEBATE_SO_FAR>
 - This is turn {turn}.
-- Events in this turn
+- Events of this turn
 <EVENTS_THIS_TURN>
 {last_event}
 </EVENTS_THIS_TURN>
@@ -133,7 +133,7 @@ PLAN_ACTION_PROMPT_TEMPLATE = """
 
 # Instruction
 - Your goal is to collectively decide on a single answer to the question within the maximum number of turns.
-- Based on the debate so far and the events of this turn, formulate your action plan for the next turn to achieve this goal.
+- Based on the debate so far and the events of this turn, formulate your action plan for the this turn to achieve this goal.
 - When formulating your action plan, consider the current speaker’s utterance and take into account the possibility that the speaker may still be continuing their speech.
 - Consensus check: From <INITIAL_ANSWERS> and <DEBATE_HISTORY>, infer each member's current answer choice.
     If you infer that other respondents have given the same answer and you also support that choice, set:
@@ -149,9 +149,9 @@ PLAN_ACTION_PROMPT_TEMPLATE = """
 # Output format
 ```json
 {{ 
-  "thought": "strting",  // Based on the debate so far and the events of this turn, briefly describe your current feelings and action plan for the next turn.
-  "action": "listen|speak|interrupt",  // Based on your "thought", please select the action you wish to take on your next turn.
-  "urgency": 0-4, // Based on your “thought,” output a number representing the urgency of your statement in the next turn.
+  "thought": "strting",  // Based on the debate so far and the events of this turn, briefly describe your current feelings and action plan for the this turn.
+  "action": "listen|speak|interrupt",  // Based on your "thought", please select the action you wish to take on your this turn.
+  "urgency": 0-4, // Based on your “thought,” output a number representing the urgency of your statement in the this turn.
   "intent": "agree|disagree|summarize|confirmation|proposal|question|conclusion|think",  // Please tell us the reason behind your chosen action.
   "consensus": {{
     "agreed": true|false, // Once you are ready to reach a conclusion after the discussion, set "agreed" to "true".   
@@ -169,7 +169,7 @@ SILENCE_PLAN_PROMPT_TEMPLATE = """
 <QUESTION>
 {topic}
 </QUESTION>
-- Answer before the start of the debate by the previous agent:
+- The initial answers provided by all members before the discussion began:
 <INITIAL_ANSWERS>
 {initial_answer}
 </INITIAL_ANSWERS>
@@ -196,11 +196,10 @@ SILENCE_PLAN_PROMPT_TEMPLATE = """
  3: I have something I want to assert right away, if possible.
  4: There's something I absolutely need to talk about right now.
 
-
 #Instruction
 - Your goal is to collectively decide on a single answer to the question within the maximum number of turns.
-- Based on the debate so far and the events of this turn, formulate your action plan for the next turn to achieve this goal.
-- Set the urgency for speaking on your next turn on a 0–4 scale.
+- Based on the debate so far and the events of this turn, formulate your action plan for the this turn to achieve this goal.
+- Set the urgency for speaking on your this turn on a 0–4 scale.
 - Consensus check: From <INITIAL_ANSWERS> and <DEBATE_HISTORY>, infer each member's current answer choice.
     If you infer that other respondents have given the same answer and you also support that choice, set:
       "consensus": {{ "agreed": true, "answer": "<A|B|C|D>" }}.
@@ -208,16 +207,16 @@ SILENCE_PLAN_PROMPT_TEMPLATE = """
       "consensus": {{ "agreed": false , "answer": "none" }}.
 
 # Constraints
+- Please bear in mind that prolonged silence hinders progress in discussions.
 - Once all members agree on the same answer, the solution is finalized and the discussion ends.
 - Be careful not to stray into discussions that are not necessary for answering the question.
 - When few turns remain, prioritise convergence and a clear conclusion or provisional agreement.
-- Prolonged silence may hinder progress in the discussion.
 
 # Output format
 {{
-  "thought": "string",  // Based on the debate so far and the events of this turn, briefly explain your current feelings and plan of action for the next turn.
-  "action": "listen|speak",  // Based on your "thought", please select the action you wish to take on your next turn.
-  "urgency": 0-4, // Based on your “thought,” output a number representing the urgency of your statement in the next turn.
+  "thought": "string",  // Based on the debate so far and the events of this turn, briefly explain your current feelings and plan of action for the this turn.
+  "action": "listen|speak",  // Based on your "thought", please select the action you wish to take on your this turn.
+  "urgency": 0-4, // Based on your “thought,” output a number representing the urgency of your statement in the this turn.
   "intent": "agree|disagree|summarize|confirmation|proposal|question|conclusion|think",  // Please tell us the reason behind your chosen action.
   "consensus": {{
     "agreed": true|false,  //Once you are ready to reach a conclusion after the discussion, set "agreed" to "true".
@@ -240,7 +239,7 @@ GENERATE_UTTERANCE_PROMPT_TEMPLATE = """
 <QUESTION>
 {topic}
 </QUESTION>
-- Answer before the start of the debate by the previous agent:
+- The initial answers provided by all members before the discussion began:
 <INITIAL_ANSWERS>
 {initial_answer}
 </INITIAL_ANSWERS>
@@ -253,15 +252,15 @@ GENERATE_UTTERANCE_PROMPT_TEMPLATE = """
 - Decide on your final answer within {turns_left} turns remaining.
 
 # Instruction
-- You are speaking next turn in the debate as {name}.
+- You will speak as {name} this turn.
 - Your goal is to collectively decide on a single answer to the question within the maximum number of turns.
-- Your thought on speaking next turn: "your thought:{thought},  intention of your statement:{intent}"
-- Generate your next turn's speech to guide the team to the answer within the remaining turns.
+- Your thought on speaking this turn: "your thought:{thought},  intention of your statement:{intent}"
+- Generate your this turn's speech to guide the team to the answer within the remaining turns.
 
 # Constraints
 - Be careful not to stray into discussions that are not necessary for answering the question.
 - Be careful not to repeat the same thing over and over again in discussions.
-- Within the remaining turns, you must collaborate with other agents to narrow down to a single answer.
+- Within the remaining turns, you should collaborate with other agents to narrow down to a single answer.
 - When turns become scarce, prioritize finding a team answer over pushing your own opinion.
 
 # Output format

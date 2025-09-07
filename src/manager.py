@@ -88,7 +88,7 @@ class DiscussionManager:
         for ag in self.agents:
             peers = [p.name for p in self.agents if p is not ag]
             self.current_actions[ag.name] = ag.plan_action(
-                turn_log="The debate begins now.",
+                turn_log="The debate has not yet begun.",
                 last_event="Let's start the discussion now",
                 topic=self.topic,
                 turn=0,
@@ -221,7 +221,7 @@ class DiscussionManager:
             if e["event_type"] in {"utterance", "interrupt"}:
                 lines.append(f"Turn{e['turn']} {e['speaker']}({e['event_type']}): {e['content']}")
             elif e["event_type"] == "silence":
-                lines.append(f"Turn{e['turn']} No one spoke this turn.")
+                lines.append(f"Turn{e['turn']} (Silence): No one spoke this turn.")
             # thought
             if e.get("speaker") != agent_name:
                 for aa in e.get("agent_actions", []):

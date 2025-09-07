@@ -60,8 +60,8 @@ class Agent:
             else prompts.PLAN_ACTION_PROMPT_TEMPLATE
         )
         if turn == 0:
-            last_event = "Let's start the discussion now"
-            turn_log="The debate begins now."
+            last_event = "Let's start the discussion now."
+            turn_log="The debate has not yet begun."
         prompt = template.format(
             turn_log=turn_log,
             last_event=last_event,
