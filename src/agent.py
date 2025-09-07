@@ -59,6 +59,8 @@ class Agent:
             if silence
             else prompts.PLAN_ACTION_PROMPT_TEMPLATE
         )
+        if silence:
+            last_event = "The discussion is starting now." if turn == 0 else "No one has spoken this turn."
         prompt = template.format(
             turn_log=turn_log,
             last_event=last_event,
@@ -94,6 +96,7 @@ class Agent:
     ) -> None:
         self.utterance_queue.clear()
         utterance_prompt = prompts.GENERATE_UTTERANCE_PROMPT_TEMPLATE.format(
+            topic=topic,
             turn_log=turn_log,
             thought=thought,
             intent=intent,
