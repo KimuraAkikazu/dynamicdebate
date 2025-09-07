@@ -17,16 +17,29 @@ discussion:
   early_stop:
     enabled: true           # 早期終了の有効/無効
     require_consecutive: 1  # 連続ターンでの一致を必要とする回数（例: 2なら連続2回一致で確定）
-    min_turns: 3            # 少なくともこのターン以降でのみ早期終了判定
+    min_turns: 2             # 少なくともこのターン以降でのみ早期終了判定
 
 
 # 参加エージェントの設定
 agents:
   - name: "Takahashi"
-    persona: "You have high Extraversion, high Conscientiousness, high Agreeableness, high Openness, and low Neuroticism."
+    persona: "You have low Extraversion, high Conscientiousness, high Agreeableness, high Openness, and low Neuroticism."
   - name: "Tanaka"
-    persona: "You have high Extraversion, high Conscientiousness, low Agreeableness, high Openness, and low Neuroticism."
+    persona: "You have low Extraversion, high Conscientiousness, high Agreeableness, low Openness, and low Neuroticism."
   - name: "Suzuki"
-    persona: "You have low Extraversion, high Conscientiousness, low Agreeableness, low Openness, and high Neuroticism."
+    persona: "You have low Extraversion, high Conscientiousness, high Agreeableness, high Openness, and low Neuroticism."
 
 # Question: Let V be the set of all real polynomials p(x). Let D be the differentiation operator and let T be the operator T(p(x)) = xp(x). Then DT - TD is equal to which of the following?(A) 0  (B) I (the identity operator)  (C) -I  (D) 2D  (E) 2T  (F) x  (G) p(x)  (H) -p(x)  (I) x^2  (J) D^2
+  # - name: "Takahashi"
+  #   persona: "You have high Extraversion, low Conscientiousness, high Agreeableness, high Openness, and low Neuroticism."
+  # - name: "Tanaka"
+  #   persona: "You have high Extraversion, low Conscientiousness, high Agreeableness, high Openness, and low Neuroticism."
+  # - name: "Suzuki"
+  #   persona: "You have low Extraversion, low Conscientiousness, high Agreeableness, low Openness, and high Neuroticism."
+
+  #   - name: "Takahashi"
+  #   persona: ""
+  # - name: "Tanaka"
+  #   persona: ""
+  # - name: "Suzuki"
+  #   persona: ""
