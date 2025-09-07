@@ -151,7 +151,7 @@ class DiscussionManager:
         # ---------- 行動計画フェーズ ----------
         self.current_actions.clear()
         last_event = (
-            "No one has spoken this turn)"
+            "No one has spoken this turn."
             if event_type == "silence"
             else f"{event_type}:{speaker_name}:{content}"
         )
@@ -221,7 +221,7 @@ class DiscussionManager:
             if e["event_type"] in {"utterance", "interrupt"}:
                 lines.append(f"Turn{e['turn']} {e['speaker']}({e['event_type']}): {e['content']}")
             elif e["event_type"] == "silence":
-                lines.append(f"Turn{e['turn']} No one spoke this turn.")
+                lines.append(f"Turn{e['turn']} (Silence): No members spoke during this turn.")
             # thought
             if e.get("speaker") != agent_name:
                 for aa in e.get("agent_actions", []):
