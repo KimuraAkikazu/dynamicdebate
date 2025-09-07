@@ -40,7 +40,7 @@ INITIAL_ANSWER_PROMPT_TEMPLATE = """
 # -------------------------------------------------- #
 FINAL_ANSWER_PROMPT_TEMPLATE = """
 - You cooperated with two other members and engaged in a discussion to derive a single answer (A–D) to a multiple-choice question.
-- Your goal is to collectively decide on a single answer to the question within the maximum number of turns..
+- Your goal is to collectively decide on a single answer to the question.
 
 # Context
 - Question text
