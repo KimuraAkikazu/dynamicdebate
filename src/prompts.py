@@ -30,8 +30,8 @@ INITIAL_ANSWER_PROMPT_TEMPLATE = """
 # Output format
 ```json
 {{  
-    "reason": "string", //Give step-by-step reasoning (<=100 words total).
-    "answer": "string",  //answer to the question, one of A, B, C, D
+    "reason": "string", // Give step-by-step reasoning (<=100 words total).
+    "answer": "string",  // answer to the question, one of A, B, C, D
 }}
 """.strip()
 
@@ -39,8 +39,8 @@ INITIAL_ANSWER_PROMPT_TEMPLATE = """
 # Final answer prompt (after the debate)
 # -------------------------------------------------- #
 FINAL_ANSWER_PROMPT_TEMPLATE = """
-- You cooperated with two other members and engaged in a discussion to derive a single answer (A–D) to a multiple-choice question.
-- Your goal is to collectively decide on a single answer to the question within the maximum number of turns.
+- You debated with two other member which of the given options is the correct answer to the question.
+- Your goal is to collectively decide on a single answer to the question.
 
 # Context
 - Question text
@@ -57,7 +57,7 @@ FINAL_ANSWER_PROMPT_TEMPLATE = """
 </DEBATE_HISTORY>
 
 # Instruction
-- Refer to your initial answer and debate history,output team's collective answer and reason for the choice.
+- Refer to your initial answer and debate history, output team's collective answer and reason for the choice.
 - Output JSON only with two keys: "reason" and "answer".
 
 # Constraints
@@ -67,8 +67,8 @@ FINAL_ANSWER_PROMPT_TEMPLATE = """
 # Output format
 ```json
 {{  
-    "reason": "string", //The reasons and mindset that led to the final selection of that response after concluding the discussion.
-    "answer": "string", //answer to the question, one of A, B, C, D  
+    "reason": "string", // The reasoning and thought process that ultimately led to selecting that answer after concluding the discussion.
+    "answer": "string", // answer to the question, one of A, B, C, D  
 }}
 
 """.strip()
@@ -77,7 +77,7 @@ FINAL_ANSWER_PROMPT_TEMPLATE = """
 # System prompt
 # -------------------------------------------------- #
 SYSTEM_PROMPT = """
-- Your are {name}.You are discussing with {peer1} and {peer2} which of the given options is the correct answer to the question.
+- Your are {name}.You are debating with {peer1} and {peer2} which of the given options is the correct answer to the question.
 
 # Debate rules
 - This debate is a maximum of {max_turn} turns.
@@ -227,7 +227,7 @@ SILENCE_PLAN_PROMPT_TEMPLATE = """
   "urgency": 0-4, // Based on your “thought,” output a number representing the urgency of your statement in the next turn.
   "intent": "agree|disagree|summarize|confirmation|proposal|question|conclusion|think",  // Please tell us the reason behind your chosen action.
   "consensus": {{
-    "agreed": true|false,  //Once you are ready to reach a conclusion after the discussion, set "agreed" to "true"
+    "agreed": true|false,  // Once you are ready to reach a conclusion after the discussion, set "agreed" to "true".
     "answer": "A|B|C|D|none"  // If “agreed” is “true”, set agreed answer.If “agreed” is “false”, set “none”.
   }}
 }}
