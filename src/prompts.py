@@ -40,7 +40,7 @@ INITIAL_ANSWER_PROMPT_TEMPLATE = """
 # -------------------------------------------------- #
 FINAL_ANSWER_PROMPT_TEMPLATE = """
 - You cooperated with two other members and engaged in a discussion to derive a single answer (A–D) to a multiple-choice question.
-- Your goal is to reach a consensus among the members and produce one answer as a team.
+- Your goal is to collectively decide on a single answer to the question within the maximum number of turns.
 
 # Context
 - Question text
@@ -107,10 +107,10 @@ PLAN_ACTION_PROMPT_TEMPLATE = """
 <INITIAL_ANSWERS>
 {initial_answer}
 </INITIAL_ANSWERS>
-- Debate history (newest last):
-<DEBATE_HISTORY>
+- Debate so far:
+<DEBATE_SO_FAR>
 {turn_log}
-</DEBATE_HISTORY>
+</DEBATE_SO_FAR>
 - This is turn {turn}.
 - You have {turns_left} chance(s) to speak left.
 - Decide on your final answer within {turns_left} turns remaining.
@@ -126,8 +126,8 @@ When you determine the current speaker is still speaking and wish to interrupt a
 
 # All actions:
 - `listen`   : Focus on listening to the current speaker and other members as they begin to speak.
-- `speak`    : Determine that the current speaker has finished speaking and then speak yourself.
-- `interrupt`: Determine that the current speaker has finished speaking and then speak yourself.
+- `speak`    : Begin speaking yourself because you judge the current speaker has finished.
+- `interrupt`: Interrupt the current speaker even if they are still speaking (e.g., to correct, rebut, agree, or for a time limit).
 
 # urgency scale:
  0: Listen to others and deepen your thinking.
@@ -137,31 +137,30 @@ When you determine the current speaker is still speaking and wish to interrupt a
  4: There's something I absolutely need to talk about right now.
 
 # Instruction
-- Your goal is to collectively decide on a single answer to the question by the maximum number of turns.
-- Based on the discussions so far and the events of this turn, formulate your action plan for the next turn to achieve this goal.
+- Your goal is to collectively decide on a single answer to the question within the maximum number of turns.
+- Based on the debate so far and the events of this turn, formulate your action plan for the next turn to achieve this goal.
 - When formulating your action plan, consider the current speaker’s utterance and take into account the possibility that the speaker may still be continuing their speech.
-- Consensus check: From <INITIAL_ANSWERS> and <DEBATE_HISTORY>, infer each participant’s CURRENT answer choince.
-    If others match (same choice) AND you also support that choice, set:
+- Consensus check: From <INITIAL_ANSWERS> and <DEBATE_HISTORY>, infer each member's current answer choice.
+    If you infer that other respondents have given the same answer and you also support that choice, set:
       "consensus": {{ "agreed": true, "answer": "<A|B|C|D>" }}.
     Otherwise set:
       "consensus": {{ "agreed": false , "answer": "none" }}.
 
 # Constraints
-- You must infer from context if others are in the middle of an utterance.
-- Only start speaking while another member is speaking if it is judged necessary to guide the discussion toward the correct answer.
+- Once all members agree on the same answer, the solution is finalized and the discussion ends.
 - There is no need to predict the direction of the conversation and make a plan of action.
 - When the number of remaining turns grows short, prioritize consensus over pushing your own agenda
 
 # Output format
 ```json
 {{ 
-  "thought": "strting",  //Please briefly state your current thoughts and feelings about the other agents.
-  "action": "listen|speak|interrupt",  //Based on your "thought", please select the action you wish to take on your next turn.
-  "urgency": 0-4, //Based on your “thought,” output a number representing the urgency of your statement in the next turn.
-  "intent": "agree|disagree|summarize|confirmation|proposal|question|conclusion|agreement",  //Please select the intent of your action plan.
+  "thought": "strting",  // Based on the debate so far and the comments in this turn, briefly describe your current feelings and action plan for the next turn.
+  "action": "listen|speak|interrupt",  // Based on your "thought", please select the action you wish to take on your next turn.
+  "urgency": 0-4, // Based on your “thought,” output a number representing the urgency of your statement in the next turn.
+  "intent": "agree|disagree|summarize|confirmation|proposal|question|conclusion|think",  // Please tell us the reason behind your chosen action.
   "consensus": {{
-    "agreed": true|false,   
-    "answer": "A|B|C|D|none"     // If “agreed” is “true”, set agreed answer,if “agreed” is “false”, set “none”.
+    "agreed": true|false, // Once you are ready to reach a conclusion after the discussion, set "agreed" to "true".   
+    "answer": "A|B|C|D|none"     // If “agreed” is “true”, set agreed answer.If “agreed” is “false”, set “none”.
   }}
   }}
 """.strip()
@@ -179,10 +178,10 @@ SILENCE_PLAN_PROMPT_TEMPLATE = """
 <INITIAL_ANSWERS>
 {initial_answer}
 </INITIAL_ANSWERS>
-- Debate history (newest last):
-<DEBATE_HISTORY>
+- Debate so far:
+<DEBATE_SO_FAR>
 {turn_log}
-</DEBATE_HISTORY>
+</DEBATE_SO_FAR>
 - This is turn {turn}. 
 - You have {turns_left} chance(s) to speak left.
 - Decide on your final answer within {turns_left} turns remaining.
@@ -192,8 +191,8 @@ SILENCE_PLAN_PROMPT_TEMPLATE = """
 </EVENTS_THIS_TURN>
 
 # All actions:
-- `listen`   : I'll wait for someone to start talking and then listen.
-- `speak`    : I'll start talking and move the discussion forward.
+- `listen`   : Wait for someone to start talking and then listen.
+- `speak`    : Begin speaking to move the discussion forward.
 
 # urgency scale:
  0: Listen to others and deepen your thinking.
@@ -204,33 +203,35 @@ SILENCE_PLAN_PROMPT_TEMPLATE = """
 
 
 #Instruction
-- Your goal is to collectively decide on a single answer to the question by the maximum number of turns.
-- Based on the discussions so far and the events of this turn, formulate your action plan for the next turn to achieve this goal.
+- Your goal is to collectively decide on a single answer to the question within the maximum number of turns.
+- Based on the debate so far and the events of this turn, formulate your action plan for the next turn to achieve this goal.
 - Set the urgency for speaking on your next turn on a 0–4 scale.
-- Consensus check: From <INITIAL_ANSWERS> and <DEBATE_HISTORY>, infer each participant’s CURRENT preferred answer (A–D).
-    If others match (same choice) AND you also support that choice, set:
+- Consensus check: From <INITIAL_ANSWERS> and <DEBATE_HISTORY>, infer each member's current answer choice.
+    If you infer that other respondents have given the same answer and you also support that choice, set:
       "consensus": {{ "agreed": true, "answer": "<A|B|C|D>" }}.
     Otherwise set:
       "consensus": {{ "agreed": false , "answer": "none" }}.
 
+
 # Constraints
+- Once all members agree on the same answer, the solution is finalized and the discussion ends.
 - Be careful not to stray into discussions that are not necessary for answering the question.
 - There is no need to predict the direction of the conversation and make a plan of action.
 - When few turns remain, prioritise convergence and a clear conclusion or provisional agreement.
-- When the number of remaining turns grows short, prioritize consensus over pushing your own agenda.
 
 
 # Output format
 {{
-  "thought": "string",  //Your thoughts and feelings toward other agents in this turn.
-  "action": "listen|speak",  //Based on your "thought", please select the action you wish to take on your next turn.
-  "urgency": 0-4, //Based on your “thought,” output a number representing the urgency of your statement in the next turn.
-  "intent": "agree|disagree|summarize|confirmation|proposal|question|conclusion|agreement",  //Please tell us the reason behind your chosen action.
+  "thought": "string",  // Based on the debate so far and the events of this turn, briefly explain your current feelings and plan of action for the next turn.
+  "action": "listen|speak",  // Based on your "thought", please select the action you wish to take on your next turn.
+  "urgency": 0-4, // Based on your “thought,” output a number representing the urgency of your statement in the next turn.
+  "intent": "agree|disagree|summarize|confirmation|proposal|question|conclusion|think",  // Please tell us the reason behind your chosen action.
   "consensus": {{
-    "agreed": true|false,  
-    "answer": "A|B|C|D|none"  //If “agreed” is “true”, set agreed answer,if “agreed” is “false”, set “none”.
+    "agreed": true|false,  //Once you are ready to reach a conclusion after the discussion, set "agreed" to "true"
+    "answer": "A|B|C|D|none"  // If “agreed” is “true”, set agreed answer.If “agreed” is “false”, set “none”.
   }}
 }}
+
 """.strip()
 
 # # # All actions:
@@ -251,19 +252,19 @@ GENERATE_UTTERANCE_PROMPT_TEMPLATE = """
 <INITIAL_ANSWERS>
 {initial_answer}
 </INITIAL_ANSWERS>
-- Debate history (newest last):
-<DEBATE_HISTORY>
+- Debate so far:
+<DEBATE_SO_FAR>
 {turn_log}
-</DEBATE_HISTORY>
+</DEBATE_SO_FAR>
 - This is turn {turn}.
 - You have {turns_left} chance(s) to speak left.
 - Decide on your final answer within {turns_left} turns remaining.
 
 # Instruction
 - You are speaking next turn in the debate as {name}.
+- Your goal is to collectively decide on a single answer to the question within the maximum number of turns.
 - Your thought on speaking next turn: "your thought:{thought},  intention of your statement:{intent}"
-- Your goal is to determine the answer choices for your entire team to a given question within the maximum turn limit.
-- Based on the question and previous discussion, create a statement for your next turn that will guide your team to the answer.
+- Generate your next turn's speech to guide the team to the answer within the remaining turns.
 
 # Constraints
 - Be careful not to stray into discussions that are not necessary for answering the question.
