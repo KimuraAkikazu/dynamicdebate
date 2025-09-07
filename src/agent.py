@@ -102,6 +102,7 @@ class Agent:
             intent=intent,
             turns_left=max_turn - turn,
             turn=turn,                    # ← 追加：plan用プロンプトに {turn} を渡す
+            name=self.name,
             initial_answer=self.all_initial_answers_str,
         ).strip()
 

@@ -131,7 +131,7 @@ class LLMHandler:
         phase: str,
         max_tokens: int = 512,
     ) -> Dict[str, Any]:
-        system_prompt = f"You are {agent_name}. Your Persona:{persona}\n"
+        system_prompt = f"You are {agent_name}.\n"
         messages = [
             {"role": "system", "content": system_prompt},
             {"role": "user", "content": user_prompt},
