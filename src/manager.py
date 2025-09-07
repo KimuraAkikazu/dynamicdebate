@@ -9,7 +9,7 @@ from typing import Any, Dict, List, Optional, Tuple
 
 from .agent import Agent
 
-HISTORY_WINDOW = 50  # エージェントに渡す履歴行数
+HISTORY_WINDOW = 30  # エージェントに渡す履歴行数
 
 
 class DiscussionManager:
