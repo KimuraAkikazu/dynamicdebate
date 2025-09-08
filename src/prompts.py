@@ -13,14 +13,15 @@ Placeholders
 # Initial answer prompt (before the debate)
 # -------------------------------------------------- #
 INITIAL_ANSWER_PROMPT_TEMPLATE = """
-- You will now collaborate with the other two members to derive a single answer (A–D) for the multiple-choice question through discussion.
+- You are now collaborating with two other members to derive a single solution to the multiple-choice question through discussion.
 
 # Question text
 {topic}
 
 # Instruction
-- Please derive the solution to the given problem through step-by-step reasoning.
-- Please devide your answer to that question and the reasoning behind it.
+- Provide your answer before the discussion begins.
+- Derive your solution to the given question through step-by-step reasoning.
+- Output your answer to that question and the reasoning behind it.
 - Output JSON only with two keys: "reason" and "answer".
 
 # Constraints
@@ -30,8 +31,8 @@ INITIAL_ANSWER_PROMPT_TEMPLATE = """
 # Output format
 ```json
 {{  
-    "reason": "string", //Give step-by-step reasoning (<=100 words total).
-    "answer": "string",  //answer to the question, one of A, B, C, D
+    "reason": "string", // Please provide step-by-step reasoning to solve the question. (<=100 words total).
+    "answer": "string",  // answer to the question, one of A, B, C, D
 }}
 """.strip()
 
