@@ -88,8 +88,8 @@ class DiscussionManager:
         for ag in self.agents:
             peers = [p.name for p in self.agents if p is not ag]
             self.current_actions[ag.name] = ag.plan_action(
-                turn_log="",
-                last_event="",
+                turn_log="The debate has not yet begun.",
+                last_event="The debate begins on the next turn.Decide what to do in the first turn.",
                 topic=self.topic,
                 turn=0,
                 max_turn=self.max_turns,
@@ -151,7 +151,7 @@ class DiscussionManager:
         # ---------- 行動計画フェーズ ----------
         self.current_actions.clear()
         last_event = (
-            f"Silence:None:No one spoke in this turn({turn}/{self.max_turns})"
+            "No one has spoken this turn."
             if event_type == "silence"
             else f"{event_type}:{speaker_name}:{content}"
         )
@@ -221,14 +221,14 @@ class DiscussionManager:
             if e["event_type"] in {"utterance", "interrupt"}:
                 lines.append(f"Turn{e['turn']} {e['speaker']}({e['event_type']}): {e['content']}")
             elif e["event_type"] == "silence":
-                lines.append(f"Turn{e['turn']} Silence")
+                lines.append(f"Turn{e['turn']} (Silence): No members spoke during this turn.")
             # thought
             if e.get("speaker") != agent_name:
                 for aa in e.get("agent_actions", []):
                     if aa["agent_name"] == agent_name:
                         th = aa["action_plan"].get("thought", "")
                         if th:
-                            lines.append(f"Turn{e['turn']}   your thought: {th}")
+                            lines.append(f"Your thoughts for this turn: {th}")
                         break
         return "\n".join(lines)
 
