@@ -59,8 +59,8 @@ class Agent:
             if silence
             else prompts.PLAN_ACTION_PROMPT_TEMPLATE
         )
-        if silence:
-            last_event = "The discussion is starting now." if turn == 0 else "No one has spoken this turn."
+        if turn == 0:
+            last_event = "Let's start the discussion now"
         prompt = template.format(
             turn_log=turn_log,
             last_event=last_event,
@@ -101,6 +101,7 @@ class Agent:
             thought=thought,
             intent=intent,
             turns_left=max_turn - turn,
+            name=self.name,
             turn=turn,                    # ← 追加：plan用プロンプトに {turn} を渡す
             initial_answer=self.all_initial_answers_str,
         ).strip()
@@ -133,13 +134,13 @@ class Agent:
     # ───────────────────── Chunk utilities ───────────────────── #
     @staticmethod
     def _chunk_utterance(text: str) -> List[str]:
-        parts = re.split(r"([.?])", text)
+        parts = re.split(r"([。])", text)
         chunks, buf = [], ""
         for p in parts:
             if not p:
                 continue
             buf += p
-            if p in ".?":
+            if p in "?":
                 chunks.append(buf)
                 buf = ""
         if buf:
