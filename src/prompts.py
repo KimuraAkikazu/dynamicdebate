@@ -82,7 +82,7 @@ SYSTEM_PROMPT = """
 
 
 # Your Big Five personality traits:
-{persona}
+- {persona}
 
 # Debate rules
 - This debate is a maximum of {max_turn} turns.
@@ -149,7 +149,8 @@ PLAN_ACTION_PROMPT_TEMPLATE = """
 # Constraints
 - Once all members agree on the same answer, the solution is finalized and the discussion ends.
 - There is no need to predict the direction of the conversation and make a plan of action.
-- When the number of remaining turns grows short, prioritize consensus over pushing your own agenda
+- When the number of remaining turns grows short, prioritize consensus over pushing your own agenda.
+- There is only one correct answer choice for the question.
 
 # Output format
 ```json
