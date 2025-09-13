@@ -14,41 +14,33 @@ Placeholders
 # -------------------------------------------------- #
 INITIAL_ANSWER_PROMPT_TEMPLATE = """
 - You are {name}.
-- You will collaborate with two other members to derive a single solution to the multiple-choice question through discussion.
-
-# Question text
-{topic}
+- Follow the instructions strictly and return only valid JSON that matches the provided schema.
 
 # Instruction
 - Derive your solution to the given question through step-by-step reasoning.
 - Provide your answer before the discussion begins and the reasoning behind it.
 - Output JSON only with two keys: "reason" and "answer".
 
+# Question
+Question: {topic}
+
 # Constraints
 - Do NOT include any additional keys or natural language outside the JSON.
-- Please choose only one answer opinion.
-
-# Output format
-```json
-{{  
-    "reason": "string", // Please provide step-by-step reasoning to solve the question. (<=100 words total).
-    "answer": "string",  // answer to the question, one of A, B, C, D
-}}
+- Answer must be one of A, B, C, or D.
 """.strip()
 
 # -------------------------------------------------- #
 # Final answer prompt (after the debate)
 # -------------------------------------------------- #
 FINAL_ANSWER_PROMPT_TEMPLATE = """
-- You are {name}.}
+- You are {name}.
 - You cooperated with two other members and engaged in a discussion to derive a single answer (A–D) to a multiple-choice question.
 - Your goal is to collectively decide on a single answer to the question.
 
 # Context
-- Question text
-<QUESTION>
-{topic}
-</QUESTION>
+- Question
+Question: {topic}
+
 - initial answer of all members
 <INITIAL_ANSWERS>
 {initial_answer}
@@ -101,11 +93,10 @@ SYSTEM_PROMPT = """
 # -------------------------------------------------- #
 PLAN_ACTION_PROMPT_TEMPLATE = """
 
-#Context
--Question Text
-<QUESTION>
-{topic}
-</QUESTION>
+# Context
+-Question
+Question: {topic}
+
 - The initial answers provided by all members before the discussion began:
 <INITIAL_ANSWERS>
 {initial_answer}
@@ -169,11 +160,10 @@ PLAN_ACTION_PROMPT_TEMPLATE = """
 # Plan‑action prompt (silence turn)
 # --------------------------------------------------
 SILENCE_PLAN_PROMPT_TEMPLATE = """
-#Context
--Question text
-<QUESTION>
-{topic}
-</QUESTION>
+# Context
+-Question
+Question: {topic}
+
 - The initial answers provided by all members before the discussion began:
 <INITIAL_ANSWERS>
 {initial_answer}
@@ -241,11 +231,10 @@ SILENCE_PLAN_PROMPT_TEMPLATE = """
 # Utterance‑generation prompt
 # --------------------------------------------------
 GENERATE_UTTERANCE_PROMPT_TEMPLATE = """
-#Context
--Question text
-<QUESTION>
-{topic}
-</QUESTION>
+# Context
+-Question
+Question: {topic}
+
 - The initial answers provided by all members before the discussion began:
 <INITIAL_ANSWERS>
 {initial_answer}
