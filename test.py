@@ -16,35 +16,91 @@ llm = Llama(
     model_path=MODEL_PATH,
     n_gpu_layers=-1,
     n_ctx=2000,
-    temperature=0.0,
+    temperature=0.7,
 )
+
+# -------------------------------
+# レスポンスフォーマット（JSON Schema で厳密化）
+# -------------------------------
+RESPONSE_FORMAT = {
+    "type": "json_schema",
+    "json_schema": {
+        "name": "mmlu_reasoned_choice",
+        "schema": {
+            "type": "object",
+            "properties": {
+                "reason": {"type": "string"},
+                "answer": {"type": "string", "enum": ["A", "B", "C", "D"]},
+            },
+            "required": ["reason", "answer"],
+            "additionalProperties": False,
+        },
+    },
+}
 
 # -------------------------------
 # ユーティリティ
 # -------------------------------
-def format_prompt(question: str, choices: list[str]) -> str:
+def format_messages(question: str, choices: list[str]):
+    """chat completion 用のメッセージを組み立てる。"""
     letters = ["A", "B", "C", "D"]
-    lines = [f"Question: {question}", "Please think step by step."]
-    for i, ch in enumerate(choices[:4]):  # 念のため4択に制限
-        lines.append(f"{letters[i]}. {ch}")
-    # 答えだけを出させるよう強制
-    lines.append("Answer (only A, B, C, or D):")
-    return "\n".join(lines)
+    choice_lines = [f"{letters[i]}. {ch}" for i, ch in enumerate(choices[:4])]
+    instruction_block = (
+        "# Instruction\n"
+        "- Derive your solution to the given question through step-by-step reasoning.\n"
+        "- Provide your answer and the reasoning.\n"
+        '- Output JSON only with two keys: "reason" and "answer".'
+    )
 
-def extract_answer(output: str) -> str:
-    """モデル出力から最初に見つかった A/B/C/D を抽出"""
-    match = re.search(r"\b([ABCD])\b", output)
-    if match:
-        return match.group(1)
-    # バックアップ（句読点つき "A." や "Answer: C" にも対応）
-    match = re.search(r"([ABCD])", output)
-    return match.group(1) if match else ""
+    system = {
+        "role": "system",
+        "content": (
+            "You are a character who is extroverted, conscientious, agreeable, open to experience, emotionally stable. "
+            "Follow the instructions strictly and return only valid JSON that matches the provided schema."
+        ),
+    }
+    user = {
+        "role": "user",
+        "content": "\n".join(
+            [
+                instruction_block,
+                "# Question",
+                f"Question: {question}",
+                "",
+                *choice_lines,
+                "",
+                "# Constraints\n"
+                "Answer must be one of A, B, C, or D.",
+                "Return only JSON. No prose, no markdown.",
+            ]
+        ),
+    }
+    return [system, user]
+
+def parse_json_output(output: str):
+    """
+    モデル出力（JSON 文字列想定）から reason と answer を安全に取り出す。
+    フォールバックとして A/B/C/D 抽出も実装。
+    """
+    reason, answer = "", ""
+    try:
+        obj = json.loads(output)
+        reason = obj.get("reason", "")
+        answer = obj.get("answer", "")
+    except Exception:
+        # フォールバック：A/B/C/D を拾う
+        m = re.search(r'\b([ABCD])\b', output)
+        answer = m.group(1) if m else ""
+        # JSON でない場合は出力全体を理由として残す
+        reason = output.strip()
+
+    return reason, answer
 
 # -------------------------------
 # メイン処理
 # -------------------------------
 def main():
-    parser = argparse.ArgumentParser(description="Run MMLU baseline with llama.cpp")
+    parser = argparse.ArgumentParser(description="Run MMLU baseline with llama.cpp (JSON reasoning+answer logging)")
     parser.add_argument("--num", type=int, default=50,
                         help="Number of questions to evaluate (default: 50). Use -1 for all.")
     parser.add_argument("--split", type=str, default="test",
@@ -54,6 +110,7 @@ def main():
     parser.add_argument("--no-shuffle", dest="shuffle", action="store_false",
                         help="Disable shuffling")
     parser.add_argument("--seed", type=int, default=42, help="Random seed (default: 42)")
+    parser.add_argument("--max_tokens", type=int, default=256, help="Max tokens for chat completion (default: 256)")
     args = parser.parse_args()
 
     # ログ用ディレクトリ
@@ -87,23 +144,26 @@ def main():
             choices = ex["choices"]
             gold = ["A", "B", "C", "D"][ex["answer"]]
 
-            prompt = format_prompt(question, choices)
+            messages = format_messages(question, choices)
 
-            # llama_cpp completion API
-            resp = llm.create_completion(
-                prompt=prompt,
-                max_tokens=4,
+            # llama_cpp chat completion API（JSON Schema で厳密な JSON 出力を要求）
+            resp = llm.create_chat_completion(
+                messages=messages,
                 temperature=0.0,
-                stop=["\n"],  # 一行で止める
+                max_tokens=args.max_tokens,
+                response_format=RESPONSE_FORMAT,
             )
-            output = resp["choices"][0]["text"].strip()
-            pred = extract_answer(output)
+            output = resp["choices"][0]["message"]["content"].strip()
+
+            # JSON 解析
+            model_reason, model_answer = parse_json_output(output)
+            pred = model_answer
 
             is_correct = (pred == gold)
             if is_correct:
                 correct += 1
 
-            # コンソール出力
+            # コンソール出力（理由は長いことがあるので省略／必要なら適宜表示）
             print(f"[Q{i:03}] Pred={pred or '∅'} | Gold={gold} | {'✅' if is_correct else '❌'}")
 
             # ログ（1行1レコード）
@@ -117,7 +177,9 @@ def main():
                         "correct": is_correct,
                         "question": question,
                         "choices": choices[:4],
-                        "model_output_raw": output,
+                        "model_reason": model_reason, # JSON の reason
+                        "model_answer": model_answer, # JSON の answer（A/B/C/D）
+                        "input_messages": messages,
                     },
                     ensure_ascii=False,
                 )
@@ -147,3 +209,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+ 
