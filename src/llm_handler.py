@@ -131,9 +131,7 @@ class LLMHandler:
         phase: str,
         max_tokens: int = 512,
     ) -> Dict[str, Any]:
-        system_prompt = f"You are {agent_name}. Your Persona:{persona}\n"
         messages = [
-            {"role": "system", "content": system_prompt},
             {"role": "user", "content": user_prompt},
         ]
 
@@ -166,7 +164,7 @@ class LLMHandler:
     def generate_initial_answer(
         self, topic: str, *, agent_name: str, persona: str
     ) -> Dict[str, Any]:
-        prompt = prompts.INITIAL_ANSWER_PROMPT_TEMPLATE.format(topic=topic)
+        prompt = prompts.INITIAL_ANSWER_PROMPT_TEMPLATE.format(topic=topic, name=agent_name, persona=persona)
         return self._generate_json_only(
             prompt, agent_name=agent_name, persona=persona, phase="Initial"
         )
@@ -185,6 +183,8 @@ class LLMHandler:
             topic=topic,
             initial_answer=initial_answer_str,
             debate_history=debate_history,
+            name=agent_name,
+            persona=persona,
         )
         return self._generate_json_only(
             prompt, agent_name=agent_name, persona=persona, phase="Final"

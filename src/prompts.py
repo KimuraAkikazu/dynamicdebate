@@ -13,15 +13,15 @@ Placeholders
 # Initial answer prompt (before the debate)
 # -------------------------------------------------- #
 INITIAL_ANSWER_PROMPT_TEMPLATE = """
-- You are now collaborating with two other members to derive a single solution to the multiple-choice question through discussion.
+- You are {name}.{persona}
+- You will collaborate with two other members to derive a single solution to the multiple-choice question through discussion.
 
 # Question text
 {topic}
 
 # Instruction
-- Provide your answer before the discussion begins.
 - Derive your solution to the given question through step-by-step reasoning.
-- Output your answer to that question and the reasoning behind it.
+- Provide your answer before the discussion begins and the reasoning behind it.
 - Output JSON only with two keys: "reason" and "answer".
 
 # Constraints
@@ -40,6 +40,7 @@ INITIAL_ANSWER_PROMPT_TEMPLATE = """
 # Final answer prompt (after the debate)
 # -------------------------------------------------- #
 FINAL_ANSWER_PROMPT_TEMPLATE = """
+- You are {name}.{persona}
 - You cooperated with two other members and engaged in a discussion to derive a single answer (A–D) to a multiple-choice question.
 - Your goal is to collectively decide on a single answer to the question.
 
@@ -48,7 +49,7 @@ FINAL_ANSWER_PROMPT_TEMPLATE = """
 <QUESTION>
 {topic}
 </QUESTION>
-- initial answer of all agents
+- initial answer of all members
 <INITIAL_ANSWERS>
 {initial_answer}
 </INITIAL_ANSWERS>
@@ -78,19 +79,16 @@ FINAL_ANSWER_PROMPT_TEMPLATE = """
 # System prompt
 # -------------------------------------------------- #
 SYSTEM_PROMPT = """
-- Your name is {name}.You are discussing with {peer1} and {peer2} which of the given options is the correct answer to the problem.
-
-
-# Your Big Five personality traits:
-- {persona}
+- You are {name}.{persona}
+- You are discussing with {peer1} and {peer2} which of the given options is the correct answer to the problem.
 
 # Debate rules
 - This debate is a maximum of {max_turn} turns.
-- You must finish speaking by the {max_turn} turn.
 - One turn is defined as follows:
-  - Only one member can speak per turn.
-  - If there are multiple agents who wish to speak, the agent with the highest urgency will be allowed to speak.
-  - Only one sentence is accepted as speech per turn. If you generate multiple sentences in a single turn, only the first will be processed as speech, and the remaining sentences will be treated as if they were spoken in later turns.
+  - Only one member can utterance per turn.
+  - If there are multiple members who wish to speak, the member with the highest urgency will be allowed to speak.
+  - Only one sentence is accepted as speech per turn. It is possible to generate a utterance consisting of multiple sentences in a single turn. However, each sentence is treated as having been spoken in a separate turn, consuming one turn per sentence.
+- You must finish speaking by the {max_turn} turn.
 - If the discussion ends without all members set agreed to true, it is considered a defeat.
 - Regarding responses, it is desirable for everyone to reach agreement in as few turns as possible.
 """.strip()
@@ -112,7 +110,7 @@ PLAN_ACTION_PROMPT_TEMPLATE = """
 <INITIAL_ANSWERS>
 {initial_answer}
 </INITIAL_ANSWERS>
-- Debate history (newest last):
+- Debate so far (newest last):
 <DEBATE_SO_FAR>
 {turn_log}
 </DEBATE_SO_FAR>
@@ -121,43 +119,42 @@ PLAN_ACTION_PROMPT_TEMPLATE = """
 <EVENTS_THIS_TURN>
 {last_event}
 </EVENTS_THIS_TURN>
-- You have {turns_left} chance(s) to speak left.
-- Decide on your final answer within {turns_left} turns remaining.
+- You have {turns_left} speaking opportunities remaining.
+- Decide on your final answer within the remaining {turns_left} turns.
 
 # All actions:
-- `listen`   : Focus on listening to the current speaker or other members as they begin to speak.
-- `speak`    : Begin speaking yourself because you judge the current speaker has finished.
+- `listen`   : Listen to the current speaker or other members as they begin to speak.
+- `speak`    : Begin speaking yourself because you judge the current speaker has finished speaking.
 - `interrupt`: interrupt the current speaker even if they are still speaking (e.g., to correct, rebut, agree, or for a time limit).
 
 # urgency scale:
- 0: For now, focus on listening.
- 1: Share a general thought.
- 2: State a specific opinion.
- 3: I have something I want to assert right away, if possible.
- 4: There's something I absolutely need to talk about right now.
+ 0: For now, I focus on listening.
+ 1: I Provide topics to advance the discussion.
+ 2: I want to state a specific opinion.
+ 3: There's something I absolutely need to talk about right now.
+ 4: Someone has addressed me directly and I must respond.
 
 # Instruction
-- Your goal is to collectively decide on a single answer to the question within the maximum number of turns.
-- Based on the debate so far and the events of this turn, formulate your action plan for the next turn to achieve this goal as the specified personality.
-- When formulating your action plan, consider the current speaker’s utterance and take into account the possibility that the speaker may still be continuing their speech.
-- Consensus check: From <INITIAL_ANSWERS> and <DEBATE_HISTORY>, infer each member's current answer choice.
-    If you infer that other respondents have given the same answer and you also support that choice, set:
-      "consensus": {{ "agreed": true, "answer": "<A|B|C|D>" }}.
-    Otherwise set:
-      "consensus": {{ "agreed": false , "answer": "none" }}.
+- Your goal is to decide on a single answer within the maximum number of turns.
+- To reach consensus, consider whether to push your position or align with others, and choose accordingly.
+- Based on the debate so far and this turn's events, formulate your action plan for the next turn consistent with your personality.
+- When generating actions, determine whether the current speaker's utterance is mid-sentence. If it is mid-sentence, select interrupt; if it has ended, select speak.
+- Consensus check: From <INITIAL_ANSWERS> and <DEBATE_SO_FAR>, infer each member's current choice.
+  If others appear to support the same choice and you also support it, set:
+    "consensus": {{ "agreed": true,  "answer": "<A|B|C|D>" }}.
+  Otherwise set:
+    "consensus": {{ "agreed": false, "answer": "none" }}.
 
 # Constraints
-- Once all members agree on the same answer, the solution is finalized and the discussion ends.
-- There is no need to predict the direction of the conversation and make a plan of action.
+- Once all members agree on the same answer, the discussion ends with that answer.
 - When the number of remaining turns grows short, prioritize consensus over pushing your own agenda.
 - There is only one correct answer choice for the question.
 
 # Output format
-```json
 {{ 
-  "thought": "strting",  // Based on the debate so far and the comments of this turn, briefly describe your current feelings and action plan for the next turn.
+  "thought": "string",  // Based on the debate so far and the speech of this turn, briefly describe your current inner thoughts.
   "action": "listen|speak|interrupt",  // Based on your "thought", please select the action you wish to take on your next turn.
-  "urgency": 0-4, // Based on your “thought,” output a number representing the urgency of your statement in the next turn.
+  "urgency": 0-4, // Based on your “thought,” Based on your “thoughts,” how urgent is it for you to speak during the next turn? Please output a number indicating the urgency.
   "intent": "agree|disagree|summarize|confirmation|proposal|question|conclusion|think",  // Please tell us the reason behind your chosen action.
   "consensus": {{
     "agreed": true|false, // Once you are ready to reach a conclusion after the discussion, set "agreed" to "true".   
@@ -165,6 +162,8 @@ PLAN_ACTION_PROMPT_TEMPLATE = """
   }}
   }}
 """.strip()
+
+
 
 # --------------------------------------------------
 # Plan‑action prompt (silence turn)
@@ -188,42 +187,43 @@ SILENCE_PLAN_PROMPT_TEMPLATE = """
 <EVENTS_THIS_TURN>
 {last_event}
 </EVENTS_THIS_TURN>
-- You have {turns_left} chance(s) to speak left.
-- Decide on your final answer within {turns_left} turns remaining.
+- You have {turns_left} speaking opportunities remaining.
+- Decide on your final answer within the remaining {turns_left} turns.
 
 # All actions:
 - `listen`   : You wait for someone to start talking and then listen.
 - `speak`    : You begin speaking to move the discussion forward.
 
 # urgency scale:
- 0: For now, focus on listening.
- 1: Provide a topic.
- 2: State a specific opinion.
- 3: I have something I want to assert right away, if possible.
- 4: There's something I absolutely need to talk about right now.
+ 0: For now, I focus on listening.
+ 1: I Provide topics to advance the discussion.
+ 2: I want to state a specific opinion.
+ 3: There's something I absolutely need to talk about right now.
+ 4: Someone has addressed me directly and I must respond.
 
-#Instruction
-- Your goal is to collectively decide on a single answer to the question within the maximum number of turns.
-- Based on the debate so far and the events of this turn, formulate your action plan for the next turn to achieve this goal as the specified personality.
-- Set the urgency for speaking on your next turn on a 0–4 scale.
-- Consensus check: From <INITIAL_ANSWERS> and <DEBATE_HISTORY>, infer each member's current answer choice.
-    If you infer that other respondents have given the same answer and you also support that choice, set:
-      "consensus": {{ "agreed": true, "answer": "<A|B|C|D>" }}.
-    Otherwise set:
-      "consensus": {{ "agreed": false , "answer": "none" }}.
+# Instruction
+- Your goal is to decide on a single answer within the maximum number of turns.
+- To reach consensus, consider whether to push your position or align with others, and choose accordingly.
+- Based on the debate so far and this turn's events, formulate your action plan for the next turn consistent with your personality.
+- Consider the current speaker’s utterance and the possibility they may still be continuing.
+- Consensus check: From <INITIAL_ANSWERS> and <DEBATE_SO_FAR>, infer each member's current choice.
+  If others appear to support the same choice and you also support it, set:
+    "consensus": {{ "agreed": true,  "answer": "<A|B|C|D>" }}.
+  Otherwise set:
+    "consensus": {{ "agreed": false, "answer": "none" }}.
 
 # Constraints
 - Please bear in mind that prolonged silence hinders progress in discussions.
-- Once all members agree on the same answer, the solution is finalized and the discussion ends.
+- Once all members agree on the same answer, the discussion ends with that answer.
 - Be careful not to stray into discussions that are not necessary for answering the question.
 - When few turns remain, prioritise convergence and a clear conclusion or provisional agreement.
 
 
 # Output format
 {{
-  "thought": "string",  // Based on the debate so far and the events of this turn, briefly explain your current feelings and plan of action for the next turn.
+  "thought": "string",  // Based on the debate so far and the events of this turn, briefly explain your current inner thoughts.
   "action": "listen|speak",  // Based on your "thought", please select the action you wish to take on your next turn.
-  "urgency": 0-4, // Based on your “thought,” output a number representing the urgency of your statement in the next turn.
+  "urgency": 0-4, //Based on your “thought,” how urgent is it for you to speak during the next turn? Please output a number indicating the urgency.
   "intent": "agree|disagree|summarize|confirmation|proposal|question|conclusion|think",  // Please tell us the reason behind your chosen action.
   "consensus": {{
     "agreed": true|false,  //Once you are ready to reach a conclusion after the discussion, set "agreed" to "true".
@@ -262,18 +262,16 @@ GENERATE_UTTERANCE_PROMPT_TEMPLATE = """
 - You are speaking this turn in the debate as {name}.
 - Your goal is to collectively decide on a single answer to the question within the maximum number of turns.
 - Your thought on speaking this turn: "your thought:{thought},  intention of your statement:{intent}"
-- Generate your this turn's speech as the specified personallity to guide the team to the answer within the remaining turns.
+- Generate the utterance you will make as {name} this turn to finalize your team's answer within the remaining turns.
 
 # Constraints
 - Be careful not to stray into discussions that are not necessary for answering the question.
 - Be careful not to repeat the same thing over and over again in discussions.
-- Within the remaining turns, you must collaborate with other agents to narrow down to a single answer.
-- When turns become scarce, prioritize finding a team answer over pushing your own opinion.
+- Do not force multiple sentences into one using ",".
 
 # Output format
-```json
 {{
-    "utterance": "string"  // Your public speech in the debate. Be concise and persuasive. Respond directly to what the other players have said.
+    "utterance": "string"  // Your public speech in the debate.
 }}
 """.strip()
 

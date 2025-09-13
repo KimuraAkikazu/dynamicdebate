@@ -60,11 +60,12 @@ class Agent:
             else prompts.PLAN_ACTION_PROMPT_TEMPLATE
         )
         if turn == 0:
-            last_event = "Let's start the discussion now"
+            last_event = "Let's start the discussion now."
         prompt = template.format(
             turn_log=turn_log,
             last_event=last_event,
             turns_left=max_turn - turn,
+            max_turn=max_turn,
             turn=turn,                    # ← 追加：plan用プロンプトに {turn} を渡す
             initial_answer=self.all_initial_answers_str,
             topic=topic,  # ← 追加：question を PLANACTION プロンプトへ渡す
@@ -104,6 +105,7 @@ class Agent:
             name=self.name,
             turn=turn,                    # ← 追加：plan用プロンプトに {turn} を渡す
             initial_answer=self.all_initial_answers_str,
+            max_turn=max_turn,
         ).strip()
 
         # --- 変更点: generate_utterance から (utterance_text, raw_text) を受け取る ---
@@ -134,7 +136,7 @@ class Agent:
     # ───────────────────── Chunk utilities ───────────────────── #
     @staticmethod
     def _chunk_utterance(text: str) -> List[str]:
-        parts = re.split(r"([.?。])", text)
+        parts = re.split(r"(?<!\d)([.?])(?!\d)", text)
         chunks, buf = [], ""
         for p in parts:
             if not p:
