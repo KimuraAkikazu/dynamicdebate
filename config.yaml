@@ -6,8 +6,8 @@ llm:
   filename: "Meta-Llama-3.1-8B-Instruct-Q8_0.gguf"
   # llama-cpp-python用の設定
   n_gpu_layers: -1  # GPUにオフロードするレイヤー数 (-1で全て)
-  n_ctx: 20000       # コンテキストウィンドウサイズ
-  temperature: 0.3  # 生成の多様性
+  n_ctx: 25000       # コンテキストウィンドウサイズ
+  temperature: 0.7  # 生成の多様性
   max_tokens: 1026    # 1回の生成における最大トークン数
 
 # 議論全体の設定
@@ -27,7 +27,7 @@ agents:
   - name: "Tanaka"
     persona: "You are a character who is introverted, conscientious, agreeable, open to experience, and neurotic stable."
   - name: "Suzuki"
-    persona: "You have introverted, conscientious, agreeable, open to experience, and emotionally stable."
+    persona: "You are a charactor who is introverted, conscientious, agreeable, open to experience, and emotionally stable."
 
 # Question: Let V be the set of all real polynomials p(x). Let D be the differentiation operator and let T be the operator T(p(x)) = xp(x). Then DT - TD is equal to which of the following?(A) 0  (B) I (the identity operator)  (C) -I  (D) 2D  (E) 2T  (F) x  (G) p(x)  (H) -p(x)  (I) x^2  (J) D^2
   # - name: "Takahashi"
