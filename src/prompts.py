@@ -24,14 +24,10 @@ INITIAL_ANSWER_PROMPT_TEMPLATE = """
 # Question
 Question: {topic}
 
-# Constraints
-- Do NOT include any additional keys or natural language outside the JSON.
-- Answer must be one of A, B, C, or D.
-
 # Output format
 {{  
-    "reason": "string",
-    "answer": "string",
+    "reason": "string", 
+    "answer": "string", // answer to the question, one of A, B, C, D
 }}
 """.strip()
 
@@ -59,10 +55,6 @@ Question: {topic}
 # Instruction
 - Refer to your initial answer and debate history,output team's collective answer and reason for the choice.
 - Output JSON only with two keys: "reason" and "answer".
-
-# Constraints
-- Do NOT include any additional keys or natural language outside the JSON.
-- Please choose only one answer opinion.
 
 # Output format
 ```json
@@ -98,11 +90,10 @@ SYSTEM_PROMPT = """
 # Plan‑action prompt (normal turn)
 # -------------------------------------------------- #
 PLAN_ACTION_PROMPT_TEMPLATE = """
-
-#Context
 # Question
 Question: {topic}
 
+# Context
 - The initial answers provided by all members before the discussion began:
 <INITIAL_ANSWERS>
 {initial_answer}
@@ -166,10 +157,10 @@ Question: {topic}
 # Plan‑action prompt (silence turn)
 # --------------------------------------------------
 SILENCE_PLAN_PROMPT_TEMPLATE = """
-#Context
 # Question
 Question: {topic}
 
+# Context
 - The initial answers provided by all members before the discussion began:
 <INITIAL_ANSWERS>
 {initial_answer}
@@ -237,10 +228,10 @@ Question: {topic}
 # Utterance‑generation prompt
 # --------------------------------------------------
 GENERATE_UTTERANCE_PROMPT_TEMPLATE = """
-#Context
 # Question
 Question: {topic}
 
+# Context
 - The initial answers provided by all members before the discussion began:
 <INITIAL_ANSWERS>
 {initial_answer}
