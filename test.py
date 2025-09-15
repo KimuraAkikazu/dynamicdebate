@@ -16,7 +16,7 @@ llm = Llama(
     model_path=MODEL_PATH,
     n_gpu_layers=-1,
     n_ctx=2000,
-    temperature=0.0,
+    temperature=0.7,
 )
 
 # -------------------------------
