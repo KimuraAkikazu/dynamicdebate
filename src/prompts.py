@@ -13,7 +13,7 @@ Placeholders
 # Initial answer prompt (before the debate)
 # -------------------------------------------------- #
 INITIAL_ANSWER_PROMPT_TEMPLATE = """
-- You are {name}.
+- You are {name}.{persona}
 - Follow the instructions strictly and return only valid JSON that matches the provided schema.
 
 # Instruction
