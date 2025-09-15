@@ -24,9 +24,11 @@ INITIAL_ANSWER_PROMPT_TEMPLATE = """
 # Question
 Question: {topic}
 
-# Constraints
-- Do NOT include any additional keys or natural language outside the JSON.
-- Answer must be one of A, B, C, or D.
+# Output format
+{{  
+    "reason": "string", 
+    "answer": "string", // answer to the question, one of A, B, C, D
+}}
 """.strip()
 
 # -------------------------------------------------- #
@@ -61,8 +63,8 @@ Question: {topic}
 # Output format
 ```json
 {{  
-    "reason": "string", // The reasoning and thought process that ultimately led to selecting that answer after concluding the discussion.
-    "answer": "string", // answer to the question, one of A, B, C, D  
+    ""reason"": ""string"", // The reasoning and thought process that ultimately led to selecting that answer after concluding the discussion.
+    ""answer"": ""string"", // answer to the question, one of A, B, C, D  
 }}
 
 """.strip()
@@ -146,7 +148,7 @@ Question: {topic}
   "thought": "string",  // Based on the debate so far and the speech of this turn, briefly describe your current inner thoughts.
   "action": "listen|speak|interrupt",  // Based on your "thought", please select the action you wish to take on your next turn.
   "urgency": 0-4, // Based on your “thought,” Based on your “thoughts,” how urgent is it for you to speak during the next turn? Please output a number indicating the urgency.
-  "intent": "agree|disagree|summarize|confirmation|proposal|question|conclusion|think",  // Please tell us the reason behind your chosen action.
+  "intent": "agree|disagree|responce|confirmation|proposal|question|conclusion|think",  // Please tell us the reason behind your chosen action.
   "consensus": {{
     "agreed": true|false, // Once you are ready to reach a conclusion after the discussion, set "agreed" to "true".   
     "answer": "A|B|C|D|none"     // If “agreed” is “true”, set agreed answer.If “agreed” is “false”, set “none”.
@@ -214,7 +216,7 @@ Question: {topic}
   "thought": "string",  // Based on the debate so far and the events of this turn, briefly explain your current inner thoughts.
   "action": "listen|speak",  // Based on your "thought", please select the action you wish to take on your next turn.
   "urgency": 0-4, //Based on your “thought,” how urgent is it for you to speak during the next turn? Please output a number indicating the urgency.
-  "intent": "agree|disagree|summarize|confirmation|proposal|question|conclusion|think",  // Please tell us the reason behind your chosen action.
+  "intent": "agree|disagree|responce|confirmation|proposal|question|conclusion|think",  // Please tell us the reason behind your chosen action.
   "consensus": {{
     "agreed": true|false,  //Once you are ready to reach a conclusion after the discussion, set "agreed" to "true".
     "answer": "A|B|C|D|none"  // If “agreed” is “true”, set agreed answer.If “agreed” is “false”, set “none”.

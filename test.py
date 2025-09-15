@@ -35,6 +35,8 @@ RESPONSE_FORMAT = {
             "required": ["reason", "answer"],
             "additionalProperties": False,
         },
+        # モデルが厳密な JSON のみを返すよう強制
+        "strict": True,
     },
 }
 
@@ -48,7 +50,7 @@ def format_messages(question: str, choices: list[str]):
     instruction_block = (
         "# Instruction\n"
         "- Derive your solution to the given question through step-by-step reasoning.\n"
-        "- Provide your answer and the reasoning.\n"
+        "- Provide your answer and the reasoning behind it.\n"
         '- Output JSON only with two keys: "reason" and "answer".'
     )
 
@@ -64,14 +66,16 @@ def format_messages(question: str, choices: list[str]):
         "content": "\n".join(
             [
                 instruction_block,
-                "# Question",
+                "",
                 f"Question: {question}",
                 "",
                 *choice_lines,
                 "",
-                "# Constraints\n"
                 "Answer must be one of A, B, C, or D.",
-                "Return only JSON. No prose, no markdown.",
+                "Return only JSON. No prose, no markdown."
+                "# Output format",
+                "{{  ""reason"": ""string"","
+                " ""answer"": ""A|B|C|D"", // answer to the question, one of A, B, C, D  }}",
             ]
         ),
     }
@@ -149,7 +153,7 @@ def main():
             # llama_cpp chat completion API（JSON Schema で厳密な JSON 出力を要求）
             resp = llm.create_chat_completion(
                 messages=messages,
-                temperature=0.0,
+                temperature=0.7,
                 max_tokens=args.max_tokens,
                 response_format=RESPONSE_FORMAT,
             )
@@ -177,9 +181,9 @@ def main():
                         "correct": is_correct,
                         "question": question,
                         "choices": choices[:4],
+                        "model_output_raw": output,   # モデルの生出力（JSON 文字列）
                         "model_reason": model_reason, # JSON の reason
                         "model_answer": model_answer, # JSON の answer（A/B/C/D）
-                        "input_messages": messages,
                     },
                     ensure_ascii=False,
                 )
@@ -209,4 +213,3 @@ def main():
 
 if __name__ == "__main__":
     main()
- 
