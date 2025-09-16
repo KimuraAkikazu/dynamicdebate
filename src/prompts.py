@@ -17,18 +17,17 @@ INITIAL_ANSWER_PROMPT_TEMPLATE = """
 - Follow the instructions strictly and return only valid JSON that matches the provided schema.
 
 # Instruction
+- Choose the single best answer (A–D) to the multiple-choice question.
 - Derive your solution to the given question through step-by-step reasoning.
 - Provide your answer before the discussion begins and the reasoning behind it.
 - Output JSON only with two keys: "reason" and "answer".
+- "answer" must be a single uppercase letter A–D.
 
 # Question
 Question: {topic}
 
-# Output format
-{{  
-    "reason": "string", 
-    "answer": "string", // answer to the question, one of A, B, C, D
-}}
+- Answer must be one of A, B, C, or D.
+- Return only JSON. No prose, no markdown.
 """.strip()
 
 # -------------------------------------------------- #
@@ -69,18 +68,31 @@ Question: {topic}
 # System prompt
 # -------------------------------------------------- #
 SYSTEM_PROMPT = """
-- You are {name}.{persona}
+- You are {name}.
 - You are discussing with {peer1} and {peer2} which of the given options is the correct answer to the problem.
 
+# Your personality:
+{persona}
+
+
 # Debate rules
-- This debate is a maximum of {max_turn} turns.
-- One turn is defined as follows:
-  - Only one member can utterance per turn.
-  - If there are multiple members who wish to speak, the member with the highest urgency will be allowed to speak.
-  - Only one sentence is accepted as speech per turn. It is possible to generate a utterance consisting of multiple sentences in a single turn. However, each sentence is treated as having been spoken in a separate turn, consuming one turn per sentence.
-- You must finish speaking by the {max_turn} turn.
-- If the discussion ends without all members set agreed to true, it is considered a defeat.
-- Regarding responses, it is desirable for everyone to reach agreement in as few turns as possible.
+- The debate has at most {max_turn} turns. You must finish speaking by turn {max_turn}.
+- Only one member can speak per turn.
+- Exactly **one sentence** is revealed to all members each turn.
+- A speaker may **compose multiple sentences** when preparing their utterance, but:
+  - Only the **first** sentence will be published on the next turn.
+  - The **remaining sentences are queued** and **do not reserve future turns**; other members may be selected to speak before your queued sentences are revealed (i.e., you can be **interrupted**).
+- Turn timeline:
+  - **Turn 0**: planning only (no utterance is published).
+  - **Turn t ≥ 1**:
+    1) Publish phase: if the current speaker has a queue, publish **one** sentence; otherwise it's a silence event.
+    2) Planning phase: all non-speaking members output an action plan (listen/speak/interrupt, urgency, intent, consensus).
+    3) Selection phase: among members choosing speak/interrupt, the **highest urgency** is selected. If everyone chooses listen, the next event is silence.
+    4) utterance phase: the selected next speaker generates their utterance for the turn .
+- **Interrupt semantics**: If a speaker holds an unpublished sentence and another member selects speak/interrupt, the speaking right transfers.
+- If the discussion ends without all members setting `agreed=true`, it is considered a failure.
+- Reach consensus in as few turns as possible; keep sentences concise and on-topic.
+
 """.strip()
 
 #- In a single turn you must output **exactly one chunk**, ending with a comma “,” or period “.”.  
@@ -245,19 +257,18 @@ Question: {topic}
 - Decide on your final answer within {turns_left} turns remaining.
 
 # Instruction
-- You are speaking this turn in the debate as {name}.
+- You are speaking in the debate as {name}.
 - Your goal is to collectively decide on a single answer to the question within the maximum number of turns.
-- Your thought on speaking this turn: "your thought:{thought},  intention of your statement:{intent}"
-- Generate the utterance you will make as {name} this turn to finalize your team's answer within the remaining turns.
+- Your thought on speaking: "your thought:{thought},  intention of your statement:{intent}"
+- To reach consensus, consider whether to push your position or align with others, and choose accordingly.
+- Based on your personality, generate your utterance to be made as {name} that builds on the discussion so far, aiming to finalize the team's answer within the remaining turns.
 
 # Constraints
 - Be careful not to stray into discussions that are not necessary for answering the question.
 - Be careful not to repeat the same thing over and over again in discussions.
-- Do not force multiple sentences into one using ",".
+- When generating speech, do not forcefully connect multiple sentences using commas.
 
 # Output format
-{{
-    "utterance": "string"  // Your public speech in the debate.
-}}
+{{"utterance": "string"}}
 """.strip()
 
