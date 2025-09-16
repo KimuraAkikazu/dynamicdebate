@@ -14,10 +14,11 @@ from .prompt_logger import PromptLogger
 qa_schema: Dict[str, Any] = {
     "type": "object",
     "properties": {
-        "reason": {"type": "string", "maxLength": 750},  # ~100 words
+        "reason": {"type": "string"},  # ~100 words
         "answer": {"type": "string", "enum": ["A", "B", "C", "D"]},
     },
     "required": ["reason", "answer"],
+    "strict": True,
     "additionalProperties": False,
 }
 
