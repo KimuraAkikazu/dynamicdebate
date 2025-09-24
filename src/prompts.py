@@ -17,11 +17,9 @@ INITIAL_ANSWER_PROMPT_TEMPLATE = """
 - Follow the instructions strictly and return only valid JSON that matches the provided schema.
 
 # Instruction
-- Choose the single best answer (A–D) to the multiple-choice question.
 - Derive your solution to the given question through step-by-step reasoning.
 - Provide your answer before the discussion begins and the reasoning behind it.
 - Output JSON only with two keys: "reason" and "answer".
-- "answer" must be a single uppercase letter A–D.
 
 # Question
 Question: {topic}
@@ -36,7 +34,7 @@ Question: {topic}
 FINAL_ANSWER_PROMPT_TEMPLATE = """
 - You are {name}.{persona}
 - You cooperated with two other members and engaged in a discussion to derive a single answer (A–D) to a multiple-choice question.
-- Your goal is to collectively decide on a single answer to the question.
+- Your goal is to collectively decide on the answer to the question.
 
 # Context
 # Question
@@ -69,7 +67,7 @@ Question: {topic}
 # -------------------------------------------------- #
 SYSTEM_PROMPT = """
 - You are {name}.
-- You are discussing with {peer1} and {peer2} which of the given options is the correct answer to the problem.
+- You are discussing with {peer1} and {peer2} which of the given options is the correct answer to the question.
 
 # Your personality:
 {persona}
@@ -90,7 +88,6 @@ SYSTEM_PROMPT = """
     3) Selection phase: among members choosing speak/interrupt, the **highest urgency** is selected. If everyone chooses listen, the next event is silence.
     4) utterance phase: the selected next speaker generates their utterance for the turn .
 - **Interrupt semantics**: If a speaker holds an unpublished sentence and another member selects speak/interrupt, the speaking right transfers.
-- If the discussion ends without all members setting `agreed=true`, it is considered a failure.
 - Reach consensus in as few turns as possible; keep sentences concise and on-topic.
 
 """.strip()
@@ -135,7 +132,7 @@ Question: {topic}
  4: Someone has addressed me directly and I must respond.
 
 # Instruction
-- Your goal is to decide on a single answer within the maximum number of turns.
+- Your goal is to decide on the correct answer within the maximum number of turns.
 - To reach consensus, consider whether to push your position or align with others, and choose accordingly.
 - Based on the debate so far and this turn's events, formulate your action plan for the next turn consistent with your personality.
 - When generating actions, determine whether the current speaker's utterance is mid-sentence. If it is mid-sentence, select interrupt; if it has ended, select speak.
@@ -201,7 +198,7 @@ Question: {topic}
  4: Someone has addressed me directly and I must respond.
 
 # Instruction
-- Your goal is to decide on a single answer within the maximum number of turns.
+- Your goal is to decide on the correct answer within the maximum number of turns.
 - To reach consensus, consider whether to push your position or align with others, and choose accordingly.
 - Based on the debate so far and this turn's events, formulate your action plan for the next turn consistent with your personality.
 - Consider the current speaker’s utterance and the possibility they may still be continuing.
@@ -258,15 +255,15 @@ Question: {topic}
 
 # Instruction
 - You are speaking in the debate as {name}.
-- Your goal is to collectively decide on a single answer to the question within the maximum number of turns.
+- Your goal is to collectively decide on the correct answer to the question within the maximum number of turns.
 - Your thought on speaking: "your thought:{thought},  intention of your statement:{intent}"
 - To reach consensus, consider whether to push your position or align with others, and choose accordingly.
-- Based on your personality, generate your utterance to be made as {name} that builds on the discussion so far, aiming to finalize the team's answer within the remaining turns.
+- Based on your personality, generate your utterance to be made as {name} that builds on the discussion so far.
 
 # Constraints
 - Be careful not to stray into discussions that are not necessary for answering the question.
 - Be careful not to repeat the same thing over and over again in discussions.
-- When generating speech, do not forcefully connect multiple sentences using commas.
+- When generating speech, do not connect multiple sentences using ",".
 
 # Output format
 {{"utterance": "string"}}
