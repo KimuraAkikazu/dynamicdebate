@@ -1,4 +1,4 @@
-# src/llm_handler.py
+# src/llm_handler.py (fixed-order ablation version)
 from __future__ import annotations
 
 import json
@@ -11,35 +11,32 @@ from llama_cpp import Llama
 from . import prompts
 from .prompt_logger import PromptLogger
 
+# ===== JSON Schemas =====
 qa_schema: Dict[str, Any] = {
     "type": "object",
     "properties": {
-        "reason": {"type": "string"},  # ~100 words
+        "reason": {"type": "string", "maxLength": 750},  # ~100 words
         "answer": {"type": "string", "enum": ["A", "B", "C", "D"]},
     },
     "required": ["reason", "answer"],
-    "strict": True,
     "additionalProperties": False,
 }
 
-plan_action_schema: Dict[str, Any] = {
+utterance_schema: Dict[str, Any] = {
     "type": "object",
     "properties": {
-        "thought": {"type": "string", "maxLength": 300},
-        "action": {"type": "string", "enum": ["listen", "speak", "interrupt"]},
-        "urgency": {"type": "integer", "minimum": 0, "maximum": 4},
-        "intent": {"type": "string", "maxLength": 50},
-        "consensus": {
-            "type": "object",
-            "properties": {
-                "agreed": {"type": "boolean"},
-                "answer": {"type": "string", "enum": ["A", "B", "C", "D","none"]},
-            },
-            "required": ["agreed"],
-            "additionalProperties": False,
-        },
+        "utterance": {"type": "string"},
     },
-    "required": ["thought", "action", "urgency", "intent", "consensus"],
+    "required": ["utterance"],
+    "additionalProperties": False,
+}
+
+thought_schema: Dict[str, Any] = {
+    "type": "object",
+    "properties": {
+        "thought": {"type": "string",},
+    },
+    "required": ["thought"],
     "additionalProperties": False,
 }
 
@@ -128,49 +125,40 @@ class LLMHandler:
         user_prompt: str,
         *,
         agent_name: str,
-        persona: str,
         phase: str,
+        response_schema: Dict[str, Any],
         max_tokens: int = 512,
     ) -> Dict[str, Any]:
-        messages = [
-            {"role": "user", "content": user_prompt},
-        ]
+        messages = [{"role": "user", "content": user_prompt}]
+        if self.logger:
+            # systemは最小構成なので user_prompt のみを保存
+            self.logger.log(agent_name, phase, 0, system_prompt="", user_prompt=user_prompt)
 
         resp = self.model.create_chat_completion(
             messages=messages,
-            response_format={"type": "json_object", "schema": qa_schema},
+            response_format={"type": "json_object", "schema": response_schema},
             max_tokens=max_tokens,
         )
         content = resp["choices"][0]["message"]["content"]
 
-        if isinstance(content, dict):
-            parsed: Dict[str, Any] = content
-        else:
-            parsed = self._safe_load_json(str(content))
+        parsed = content if isinstance(content, dict) else self._safe_load_json(str(content))
 
-        parsed.setdefault("answer", "")
-        parsed.setdefault("reason", "")
-
+        # 生出力も保存
         if self.logger:
-            self.logger.log_generated(
-                agent_name=agent_name,
-                turn=0 if phase == "Initial" else 30,
-                full_text=str(content),
-                phase="initial_generated" if phase == "Initial" else "final_generated",
-            )
+            self.logger.log_generated(agent_name=agent_name, turn=0, full_text=str(content), phase=f"{phase}_generated")
 
         return parsed
 
-    # 初回回答
-    def generate_initial_answer(
-        self, topic: str, *, agent_name: str, persona: str
-    ) -> Dict[str, Any]:
+    # ──────────────────── 初回回答 / 最終回答 ──────────────────── #
+    def generate_initial_answer(self, topic: str, *, agent_name: str, persona: str) -> Dict[str, Any]:
         prompt = prompts.INITIAL_ANSWER_PROMPT_TEMPLATE.format(topic=topic, name=agent_name, persona=persona)
-        return self._generate_json_only(
-            prompt, agent_name=agent_name, persona=persona, phase="Initial"
+        parsed = self._generate_json_only(
+            prompt, agent_name=agent_name, phase="initial", response_schema=qa_schema
         )
+        parsed.setdefault("answer", "")
+        parsed.setdefault("reason", "")
+        return parsed
 
-    # 最終回答
     def generate_final_answer(
         self,
         topic: str,
@@ -187,125 +175,65 @@ class LLMHandler:
             name=agent_name,
             persona=persona,
         )
-        return self._generate_json_only(
-            prompt, agent_name=agent_name, persona=persona, phase="Final"
+        parsed = self._generate_json_only(
+            prompt, agent_name=agent_name, phase="final", response_schema=qa_schema
         )
-
-    # ======================  内部: system prompt ====================== #
-    def _build_system_prompt(
-        self,
-        *,
-        name: str,
-        peer_names: Sequence[str],
-        persona: str,
-        max_turn: int,
-    ) -> str:
-        p1 = peer_names[0] if len(peer_names) >= 1 else "Another agent"
-        p2 = peer_names[1] if len(peer_names) >= 2 else "Another agent"
-        return prompts.SYSTEM_PROMPT.format(
-            name=name,
-            persona=persona,
-            peer1=p1,
-            peer2=p2,
-            max_turn=max_turn,
-        )
-
-    # ======================  行動計画 / 発話生成 ====================== #
-    def generate_action(
-        self,
-        user_prompt: str,
-        *,
-        turn: int,
-        max_turn: int,
-        agent_name: str,
-        persona: str,
-        topic: str,
-        peer_names: Sequence[str],
-    ) -> Dict[str, Any]:
-        phase = "plan"
-        system_prompt = self._build_system_prompt(
-            name=agent_name,
-            peer_names=peer_names,
-            persona=persona,
-            max_turn=max_turn,
-        )
-        messages = [
-            {"role": "system", "content": system_prompt},
-            {"role": "user", "content": user_prompt},
-        ]
-        if self.logger:
-            self.logger.log(agent_name, phase, turn, system_prompt, user_prompt)
-
-        resp = self.model.create_chat_completion(
-            messages=messages,
-            response_format={"type": "json_object", "schema": plan_action_schema},
-            max_tokens=256,
-        )
-        content = resp["choices"][0]["message"]["content"]
-        parsed = self._safe_load_json(content)
-
-        # ★ 追加: plan の生出力（consensus含む）も JSONL に保存
-        if self.logger:
-            self.logger.log_generated(
-                agent_name=agent_name,
-                turn=turn,
-                full_text=str(content),
-                phase="plan_generated",
-            )
-
+        parsed.setdefault("answer", "")
+        parsed.setdefault("reason", "")
         return parsed
 
-    def generate_utterance(
+    # ──────────────────── 固定順序: 発言／思考 ──────────────────── #
+    def generate_speaker_utterance(
         self,
-        user_prompt: str,
         *,
-        turn: int,
-        max_turn: int,
         agent_name: str,
         persona: str,
         topic: str,
-        peer_names: Sequence[str],
+        turn_log: str,
+        initial_answers_all: str,
+        turn: int,
+        turns_left_for_agent: int,
+        max_turn: int,
     ) -> Tuple[str, str]:
-        """
-        Returns (utterance_text, raw_model_output).
-        If the model returns JSON with an "utterance" field, that value is used.
-        Otherwise the raw text itself is treated as the utterance.
-        """
-        phase = "utterance"
-        system_prompt = self._build_system_prompt(
+        user_prompt = prompts.SPEAKER_TURN_PROMPT_TEMPLATE.format(
             name=agent_name,
-            peer_names=peer_names,
-            persona=persona,
+            topic=topic,
+            initial_answer=initial_answers_all,
+            turn_log=turn_log,
+            turn=turn,
+            turns_left=turns_left_for_agent,
             max_turn=max_turn,
         )
-        messages = [
-            {"role": "system", "content": system_prompt},
-            {"role": "user", "content": user_prompt},
-        ]
-        if self.logger:
-            self.logger.log(agent_name, phase, turn, system_prompt, user_prompt)
-
-        # 発話生成でも JSON Object を要求
-        resp = self.model.create_chat_completion(
-            messages=messages, response_format={"type": "json_object"}
+        parsed = self._generate_json_only(
+            user_prompt, agent_name=agent_name, phase="speaker", response_schema=utterance_schema
         )
-        raw_text = resp["choices"][0]["message"]["content"].strip()
+        utterance = (parsed.get("utterance") or "").strip()
+        raw_text = json.dumps(parsed, ensure_ascii=False)
+        return utterance, raw_text
 
-        parsed = self._safe_load_json(raw_text)
-        utterance = parsed.get("utterance")
-        if isinstance(utterance, str) and utterance.strip():
-            utterance_text = utterance.strip()
-        else:
-            # モデルが JSON で返さなかった場合はそのまま発話とみなす
-            utterance_text = raw_text
-
-        # 生出力も残す
-        if self.logger:
-            self.logger.log_generated(
-                agent_name=agent_name,
-                turn=turn,
-                full_text=raw_text,
-                phase="utterance_generated",
-            )
-
-        return utterance_text, raw_text
+    def generate_listener_thought(
+        self,
+        *,
+        agent_name: str,
+        persona: str,
+        topic: str,
+        turn_log: str,
+        initial_answers_all: str,
+        turn: int,
+        max_turn: int,
+    ) -> Tuple[str, str]:
+        user_prompt = prompts.LISTENER_THINK_PROMPT_TEMPLATE.format(
+            name=agent_name,
+            topic=topic,
+            initial_answer=initial_answers_all,
+            turn_log=turn_log,
+            turn=turn,
+            turns_left="N/A",
+            max_turn=max_turn,
+        )
+        parsed = self._generate_json_only(
+            user_prompt, agent_name=agent_name, phase="listener", response_schema=thought_schema
+        )
+        thought = (parsed.get("thought") or "").strip()
+        raw_text = json.dumps(parsed, ensure_ascii=False)
+        return thought, raw_text

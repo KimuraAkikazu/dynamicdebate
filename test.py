@@ -16,7 +16,7 @@ llm = Llama(
     model_path=MODEL_PATH,
     n_gpu_layers=-1,
     n_ctx=2000,
-    temperature=0.7,
+    temperature=0.3,
 )
 
 # -------------------------------
@@ -149,7 +149,7 @@ def main():
             # llama_cpp chat completion API（JSON Schema で厳密な JSON 出力を要求）
             resp = llm.create_chat_completion(
                 messages=messages,
-                temperature=0.7,
+                temperature=0.3,
                 max_tokens=args.max_tokens,
                 response_format=RESPONSE_FORMAT,
             )
