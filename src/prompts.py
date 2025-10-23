@@ -94,6 +94,7 @@ SYSTEM_PROMPT = """
 
 #- In a single turn you must output **exactly one chunk**, ending with a comma “,” or period “.”.  
   # Further comments will be carried over to the next turn.
+#- `speak`    : Begin speaking yourself because you judge the current speaker has finished speaking.
 
 # -------------------------------------------------- #
 # Plan‑action prompt (normal turn)
@@ -121,7 +122,6 @@ Question: {topic}
 
 # All actions:
 - `listen`   : Listen to the current speaker or other members as they begin to speak.
-- `speak`    : Begin speaking yourself because you judge the current speaker has finished speaking.
 - `interrupt`: interrupt the current speaker even if they are still speaking (e.g., to correct, rebut, agree, or for a time limit).
 
 # urgency scale:
@@ -150,7 +150,7 @@ Question: {topic}
 # Output format
 {{ 
   "thought": "string",  // Based on the debate so far and the speech of this turn, briefly describe your current inner thoughts.
-  "action": "listen|speak|interrupt",  // Based on your "thought", please select the action you wish to take on your next turn.
+  "action": "listen|interrupt",  // Based on your "thought", please select the action you wish to take on your next turn.
   "urgency": 0-4, // Based on your “thought,” Based on your “thoughts,” how urgent is it for you to speak during the next turn? Please output a number indicating the urgency.
   "intent": "agree|disagree|summarize|confirmation|proposal|question|conclusion|think",  // Please tell us the reason behind your chosen action.
   "consensus": {{
