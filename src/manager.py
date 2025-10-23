@@ -365,6 +365,7 @@ class DiscussionManager:
             current_turn + 1,
             self.max_turns,
             peer_names=peers,
+            
         )
         mode = "interrupt" if self._interrupt_once else "speak"
         print(f"[Manager] 👉 Next speaker: {self.speaker.name} ({mode})")
