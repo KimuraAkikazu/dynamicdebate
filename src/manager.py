@@ -30,8 +30,8 @@ class DiscussionManager:
             run_id = datetime.now().strftime("%Y%m%d_%H%M%S")
             log_dir = root / f"run_{run_id}"
         log_dir.mkdir(parents=True, exist_ok=True)
-        self.log_dir = log_dir
-        self.log_path = log_dir / "discussion_log.json"
+        self.log_dir = log_dir.resolve()
+        self.log_path = self.log_dir / "discussion_log.json"
 
         # ---------- 実行時状態 ----------
         self.history: List[Tuple[str, str]] = []
@@ -44,6 +44,9 @@ class DiscussionManager:
         self._interrupt_once: bool = False
 
         self.log_data: List[Dict[str, Any]] = []
+        # 各エージェントの「直近1ターンの thought」のみ保持
+        self.latest_thought_by_agent: Dict[str, str] = {}
+
         # ---------- 早期終了用 ----------
         self.last_plan_by_agent: Dict[str, Dict[str, Any]] = {}
         self.consensus_streak: int = 0
@@ -95,9 +98,14 @@ class DiscussionManager:
                 max_turn=self.max_turns,
                 silence=True,
                 peer_names=peers,
+                # ★ 自分の最新 thought のみを渡す
+                latest_thoughts=self._get_latest_thought_for(ag.name),
             )
             # 初期planを保存
             self.last_plan_by_agent[ag.name] = self.current_actions[ag.name]
+            th0 = self.current_actions[ag.name].get("thought")
+            if isinstance(th0, str) and th0.strip():
+                self.latest_thought_by_agent[ag.name] = th0.strip()
 
         # 初期ログ行
         init_record: Dict[str, Any] = {
@@ -153,7 +161,7 @@ class DiscussionManager:
         last_event = (
             "No one has spoken this turn"
             if event_type == "silence"
-            else f"{event_type}:{speaker_name}:{content}"
+            else f"Turn {turn}({event_type})\n{speaker_name}:{content}"
         )
 
         for ag in self.agents:
@@ -169,9 +177,14 @@ class DiscussionManager:
                 self.max_turns,
                 silence=(event_type == "silence"),
                 peer_names=peers,
+                # ★ 自分の最新 thought のみを渡す
+                latest_thoughts=self._get_latest_thought_for(ag.name),
             )
             # 直近planを更新
             self.last_plan_by_agent[ag.name] = self.current_actions[ag.name]
+            th0 = self.current_actions[ag.name].get("thought")
+            if isinstance(th0, str) and th0.strip():
+                self.latest_thought_by_agent[ag.name] = th0.strip()
 
         # ---------- ログ ----------
         record: Dict[str, Any] = {
@@ -219,18 +232,16 @@ class DiscussionManager:
             if e["turn"] == 0:
                 continue
             if e["event_type"] in {"utterance", "interrupt"}:
-                lines.append(f"Turn{e['turn']} {e['speaker']}({e['event_type']}): {e['content']}")
+                lines.append(f"Turn{e['turn']}({e['event_type']})")
+                lines.append(f"{e['speaker']}: {e['content']}")
             elif e["event_type"] == "silence":
                 lines.append(f"Turn{e['turn']} (Silence): No one spoke this turn.")
-            # thought
-            if e.get("speaker") != agent_name:
-                for aa in e.get("agent_actions", []):
-                    if aa["agent_name"] == agent_name:
-                        th = aa["action_plan"].get("thought", "")
-                        if th:
-                            lines.append(f"Your thoughts for this turn: {th}")
-                        break
         return "\n".join(lines)
+
+    # ★ 追加: 指定エージェント自身の最新 Thought だけを返す
+    def _get_latest_thought_for(self, agent_name: str) -> str:
+        th = self.latest_thought_by_agent.get(agent_name, "")
+        return th.strip() if isinstance(th, str) and th.strip() else "(none)"
 
     # ──────────────────── consensus スナップショット ──────────────────── #
     def _build_consensus_state_snapshot(self) -> Dict[str, Dict[str, Any]]:
@@ -354,10 +365,12 @@ class DiscussionManager:
 
         # 旧スピーカーに残りのチャンクがある場合のみ、次の新スピーカー最初の1発話を「interrupt」扱い
         self._interrupt_once = bool(self.speaker and self.speaker.utterance_queue)
+        event_type = "interrupt" if self._interrupt_once else "utterance"
         self.speaker = next(a for a in self.agents if a.name == next_name)
         peers = [a.name for a in self.agents if a is not self.speaker]
         turn_log = self._build_turn_log(self.speaker.name, HISTORY_WINDOW)
         self.speaker.decide_to_speak(
+            event_type,
             turn_log,
             self.topic,
             next_plan.get("thought", ""),
@@ -365,12 +378,15 @@ class DiscussionManager:
             current_turn + 1,
             self.max_turns,
             peer_names=peers,
-            
+            # ★ 自分の最新 thought のみを渡す
+            latest_thoughts=self._get_latest_thought_for(self.speaker.name),
         )
         mode = "interrupt" if self._interrupt_once else "speak"
         print(f"[Manager] 👉 Next speaker: {self.speaker.name} ({mode})")
 
     # ──────────────────── JSON 書込み ──────────────────── #
     def _write_log(self) -> None:
+        # 親ディレクトリを必ず作成してから書き込み（安全策）
+        self.log_path.parent.mkdir(parents=True, exist_ok=True)
         with open(self.log_path, "w", encoding="utf-8") as f:
             json.dump(self.log_data, f, ensure_ascii=False, indent=2)

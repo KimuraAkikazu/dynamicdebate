@@ -66,32 +66,12 @@ Question: {topic}
 # System prompt
 # -------------------------------------------------- #
 SYSTEM_PROMPT = """
-- You are {name}.
-- You are discussing with {peer1} and {peer2} which of the given options is the correct answer to the question.
+- You are debating a given topic with {peer1} and {peer2}.
 
-# Your personality:
-{persona}
-
-
-# Debate rules
-- The debate has at most {max_turn} turns. You must finish speaking by turn {max_turn}.
-- Only one member can speak per turn.
-- Exactly **one sentence** is revealed to all members each turn.
-- A speaker may **compose multiple sentences** when preparing their utterance, but:
-  - Only the **first** sentence will be published on the next turn.
-  - The **remaining sentences are queued** and **do not reserve future turns**; other members may be selected to speak before your queued sentences are revealed (i.e., you can be **interrupted**).
-- Turn timeline:
-  - **Turn 0**: planning only (no utterance is published).
-  - **Turn t ≥ 1**:
-    1) Publish phase: if the current speaker has a queue, publish **one** sentence; otherwise it's a silence event.
-    2) Planning phase: all non-speaking members output an action plan (listen/speak/interrupt, urgency, intent, consensus).
-    3) Selection phase: among members choosing speak/interrupt, the **highest urgency** is selected. If everyone chooses listen, the next event is silence.
-    4) utterance phase: the selected next speaker generates their utterance for the turn .
-- **Interrupt semantics**: If a speaker holds an unpublished sentence and another member selects speak/interrupt, the speaking right transfers.
-- Reach consensus in as few turns as possible; keep sentences concise and on-topic.
 
 """.strip()
-
+# Your personality:
+# {persona}
 #- In a single turn you must output **exactly one chunk**, ending with a comma “,” or period “.”.  
   # Further comments will be carried over to the next turn.
 #- `speak`    : Begin speaking yourself because you judge the current speaker has finished speaking.
@@ -100,61 +80,57 @@ SYSTEM_PROMPT = """
 # Plan‑action prompt (normal turn)
 # -------------------------------------------------- #
 PLAN_ACTION_PROMPT_TEMPLATE = """
-# Question
-Question: {topic}
+Debate rules:
+- The debate has at most {max_turn} turns. You must finish speaking by turn {max_turn}.
+- Only one member can speak per turn.
+- Exactly one sentence is revealed to all members each turn.
+- A speaker may compose multiple sentences when preparing their utterance, but:
+  - Only the first sentence will be published on the next turn.
+  - The remaining sentences are queued and do not reserve future turns; other members may be selected to speak before your queued sentences are revealed.
 
-# Context
-- The initial answers provided by all members before the discussion began:
-<INITIAL_ANSWERS>
-{initial_answer}
-</INITIAL_ANSWERS>
-- Debate so far (newest last):
-<DEBATE_SO_FAR>
-{turn_log}
-</DEBATE_SO_FAR>
+Debate state:
+- You are {name}.
 - This is turn {turn}.
-- Events of this turn
-<EVENTS_THIS_TURN>
-{last_event}
-</EVENTS_THIS_TURN>
 - You have {turns_left} speaking opportunities remaining.
 - Decide on your final answer within the remaining {turns_left} turns.
 
-# All actions:
-- `listen`   : Listen to the current speaker or other members as they begin to speak.
-- `interrupt`: interrupt the current speaker even if they are still speaking (e.g., to correct, rebut, agree, or for a time limit).
+Debate topic:
+{topic}
 
-# urgency scale:
- 0: For now, I focus on listening.
- 1: I Provide topics to advance the discussion.
- 2: I want to state a specific opinion.
- 3: There's something I absolutely need to talk about right now.
- 4: Someone has addressed me directly and I must respond.
+The initial answers provided by all members before the discussion began:
+{initial_answer}
 
-# Instruction
+Debate so far:
+{turn_log}
+
+Your thoughts so far:
+{latest_thoughts}
+
+Event of this turn:
+{last_event}
+
+You can take the following actions:
+- `listen`   : Use when listening to the continuation of the current speaker's remarks.
+- `interrupt`: Use when interrupting the current speaker to begin speaking.
+
+Instructions:
 - Your goal is to decide on the correct answer within the maximum number of turns.
-- To reach consensus, consider whether to push your position or align with others, and choose accordingly.
-- Based on the debate so far and this turn's events, formulate your action plan for the next turn consistent with your personality.
-- When generating actions, determine whether the current speaker's utterance is mid-sentence. If it is mid-sentence, select interrupt; if it has ended, select speak.
-- Consensus check: From <INITIAL_ANSWERS> and <DEBATE_SO_FAR>, infer each member's current choice.
-  If others appear to support the same choice and you also support it, set:
-    "consensus": {{ "agreed": true,  "answer": "<A|B|C|D>" }}.
-  Otherwise set:
-    "consensus": {{ "agreed": false, "answer": "none" }}.
+- While considering the possibility that someone may be mid-sentence, decide whether to interrupt and respond immediately to this turn's statement or listen to its completion.
 
-# Constraints
+
+Constraints:
 - Once all members agree on the same answer, the discussion ends with that answer.
 - When the number of remaining turns grows short, prioritize consensus over pushing your own agenda.
 - There is only one correct answer choice for the question.
 
-# Output format
+Output format:
 {{ 
-  "thought": "string",  // Based on the debate so far and the speech of this turn, briefly describe your current inner thoughts.
-  "action": "listen|interrupt",  // Based on your "thought", please select the action you wish to take on your next turn.
-  "urgency": 0-4, // Based on your “thought,” Based on your “thoughts,” how urgent is it for you to speak during the next turn? Please output a number indicating the urgency.
-  "intent": "agree|disagree|summarize|confirmation|proposal|question|conclusion|think",  // Please tell us the reason behind your chosen action.
+  "action": "listen|interrupt",  // Decide what you should do the action you should take on next turn. Interrupting may derail the discussion, so when you have sufficient information for a comprehensive response or when the current statement contains errors or misunderstandings.
+  "thought": "string",  // Based on the debate so far and the utterance of this turn, briefly describe your current thoughts.To reach consensus, consider whether to push your position or align with others, and choose accordingly.
+  "urgency": 0-9, // Based on your “thought,” how urgent is it for you to speak during the next turn? Please output a number indicating the urgency.
+  "intent": "agree|disagree|summarize|confirmation|proposal|question|conclusion|think",  // Select the purpose of the chosen action.
   "consensus": {{
-    "agreed": true|false, // Once you are ready to reach a conclusion after the discussion, set "agreed" to "true".   
+    "agreed": true|false, //If it appears that others support the same choice and you also support it, select true. Otherwise, select false.
     "answer": "A|B|C|D|none"     // If “agreed” is “true”, set agreed answer.If “agreed” is “false”, set “none”.
   }}
   }}
@@ -166,6 +142,23 @@ Question: {topic}
 # Plan‑action prompt (silence turn)
 # --------------------------------------------------
 SILENCE_PLAN_PROMPT_TEMPLATE = """
+# Debate rules
+- The debate has at most {max_turn} turns. You must finish speaking by turn {max_turn}.
+- Only one member can speak per turn.
+- Exactly **one sentence** is revealed to all members each turn.
+- A speaker may **compose multiple sentences** when preparing their utterance, but:
+  - Only the **first** sentence will be published on the next turn.
+  - The **remaining sentences are queued** and **do not reserve future turns**; other members may be selected to speak before your queued sentences are revealed (i.e., you can be **interrupted**).
+- Turn timeline:
+  - **Turn 0**: planning only.
+  - **Turn t ≥ 1**:
+    1) Publish phase: if the current speaker has a queue, publish one sentence; otherwise it's a silence event.
+    2) Planning phase: all non-speaking members output an action plan.
+    3) Selection phase: among members choosing speak/interrupt, the highest urgency is selected. If everyone chooses listen, the next event is silence.
+    4) utterance phase: the selected next speaker generates their utterance for the turn.
+- Interrupt semantics: If a speaker holds an unpublished sentence and another member selects speak/interrupt, the speaking right transfers.
+- Reach consensus in as few turns as possible; keep sentences concise and on-topic.
+
 # Question
 Question: {topic}
 
@@ -178,6 +171,10 @@ Question: {topic}
 <DEBATE_SO_FAR>
 {turn_log}
 </DEBATE_SO_FAR>
+- Your thought from the previous turn:
+<Your_Thought>
+{latest_thoughts}
+</Your_Thought>
 - This is turn {turn}. 
 -Events in this turn
 <EVENTS_THIS_TURN>
@@ -220,7 +217,7 @@ Question: {topic}
   "thought": "string",  // Based on the debate so far and the events of this turn, briefly explain your current inner thoughts.
   "action": "listen|speak",  // Based on your "thought", please select the action you wish to take on your next turn.
   "urgency": 0-4, //Based on your “thought,” how urgent is it for you to speak during the next turn? Please output a number indicating the urgency.
-  "intent": "agree|disagree|summarize|confirmation|proposal|question|conclusion|think",  // Please tell us the reason behind your chosen action.
+  "intent": "agree|disagree|summarize|confirmation|proposal|question|conclusion|think",  // Select the purpose of the chosen action.
   "consensus": {{
     "agreed": true|false,  //Once you are ready to reach a conclusion after the discussion, set "agreed" to "true".
     "answer": "A|B|C|D|none"  // If “agreed” is “true”, set agreed answer.If “agreed” is “false”, set “none”.
@@ -237,8 +234,12 @@ Question: {topic}
 # Utterance‑generation prompt
 # --------------------------------------------------
 GENERATE_UTTERANCE_PROMPT_TEMPLATE = """
+# Debate rules
+- The debate has at most {max_turn} turns. You must finish speaking by turn {max_turn}.
+- Only one member can speak per turn.
+
 # Question
-Question: {topic}
+{topic}
 
 # Context
 - The initial answers provided by all members before the discussion began:
@@ -248,6 +249,8 @@ Question: {topic}
 - Debate so far:
 <DEBATE_SO_FAR>
 {turn_log}
+Turn{turn}({event_type})
+{name}:
 </DEBATE_SO_FAR>
 - This is turn {turn}.
 - You have {turns_left} chance(s) to speak left.
@@ -256,14 +259,15 @@ Question: {topic}
 # Instruction
 - You are speaking in the debate as {name}.
 - Your goal is to collectively decide on the correct answer to the question within the maximum number of turns.
-- Your thought on speaking: "your thought:{thought},  intention of your statement:{intent}"
+- Your thoughts on speaking next:
+  your thought:{thought},
+  intention of your action:{intent}
 - To reach consensus, consider whether to push your position or align with others, and choose accordingly.
 - Based on your personality, generate your utterance to be made as {name} that builds on the discussion so far.
 
 # Constraints
 - Be careful not to stray into discussions that are not necessary for answering the question.
 - Be careful not to repeat the same thing over and over again in discussions.
-- When generating speech, do not connect multiple sentences using ",".
 
 # Output format
 {{"utterance": "string"}}
