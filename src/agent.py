@@ -7,7 +7,6 @@ from typing import Any, Deque, List, Optional, Sequence
 
 from . import prompts
 from .llm_handler import LLMHandler
-from .sbd import split_into_sentences  # ファイル先頭の import 群に追加
 
 
 class Agent:
@@ -116,7 +115,7 @@ class Agent:
             latest_thoughts=latest_thoughts,  # ★ 自分の最新 thought のみ
         ).strip()
 
-        # generate_utterance は埋め込まれた prompt をそのまま使う
+        # generate_utterance は埋め込まれた prompt をそのまま使う（stream=True で受信）
         result = self.llm_handler.generate_utterance(
             utterance_prompt,
             turn=turn,
@@ -138,18 +137,16 @@ class Agent:
                 agent_name=self.name, turn=turn, full_text=raw_text
             )
 
-        # 発話キューには "utterance" フィールドのみを格納
+        # 発話キューには 8トークン単位のチャンクを格納（sbd 文分割→置換）
         self.utterance_queue.extend(self._chunk_utterance(utterance_text))
 
     # ───────────────────── Chunk utilities ───────────────────── #
-    @staticmethod
-    def _chunk_utterance(text: str) -> list[str]:
+    def _chunk_utterance(self, text: str) -> list[str]:
         """
-        Use spaCy for sentence boundary detection.
-        - “Inc.” や “v.”, “U.S.”, 小数 3.14 などの文中ドットでは基本的に分割されない
-        - 末尾の . ? ! などでのみ文を切る
+        仕様変更：文単位ではなく **8トークン** 単位でチャンク化。
+        モデルの tokenizer/detokenizer により厳密なトークン境界を使用。
         """
-        return split_into_sentences(text)
-
+        return self.llm_handler.chunk_by_tokens(text)
+    
     def get_next_chunk(self) -> Optional[str]:
         return self.utterance_queue.popleft() if self.utterance_queue else None

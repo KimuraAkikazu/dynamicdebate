@@ -4,12 +4,15 @@ from __future__ import annotations
 import json
 import re
 from pathlib import Path
-from typing import Any, Dict, Optional, Sequence, Tuple
+from typing import Any, Dict, Optional, Sequence, Tuple, List
 
 from llama_cpp import Llama
 
 from . import prompts
 from .prompt_logger import PromptLogger
+
+# 1チャンクあたりのトークン数（仕様：8）
+TOKENS_PER_CHUNK =32
 
 qa_schema: Dict[str, Any] = {
     "type": "object",
@@ -121,6 +124,31 @@ class LLMHandler:
                 pass
 
         return {}
+
+    @staticmethod
+    def _extract_utterance_from_jsonish(raw_text: str) -> str:
+        """
+        JSON / JSONライク文字列から "utterance" の値だけを安全に抜き出す。
+        - 正規のJSONなら _safe_load_json で取得
+        - 失敗したら正規表現で "utterance":"...（エスケープ含む）" を抽出して復元
+        - それでもダメなら全体文字列をそのまま返す（最終フォールバック）
+        """
+        parsed = LLMHandler._safe_load_json(raw_text)
+        utt = parsed.get("utterance")
+        if isinstance(utt, str) and utt.strip():
+            return utt.strip()
+
+        m = re.search(r'"utterance"\s*:\s*"((?:\\.|[^"\\])*)"', raw_text, re.S)
+        if m:
+            esc = m.group(1)
+            try:
+                return json.loads(f'"{esc}"')
+            except Exception:
+                # 最低限のアンエスケープ
+                return esc.encode("utf-8").decode("unicode_escape")
+
+        # フェンス除去だけして返す
+        return LLMHandler._strip_code_fence(raw_text)
 
     # ──────────────────── 共通 JSON 生成ユーティリティ ──────────────────── #
     def _generate_json_only(
@@ -255,6 +283,29 @@ class LLMHandler:
 
         return parsed
 
+    def chunk_by_tokens(self, text: str, tokens_per_chunk: int = TOKENS_PER_CHUNK) -> List[str]:
+        """
+        発話テキストをモデルのトークナイザ基準で N トークンずつに区切って文字列チャンクに戻す。
+        """
+        if not text:
+            return []
+        # tokenize expects bytes for llama_cpp
+        token_ids = self.model.tokenize(text.encode("utf-8"), add_bos=False)
+        if not token_ids:
+            return [text]
+
+        chunks: List[str] = []
+        for i in range(0, len(token_ids), tokens_per_chunk):
+            piece_ids = token_ids[i : i + tokens_per_chunk]
+            detok = self.model.detokenize(piece_ids)
+            try:
+                chunk_text = detok.decode("utf-8", errors="ignore")
+            except Exception:
+                chunk_text = detok.decode("utf-8", errors="ignore")
+            chunks.append(chunk_text)
+        # 体裁整え（前後空白は維持する方が原文忠実だが、極端な前置スペースは削る）
+        return [c if i == 0 else c.lstrip() for i, c in enumerate(chunks)]
+
     def generate_utterance(
         self,
         user_prompt: str,
@@ -268,8 +319,8 @@ class LLMHandler:
     ) -> Tuple[str, str]:
         """
         Returns (utterance_text, raw_model_output).
-        If the model returns JSON with an "utterance" field, that value is used.
-        Otherwise the raw text itself is treated as the utterance.
+        - モデルには JSON Object を要求するが、受信は stream=True で逐次。
+        - 最終的に連結した raw_text から "utterance" 文字列だけを安全に抽出。
         """
         phase = "utterance"
         system_prompt = self._build_system_prompt(
@@ -285,19 +336,30 @@ class LLMHandler:
         if self.logger:
             self.logger.log(agent_name, phase, turn, system_prompt, user_prompt)
 
-        # 発話生成でも JSON Object を要求
-        resp = self.model.create_chat_completion(
-            messages=messages, response_format={"type": "json_object"}
+        # ★ stream=True：逐次デルタを連結
+        raw_parts: List[str] = []
+        stream = self.model.create_chat_completion(
+            messages=messages,
+            response_format={"type": "json_object"},
+            stream=True,
         )
-        raw_text = resp["choices"][0]["message"]["content"].strip()
+        for chunk in stream:
+            # llama-cpp の chat completion ストリーム互換（OpenAI風）
+            part = ""
+            try:
+                part = chunk["choices"][0].get("delta", {}).get("content") or ""
+                # 旧API互換（もし "text" スロットで来る場合）
+                if not part:
+                    part = chunk["choices"][0].get("text", "") or ""
+            except Exception:
+                part = ""
+            if part:
+                raw_parts.append(part)
 
-        parsed = self._safe_load_json(raw_text)
-        utterance = parsed.get("utterance")
-        if isinstance(utterance, str) and utterance.strip():
-            utterance_text = utterance.strip()
-        else:
-            # モデルが JSON で返さなかった場合はそのまま発話とみなす
-            utterance_text = raw_text
+        raw_text = "".join(raw_parts).strip()
+
+        # "utterance" だけを安全抽出
+        utterance_text = self._extract_utterance_from_jsonish(raw_text)
 
         # 生出力も残す
         if self.logger:

@@ -83,15 +83,12 @@ PLAN_ACTION_PROMPT_TEMPLATE = """
 Debate rules:
 - The debate has at most {max_turn} turns. You must finish speaking by turn {max_turn}.
 - Only one member can speak per turn.
-- Exactly one sentence is revealed to all members each turn.
-- A speaker may compose multiple sentences when preparing their utterance, but:
-  - Only the first sentence will be published on the next turn.
-  - The remaining sentences are queued and do not reserve future turns; other members may be selected to speak before your queued sentences are revealed.
+- Exactly one chunk is revealed to all members each turn. Therefore, since the speaker can prepare multiple chunks during their preparation phase, statements may have continuations.
 
 Debate state:
 - You are {name}.
 - This is turn {turn}.
-- You have {turns_left} speaking opportunities remaining.
+- You have {turns_left} speaking opportunity(ies) remaining.
 - Decide on your final answer within the remaining {turns_left} turns.
 
 Debate topic:
@@ -103,18 +100,19 @@ The initial answers provided by all members before the discussion began:
 Debate so far:
 {turn_log}
 
-Your thoughts so far:
+Your thoughts up until the previous turn:
 {latest_thoughts}
 
 Event of this turn:
 {last_event}
 
 You can take the following actions:
-- `listen`   : Use when listening to the continuation of the current speaker's remarks.
+- `listen`   : Use when listening to the speaker's argument and waiting for them to finish speaking.
 - `interrupt`: Use when interrupting the current speaker to begin speaking.
 
 Instructions:
 - Your goal is to decide on the correct answer within the maximum number of turns.
+- To reach consensus, consider whether to push your position or align with others, and choose accordingly.
 - While considering the possibility that someone may be mid-sentence, decide whether to interrupt and respond immediately to this turn's statement or listen to its completion.
 
 
@@ -125,10 +123,10 @@ Constraints:
 
 Output format:
 {{ 
-  "action": "listen|interrupt",  // Decide what you should do the action you should take on next turn. Interrupting may derail the discussion, so when you have sufficient information for a comprehensive response or when the current statement contains errors or misunderstandings.
-  "thought": "string",  // Based on the debate so far and the utterance of this turn, briefly describe your current thoughts.To reach consensus, consider whether to push your position or align with others, and choose accordingly.
+  "action": "listen|interrupt",  // Decide what action to take next turn. Interrupting may derail the discussion, so when you have sufficient information for a comprehensive response or when the current statement contains errors or misunderstandings.
+  "thought": "string",  // State your thoughts based on the content of the discussion so far and what the speaker said in this turn.
   "urgency": 0-9, // Based on your “thought,” how urgent is it for you to speak during the next turn? Please output a number indicating the urgency.
-  "intent": "agree|disagree|summarize|confirmation|proposal|question|conclusion|think",  // Select the purpose of the chosen action.
+  "intent": "agree|disagree|summarize|confirmation|proposal|conclusion|think",  // Select the purpose of the chosen action.
   "consensus": {{
     "agreed": true|false, //If it appears that others support the same choice and you also support it, select true. Otherwise, select false.
     "answer": "A|B|C|D|none"     // If “agreed” is “true”, set agreed answer.If “agreed” is “false”, set “none”.
@@ -216,7 +214,7 @@ Question: {topic}
 {{
   "thought": "string",  // Based on the debate so far and the events of this turn, briefly explain your current inner thoughts.
   "action": "listen|speak",  // Based on your "thought", please select the action you wish to take on your next turn.
-  "urgency": 0-4, //Based on your “thought,” how urgent is it for you to speak during the next turn? Please output a number indicating the urgency.
+  "urgency": 0-4, //Based on the debate so far and your current thought, how urgent is it for you to speak in the next turn? Please output a numerical value indicating the urgency.
   "intent": "agree|disagree|summarize|confirmation|proposal|question|conclusion|think",  // Select the purpose of the chosen action.
   "consensus": {{
     "agreed": true|false,  //Once you are ready to reach a conclusion after the discussion, set "agreed" to "true".
