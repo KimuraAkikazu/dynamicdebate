@@ -25,21 +25,14 @@ qa_schema: Dict[str, Any] = {
 plan_action_schema: Dict[str, Any] = {
     "type": "object",
     "properties": {
-        "thought": {"type": "string", "maxLength": 300},
+        "thought": {"type": "string"},
         "action": {"type": "string", "enum": ["listen", "speak", "interrupt"]},
-        "urgency": {"type": "integer", "minimum": 0, "maximum": 4},
+        "urgency": {"type": "integer", "minimum": 0, "maximum": 9},
         "intent": {"type": "string", "maxLength": 50},
-        "consensus": {
-            "type": "object",
-            "properties": {
-                "agreed": {"type": "boolean"},
-                "answer": {"type": "string", "enum": ["A", "B", "C", "D","none"]},
-            },
-            "required": ["agreed"],
-            "additionalProperties": False,
-        },
+        "agreed": {"type": "boolean"},
+        "answer": {"type": "string", "enum": ["A", "B", "C", "D","none"]},
     },
-    "required": ["thought", "action", "urgency", "intent", "consensus"],
+    "required": ["thought", "action", "urgency", "intent", "answer", "agreed"],
     "additionalProperties": False,
 }
 
@@ -176,6 +169,7 @@ class LLMHandler:
         topic: str,
         initial_answer_str: str,
         debate_history: str,
+        latest_thoughts: str,
         *,
         agent_name: str,
         persona: str,
@@ -184,6 +178,7 @@ class LLMHandler:
             topic=topic,
             initial_answer=initial_answer_str,
             debate_history=debate_history,
+            latest_thoughts=latest_thoughts,
             name=agent_name,
             persona=persona,
         )
@@ -239,7 +234,7 @@ class LLMHandler:
         resp = self.model.create_chat_completion(
             messages=messages,
             response_format={"type": "json_object", "schema": plan_action_schema},
-            max_tokens=256,
+            max_tokens=1024,
         )
         content = resp["choices"][0]["message"]["content"]
         parsed = self._safe_load_json(content)
