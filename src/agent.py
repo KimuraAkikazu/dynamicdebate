@@ -1,4 +1,4 @@
-"""Agent class (turn-wise history & intent aware)"""
+"""Agent class (turn-wise history & purpose aware)"""
 from __future__ import annotations
 
 import re
@@ -16,6 +16,10 @@ class Agent:
         self.persona = persona
         self.llm_handler = llm_handler
 
+        # role
+        self.role: str = "normal"  # "normal" or "adversary"
+        self.adversary_target: Optional[str] = None  # e.g., "A"
+
         # runtime state
         self.utterance_queue: Deque[str] = deque()
         self.thought_history: List[tuple[int, str]] = []
@@ -23,18 +27,38 @@ class Agent:
         self.initial_answer_str: str = ""
         self.all_initial_answers_str: str = ""  # 全員分
 
+    # ---- role setters -------------------------------------------------
+    def set_adversary(self, target_answer: str) -> None:
+        self.role = "adversary"
+        self.adversary_target = (target_answer or "").strip().upper() or "A"
+
     # ──────────────────── 初回回答 ──────────────────── #
     def generate_initial_answer(self, topic: str) -> None:
-        self.initial_answer = self.llm_handler.generate_initial_answer(
-            topic, agent_name=self.name, persona=self.persona
-        )
+        if self.role == "adversary" and self.adversary_target:
+            self.initial_answer = self.llm_handler.generate_adversary_initial_answer(
+                topic, target_answer=self.adversary_target, agent_name=self.name, persona=self.persona
+            )
+        else:
+            self.initial_answer = self.llm_handler.generate_initial_answer(
+                topic, agent_name=self.name, persona=self.persona
+            )
         self.initial_answer_str = (
             f"Answer: {self.initial_answer.get('answer','')}, "
-            f"Reason: {self.initial_answer.get('reason','')}"
+            f"reasoning: {self.initial_answer.get('reasoning','')}"
         )
 
     # ──────────────────── 最終回答 ──────────────────── #
     def generate_final_answer(self, topic: str, debate_history: str, latest_thoughts: str) -> dict[str, str]:
+        if self.role == "adversary" and self.adversary_target:
+            return self.llm_handler.generate_adversary_final_answer(
+                topic,
+                self.initial_answer_str,
+                debate_history,
+                latest_thoughts,
+                target_answer=self.adversary_target,
+                agent_name=self.name,
+                persona=self.persona,
+            )
         return self.llm_handler.generate_final_answer(
             topic,
             self.initial_answer_str,
@@ -57,33 +81,65 @@ class Agent:
         peer_names: Sequence[str],
         latest_thoughts: str,
     ) -> dict[str, Any]:
-        template = (
-            prompts.SILENCE_PLAN_PROMPT_TEMPLATE
-            if silence
-            else prompts.PLAN_ACTION_PROMPT_TEMPLATE
-        )
-        if turn == 0:
-            last_event = "Let's start the discussion now."
-        prompt = template.format(
-            name = self.name,
-            turn_log=turn_log,
-            last_event=last_event,
-            turns_left=max_turn - turn,
-            max_turn=max_turn,
-            turn=turn,                    # plan用プロンプトに {turn} を渡す
-            initial_answer=self.all_initial_answers_str,
-            topic=topic,
-            latest_thoughts=latest_thoughts,  # ★ 自分の最新 thought のみ
-        )
-        action_plan = self.llm_handler.generate_action(
-            prompt,
-            turn=turn,
-            max_turn=max_turn,
-            agent_name=self.name,
-            persona=self.persona,
-            topic=topic,
-            peer_names=peer_names,
-        )
+        if self.role == "adversary" and self.adversary_target:
+            template = (
+                prompts.ADVERSARY_SILENCE_PLAN_PROMPT_TEMPLATE
+                if silence
+                else prompts.ADVERSARY_PLAN_ACTION_PROMPT_TEMPLATE
+            )
+            if turn == 0:
+                last_event = "Let's start the discussion now."
+            prompt = template.format(
+                name=self.name,
+                turn_log=turn_log,
+                last_event=last_event,
+                turns_left=max_turn - turn,
+                max_turn=max_turn,
+                turn=turn,
+                initial_answer=self.all_initial_answers_str,
+                topic=topic,
+                latest_thoughts=latest_thoughts,
+                target_answer=self.adversary_target,
+            )
+            action_plan = self.llm_handler.generate_action_adversary(
+                prompt,
+                turn=turn,
+                max_turn=max_turn,
+                agent_name=self.name,
+                persona=self.persona,
+                topic=topic,
+                peer_names=peer_names,
+                target_answer=self.adversary_target,
+            )
+        else:
+            template = (
+                prompts.SILENCE_PLAN_PROMPT_TEMPLATE
+                if silence
+                else prompts.PLAN_ACTION_PROMPT_TEMPLATE
+            )
+            if turn == 0:
+                last_event = "Let's start the discussion now."
+            prompt = template.format(
+                name=self.name,
+                turn_log=turn_log,
+                last_event=last_event,
+                turns_left=max_turn - turn,
+                max_turn=max_turn,
+                turn=turn,                    # plan用プロンプトに {turn} を渡す
+                initial_answer=self.all_initial_answers_str,
+                topic=topic,
+                latest_thoughts=latest_thoughts,  # ★ 自分の最新 thought のみ
+            )
+            action_plan = self.llm_handler.generate_action(
+                prompt,
+                turn=turn,
+                max_turn=max_turn,
+                agent_name=self.name,
+                persona=self.persona,
+                topic=topic,
+                peer_names=peer_names,
+            )
+
         if isinstance(action_plan, dict) and "thought" in action_plan:
             self.thought_history.append((turn, action_plan["thought"]))
         return action_plan
@@ -95,7 +151,7 @@ class Agent:
         turn_log: str,
         topic: str,
         thought: str,
-        intent: str,
+        purpose: str,
         turn: int,
         max_turn: int,
         *,
@@ -103,34 +159,59 @@ class Agent:
         latest_thoughts: str,
     ) -> None:
         self.utterance_queue.clear()
-        utterance_prompt = prompts.GENERATE_UTTERANCE_PROMPT_TEMPLATE.format(
-            event_type=event_type,
-            topic=topic,
-            turn_log=turn_log,
-            thought=thought,
-            intent=intent,
-            turns_left=max_turn - turn,
-            name=self.name,
-            turn=turn,                    # plan用プロンプトに {turn} を渡す
-            initial_answer=self.all_initial_answers_str,
-            max_turn=max_turn,
-            latest_thoughts=latest_thoughts,  # ★ 自分の最新 thought のみ
-        ).strip()
 
-        # generate_utterance は埋め込まれた prompt をそのまま使う
-        result = self.llm_handler.generate_utterance(
-            utterance_prompt,
-            turn=turn,
-            max_turn=max_turn,
-            agent_name=self.name,
-            persona=self.persona,
-            topic=topic,
-            peer_names=peer_names,
-        )
+        if self.role == "adversary" and self.adversary_target:
+            utterance_prompt = prompts.ADVERSARY_GENERATE_UTTERANCE_PROMPT_TEMPLATE.format(
+                event_type=event_type,
+                topic=topic,
+                turn_log=turn_log,
+                thought=thought,
+                purpose=purpose,
+                turns_left=max_turn - turn,
+                name=self.name,
+                turn=turn,
+                initial_answer=self.all_initial_answers_str,
+                max_turn=max_turn,
+                latest_thoughts=latest_thoughts,
+                target_answer=self.adversary_target,
+            ).strip()
+            result = self.llm_handler.generate_utterance_adversary(
+                utterance_prompt,
+                turn=turn,
+                max_turn=max_turn,
+                agent_name=self.name,
+                persona=self.persona,
+                topic=topic,
+                peer_names=peer_names,
+                target_answer=self.adversary_target,
+            )
+        else:
+            utterance_prompt = prompts.GENERATE_UTTERANCE_PROMPT_TEMPLATE.format(
+                event_type=event_type,
+                topic=topic,
+                turn_log=turn_log,
+                thought=thought,
+                purpose=purpose,
+                turns_left=max_turn - turn,
+                name=self.name,
+                turn=turn,                    # plan用プロンプトに {turn} を渡す
+                initial_answer=self.all_initial_answers_str,
+                max_turn=max_turn,
+                latest_thoughts=latest_thoughts,  # ★ 自分の最新 thought のみ
+            ).strip()
+            result = self.llm_handler.generate_utterance(
+                utterance_prompt,
+                turn=turn,
+                max_turn=max_turn,
+                agent_name=self.name,
+                persona=self.persona,
+                topic=topic,
+                peer_names=peer_names,
+            )
+
         if isinstance(result, tuple):
             utterance_text, raw_text = result
         else:
-            # 後方互換：タプルでない場合はそのまま文字列とみなす
             utterance_text = raw_text = result  # type: ignore
 
         # ログにはモデルの生出力を保存
@@ -147,8 +228,6 @@ class Agent:
     def _chunk_utterance(text: str) -> list[str]:
         """
         Use spaCy for sentence boundary detection.
-        - “Inc.” や “v.”, “U.S.”, 小数 3.14 などの文中ドットでは基本的に分割されない
-        - 末尾の . ? ! などでのみ文を切る
         """
         return split_into_sentences(text)
 

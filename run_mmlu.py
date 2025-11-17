@@ -11,7 +11,7 @@ import random
 import argparse
 from datetime import datetime
 from pathlib import Path
-from typing import List
+from typing import List, Tuple
 
 import yaml
 from datasets import load_dataset
@@ -46,6 +46,15 @@ def idx_to_label(idx: int | str) -> str:
         return LABELS[int(idx)]
     except (ValueError, TypeError, IndexError):
         return str(idx).strip().upper()
+
+
+def choose_adversary_target(gold_label: str | None) -> str:
+    """A-D の範囲で gold と異なるラベルをランダムに選ぶ（gold が A-D 以外なら単純ランダム）"""
+    pool = ["A", "B", "C", "D"]
+    rnd = random.Random(SEED)
+    if gold_label in pool:
+        pool = [p for p in pool if p != gold_label]
+    return rnd.choice(pool)
 
 
 # ---------- メイン ---------- #
@@ -89,6 +98,13 @@ def main() -> None:
     rnd.shuffle(indices)
     selected = indices[:total]
 
+    # ---- adversary 設定 ----
+    adv_cfg = base_cfg.get("adversary", {}) or {}
+    adv_enabled: bool = bool(adv_cfg.get("enabled", False))
+    adv_agent_name: str | None = adv_cfg.get("agent_name")
+    adv_strategy: str = str(adv_cfg.get("target_strategy", "random_wrong"))
+    adv_fixed_label: str | None = adv_cfg.get("fixed_label")
+
     correct = 0
     for run_id, ds_idx in enumerate(selected, start=1):
         ex = ds[ds_idx]
@@ -103,6 +119,7 @@ def main() -> None:
 
         # ---- トピック ----
         topic = format_topic(ex["question"], ex["choices"])
+        gold_label = idx_to_label(ex["answer"])  # E, F もあり得る
 
         # ---- config 差し替え ----
         cfg = copy.deepcopy(base_cfg)
@@ -111,6 +128,38 @@ def main() -> None:
         # ---- エージェント生成 ----
         agents = [Agent(a["name"], a["persona"], llm_handler) for a in cfg["agents"]]
 
+        # ---- adversary 指定（1 体） ----
+        if adv_enabled and agents:
+            # 対象エージェントを決定
+            if adv_agent_name:
+                target_agent = next((ag for ag in agents if ag.name == adv_agent_name), agents[-1])
+            else:
+                target_agent = agents[-1]  # デフォルトは最後のエージェント
+
+            # ターゲットラベルを決定
+            if adv_strategy == "fixed" and isinstance(adv_fixed_label, str):
+                adv_target = adv_fixed_label.strip().upper()
+                if adv_target not in {"A", "B", "C", "D"}:
+                    adv_target = choose_adversary_target(gold_label)
+            else:
+                adv_target = choose_adversary_target(gold_label)
+
+            target_agent.set_adversary(adv_target)
+
+            # メタ情報を保存
+            with open(prob_dir / "adversary_meta.json", "w", encoding="utf-8") as f:
+                json.dump(
+                    {
+                        "adversary_agent": target_agent.name,
+                        "target_label": adv_target,
+                        "gold_label": gold_label,
+                        "strategy": adv_strategy,
+                    },
+                    f,
+                    ensure_ascii=False,
+                    indent=2,
+                )
+
         # ---- ディベート実行 ----
         manager = DiscussionManager(agents, cfg, log_dir=prob_dir)
         final = manager.run_discussion()
@@ -118,15 +167,14 @@ def main() -> None:
         # ---- 予測 ----
         preds = [ans.get("answer", "").strip().upper() for ans in final.values()]
         pred_label = majority_vote(preds)
-        gold_label = idx_to_label(ex["answer"])
-
-        is_correct = pred_label == gold_label
+        gold_label_ABCD = gold_label if gold_label in {"A", "B", "C", "D"} else gold_label  # そのまま
+        is_correct = pred_label == gold_label_ABCD
         if is_correct:
             correct += 1
 
         # ---- コンソール表示 ----
         print(
-            f"[Q{run_id:03}] (idx={ds_idx}) Pred={pred_label} | Gold={gold_label} | "
+            f"[Q{run_id:03}] (idx={ds_idx}) Pred={pred_label} | Gold={gold_label_ABCD} | "
             f"{'✅ 正解' if is_correct else '❌ 不正解'}"
         )
 
@@ -134,10 +182,10 @@ def main() -> None:
         result_fp.write(
             json.dumps(
                 {
-                    "question_id": run_id,      # 実行順のID
-                    "index_in_split": ds_idx,   # 元データ内のインデックス
+                    "question_id": run_id,
+                    "index_in_split": ds_idx,
                     "pred": pred_label,
-                    "gold": gold_label,
+                    "gold": gold_label_ABCD,
                     "correct": is_correct,
                 },
                 ensure_ascii=False,

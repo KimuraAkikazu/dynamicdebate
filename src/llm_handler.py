@@ -14,10 +14,10 @@ from .prompt_logger import PromptLogger
 qa_schema: Dict[str, Any] = {
     "type": "object",
     "properties": {
-        "reason": {"type": "string"},  # ~100 words
+        "reasoning": {"type": "string"},
         "answer": {"type": "string", "enum": ["A", "B", "C", "D"]},
     },
-    "required": ["reason", "answer"],
+    "required": ["reasoning", "answer"],
     "strict": True,
     "additionalProperties": False,
 }
@@ -29,10 +29,10 @@ plan_action_schema: Dict[str, Any] = {
         "action": {"type": "string", "enum": ["listen", "speak", "interrupt"]},
         "urgency": {"type": "integer", "minimum": 0, "maximum": 9},
         "intent": {"type": "string", "maxLength": 50},
-        "agreed": {"type": "boolean"},
         "answer": {"type": "string", "enum": ["A", "B", "C", "D","none"]},
+        "consensus": {"type": "boolean"},
     },
-    "required": ["thought", "action", "urgency", "intent", "answer", "agreed"],
+    "required": ["thought", "action", "urgency", "intent", "answer", "consensus"],
     "additionalProperties": False,
 }
 
@@ -77,7 +77,6 @@ class LLMHandler:
     # ──────────────────── 内部ユーティリティ ──────────────────── #
     @staticmethod
     def _strip_code_fence(text: str) -> str:
-        """```json ... ``` や ``` ... ``` を除去して戻す"""
         text = text.strip()
         text = re.sub(r"^\s*```(?:json)?\s*", "", text, flags=re.I)
         text = re.sub(r"\s*```", "", text).strip()
@@ -85,25 +84,16 @@ class LLMHandler:
 
     @staticmethod
     def _safe_load_json(raw_text: str) -> Dict[str, Any]:
-        """
-        多少壊れた JSON でも best-effort でパースして dict を返す。
-        """
         txt = LLMHandler._strip_code_fence(raw_text)
-
-        # try-as-is
         try:
             return json.loads(txt)
         except Exception:
             pass
-
-        # single quotes → double quotes
         txt_q = txt.replace("'", '"')
         try:
             return json.loads(txt_q)
         except Exception:
             pass
-
-        # substring between first { ... last }
         first = txt.find("{")
         last = txt.rfind("}")
         if first != -1 and last != -1 and last > first:
@@ -112,7 +102,6 @@ class LLMHandler:
                 return json.loads(sub)
             except Exception:
                 pass
-
         return {}
 
     # ──────────────────── 共通 JSON 生成ユーティリティ ──────────────────── #
@@ -124,25 +113,23 @@ class LLMHandler:
         persona: str,
         phase: str,
         max_tokens: int = 512,
+        system_prompt: Optional[str] = None,
+        schema: Optional[Dict[str, Any]] = None,
     ) -> Dict[str, Any]:
-        messages = [
-            {"role": "user", "content": user_prompt},
-        ]
+        messages = []
+        if system_prompt:
+            messages.append({"role": "system", "content": system_prompt})
+        messages.append({"role": "user", "content": user_prompt})
 
         resp = self.model.create_chat_completion(
             messages=messages,
-            response_format={"type": "json_object", "schema": qa_schema},
+            response_format={"type": "json_object", "schema": (schema or qa_schema)},
             max_tokens=max_tokens,
         )
         content = resp["choices"][0]["message"]["content"]
-
-        if isinstance(content, dict):
-            parsed: Dict[str, Any] = content
-        else:
-            parsed = self._safe_load_json(str(content))
-
+        parsed: Dict[str, Any] = content if isinstance(content, dict) else self._safe_load_json(str(content))
         parsed.setdefault("answer", "")
-        parsed.setdefault("reason", "")
+        parsed.setdefault("reasoning", "")
 
         if self.logger:
             self.logger.log_generated(
@@ -151,10 +138,9 @@ class LLMHandler:
                 full_text=str(content),
                 phase="initial_generated" if phase == "Initial" else "final_generated",
             )
-
         return parsed
 
-    # 初回回答
+    # ====================== 通常: 初回/最終 ====================== #
     def generate_initial_answer(
         self, topic: str, *, agent_name: str, persona: str
     ) -> Dict[str, Any]:
@@ -163,7 +149,6 @@ class LLMHandler:
             prompt, agent_name=agent_name, persona=persona, phase="Initial"
         )
 
-    # 最終回答
     def generate_final_answer(
         self,
         topic: str,
@@ -186,6 +171,46 @@ class LLMHandler:
             prompt, agent_name=agent_name, persona=persona, phase="Final"
         )
 
+    # ====================== adversary: 初回/最終 ====================== #
+    def generate_adversary_initial_answer(
+        self, topic: str, *, target_answer: str, agent_name: str, persona: str
+    ) -> Dict[str, Any]:
+        prompt = prompts.ADVERSARY_INITIAL_ANSWER_PROMPT_TEMPLATE.format(
+            topic=topic, name=agent_name, target_answer=target_answer
+        )
+        sys = prompts.ADVERSARY_SYSTEM_PROMPT.format(
+            peer1="Peer1", peer2="Peer2", target_answer=target_answer
+        )
+        return self._generate_json_only(
+            prompt, agent_name=agent_name, persona=persona, phase="Initial", system_prompt=sys
+        )
+
+    def generate_adversary_final_answer(
+        self,
+        topic: str,
+        initial_answer_str: str,
+        debate_history: str,
+        latest_thoughts: str,
+        *,
+        target_answer: str,
+        agent_name: str,
+        persona: str,
+    ) -> Dict[str, Any]:
+        prompt = prompts.ADVERSARY_FINAL_ANSWER_PROMPT_TEMPLATE.format(
+            topic=topic,
+            initial_answer=initial_answer_str,
+            debate_history=debate_history,
+            latest_thoughts=latest_thoughts,
+            name=agent_name,
+            target_answer=target_answer,
+        )
+        sys = prompts.ADVERSARY_SYSTEM_PROMPT.format(
+            peer1="Peer1", peer2="Peer2", target_answer=target_answer
+        )
+        return self._generate_json_only(
+            prompt, agent_name=agent_name, persona=persona, phase="Final", system_prompt=sys
+        )
+
     # ======================  内部: system prompt ====================== #
     def _build_system_prompt(
         self,
@@ -205,6 +230,20 @@ class LLMHandler:
             max_turn=max_turn,
         )
 
+    def _build_adversary_system_prompt(
+        self,
+        *,
+        peer_names: Sequence[str],
+        target_answer: str,
+    ) -> str:
+        p1 = peer_names[0] if len(peer_names) >= 1 else "Another agent"
+        p2 = peer_names[1] if len(peer_names) >= 2 else "Another agent"
+        return prompts.ADVERSARY_SYSTEM_PROMPT.format(
+            peer1=p1,
+            peer2=p2,
+            target_answer=target_answer,
+        )
+
     # ======================  行動計画 / 発話生成 ====================== #
     def generate_action(
         self,
@@ -217,7 +256,6 @@ class LLMHandler:
         topic: str,
         peer_names: Sequence[str],
     ) -> Dict[str, Any]:
-        phase = "plan"
         system_prompt = self._build_system_prompt(
             name=agent_name,
             peer_names=peer_names,
@@ -229,7 +267,7 @@ class LLMHandler:
             {"role": "user", "content": user_prompt},
         ]
         if self.logger:
-            self.logger.log(agent_name, phase, turn, system_prompt, user_prompt)
+            self.logger.log(agent_name, "plan", turn, system_prompt, user_prompt)
 
         resp = self.model.create_chat_completion(
             messages=messages,
@@ -239,7 +277,6 @@ class LLMHandler:
         content = resp["choices"][0]["message"]["content"]
         parsed = self._safe_load_json(content)
 
-        # ★ 追加: plan の生出力（consensus含む）も JSONL に保存
         if self.logger:
             self.logger.log_generated(
                 agent_name=agent_name,
@@ -247,7 +284,45 @@ class LLMHandler:
                 full_text=str(content),
                 phase="plan_generated",
             )
+        return parsed
 
+    def generate_action_adversary(
+        self,
+        user_prompt: str,
+        *,
+        turn: int,
+        max_turn: int,
+        agent_name: str,
+        persona: str,
+        topic: str,
+        peer_names: Sequence[str],
+        target_answer: str,
+    ) -> Dict[str, Any]:
+        system_prompt = self._build_adversary_system_prompt(
+            peer_names=peer_names, target_answer=target_answer
+        )
+        messages = [
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": user_prompt},
+        ]
+        if self.logger:
+            self.logger.log(agent_name, "plan", turn, system_prompt, user_prompt)
+
+        resp = self.model.create_chat_completion(
+            messages=messages,
+            response_format={"type": "json_object", "schema": plan_action_schema},
+            max_tokens=1024,
+        )
+        content = resp["choices"][0]["message"]["content"]
+        parsed = self._safe_load_json(content)
+
+        if self.logger:
+            self.logger.log_generated(
+                agent_name=agent_name,
+                turn=turn,
+                full_text=str(content),
+                phase="plan_generated",
+            )
         return parsed
 
     def generate_utterance(
@@ -261,12 +336,6 @@ class LLMHandler:
         topic: str,
         peer_names: Sequence[str],
     ) -> Tuple[str, str]:
-        """
-        Returns (utterance_text, raw_model_output).
-        If the model returns JSON with an "utterance" field, that value is used.
-        Otherwise the raw text itself is treated as the utterance.
-        """
-        phase = "utterance"
         system_prompt = self._build_system_prompt(
             name=agent_name,
             peer_names=peer_names,
@@ -278,23 +347,16 @@ class LLMHandler:
             {"role": "user", "content": user_prompt},
         ]
         if self.logger:
-            self.logger.log(agent_name, phase, turn, system_prompt, user_prompt)
+            self.logger.log(agent_name, "utterance", turn, system_prompt, user_prompt)
 
-        # 発話生成でも JSON Object を要求
         resp = self.model.create_chat_completion(
-            messages=messages, response_format={"type": "json_object"}
+            messages=messages, response_format={"type": "json_object"}, max_tokens=1024
         )
         raw_text = resp["choices"][0]["message"]["content"].strip()
-
         parsed = self._safe_load_json(raw_text)
         utterance = parsed.get("utterance")
-        if isinstance(utterance, str) and utterance.strip():
-            utterance_text = utterance.strip()
-        else:
-            # モデルが JSON で返さなかった場合はそのまま発話とみなす
-            utterance_text = raw_text
+        utterance_text = utterance.strip() if isinstance(utterance, str) and utterance.strip() else raw_text
 
-        # 生出力も残す
         if self.logger:
             self.logger.log_generated(
                 agent_name=agent_name,
@@ -302,5 +364,43 @@ class LLMHandler:
                 full_text=raw_text,
                 phase="utterance_generated",
             )
+        return utterance_text, raw_text
 
+    def generate_utterance_adversary(
+        self,
+        user_prompt: str,
+        *,
+        turn: int,
+        max_turn: int,
+        agent_name: str,
+        persona: str,
+        topic: str,
+        peer_names: Sequence[str],
+        target_answer: str,
+    ) -> Tuple[str, str]:
+        system_prompt = self._build_adversary_system_prompt(
+            peer_names=peer_names, target_answer=target_answer
+        )
+        messages = [
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": user_prompt},
+        ]
+        if self.logger:
+            self.logger.log(agent_name, "utterance", turn, system_prompt, user_prompt)
+
+        resp = self.model.create_chat_completion(
+            messages=messages, response_format={"type": "json_object"}
+        )
+        raw_text = resp["choices"][0]["message"]["content"].strip()
+        parsed = self._safe_load_json(raw_text)
+        utterance = parsed.get("utterance")
+        utterance_text = utterance.strip() if isinstance(utterance, str) and utterance.strip() else raw_text
+
+        if self.logger:
+            self.logger.log_generated(
+                agent_name=agent_name,
+                turn=turn,
+                full_text=raw_text,
+                phase="utterance_generated",
+            )
         return utterance_text, raw_text
