@@ -41,12 +41,10 @@ class DiscussionManager:
         self.speaker_interrupt = False  # 既存フィールドは維持（互換のため未使用）
         self.final_answers: Dict[str, Dict[str, str]] = {}
 
-        # ★ 追加: interrupt を「1回だけ適用」するためのワンショットフラグ
+        # 割り込みを「1回だけ適用」するためのワンショットフラグ
         self._interrupt_once: bool = False
 
         self.log_data: List[Dict[str, Any]] = []
-        # 各エージェントの「直近1ターンの thought」のみ保持
-        self.latest_thought_by_agent: Dict[str, str] = {}
 
         # ---------- 早期終了用 ----------
         self.last_plan_by_agent: Dict[str, Dict[str, Any]] = {}
@@ -80,7 +78,7 @@ class DiscussionManager:
 
         # 2) 全初回回答を共有
         all_initial = "\n".join(
-            f"{{Name: {ag.name}, Answer: {ag.initial_answer.get('answer','')}, Reason: {ag.initial_answer.get('reason','') }}}"
+            f"{{Name: {ag.name}, Answer: {ag.initial_answer.get('answer','')}, reasoning: {ag.initial_answer.get('reasoning','') }}}"
             "\n"
             for ag in self.agents
         )
@@ -99,15 +97,14 @@ class DiscussionManager:
                 max_turn=self.max_turns,
                 silence=True,
                 peer_names=peers,
-                # ★ 自分の最新 thought のみを渡す
                 latest_thoughts=self.__format_recent_thoughts(ag.name, current_turn=0),
             )
             # 初期planを保存
             self.last_plan_by_agent[ag.name] = self.current_actions[ag.name]
             th0 = self.current_actions[ag.name].get("thought")
             if isinstance(th0, str) and th0.strip():
-                self.latest_thought_by_agent[ag.name] = th0.strip()
-                self.__trim_thoughts(ag)  # ★ K件上限で保持
+                # Agent.thought_history に append は Agent.plan_action 内で実施済み
+                self.__trim_thoughts(ag)  # K件上限で保持
 
         # 初期ログ行
         init_record: Dict[str, Any] = {
@@ -120,13 +117,18 @@ class DiscussionManager:
                 {"agent_name": n, "action_plan": p}
                 for n, p in self.current_actions.items()
             ],
-            # ★ 追加: 早期終了の設定を記録
+            # 早期終了の設定を記録
             "early_stop_config": {
                 "enabled": self._early_enabled,
                 "require_consecutive": self._req_consec,
                 "min_turns": self._min_turns,
             },
-            # ★ 追加: consensus snapshot
+            # 役割スナップショット（adversary/collaborator）
+            "roles": {
+                ag.name: ("adversary" if getattr(ag, "is_adversary", False) else "collaborator")
+                for ag in self.agents
+            },
+            # consensus snapshot
             "consensus_state": self._build_consensus_state_snapshot(),
             "consensus_meta": self._build_consensus_meta_snapshot(),
         }
@@ -142,9 +144,9 @@ class DiscussionManager:
         if self.speaker:
             chunk = self.speaker.get_next_chunk()
             if chunk:
-                # ★ ここでワンショット割り込みを消費する
+                # ここでワンショット割り込みを消費する
                 event_type = "interrupt" if self._interrupt_once else "utterance"
-                self._interrupt_once = False  # 消費（次発話からは通常の utterance）
+                self._interrupt_once = False
                 speaker_name = self.speaker.name
                 content = chunk
                 if self.history and self.history[-1][0] == speaker_name:
@@ -179,15 +181,14 @@ class DiscussionManager:
                 self.max_turns,
                 silence=(event_type == "silence"),
                 peer_names=peers,
-                # ★ 自分の最新 thought のみを渡す
                 latest_thoughts=self.__format_recent_thoughts(ag.name, current_turn=turn),
             )
             # 直近planを更新
             self.last_plan_by_agent[ag.name] = self.current_actions[ag.name]
             th0 = self.current_actions[ag.name].get("thought")
             if isinstance(th0, str) and th0.strip():
-                self.latest_thought_by_agent[ag.name] = th0.strip()
-                self.__trim_thoughts(ag)  # ★ K件上限で保持
+                # Agent.thought_history に append は Agent.plan_action 内で実施済み
+                self.__trim_thoughts(ag)  # K件上限で保持
 
         # ---------- ログ ----------
         record: Dict[str, Any] = {
@@ -199,7 +200,7 @@ class DiscussionManager:
                 {"agent_name": n, "action_plan": p}
                 for n, p in self.current_actions.items()
             ],
-            # ★ 追加: 各ターンの consensus snapshot
+            # 各ターンの consensus snapshot
             "consensus_state": self._build_consensus_state_snapshot(),
             "consensus_meta": self._build_consensus_meta_snapshot(),
         }
@@ -210,6 +211,7 @@ class DiscussionManager:
             self._determine_next_speaker(turn)
 
         self._write_log()
+
         # 早期終了判定
         if self._early_stop_check(turn):
             # 早期終了イベントに、スナップショットも残す
@@ -217,7 +219,7 @@ class DiscussionManager:
                 {
                     "turn": turn,
                     "event_type": "early_stop",
-                    "reason": "consensus",
+                    "reasoning": "consensus",
                     "answer": self._early_stop_answer,
                     "streak": self.consensus_streak,
                     "consensus_state": self._build_consensus_state_snapshot(),
@@ -241,59 +243,53 @@ class DiscussionManager:
                 lines.append(f"Turn{e['turn']} (Silence): No one spoke this turn.")
         return "\n".join(lines)
 
-    # ★ 追加: 指定エージェント自身の最新 Thought だけを返す
-    def _get_latest_thought_for(self, agent_name: str) -> str:
-        th = self.latest_thought_by_agent.get(agent_name, "")
-        return th.strip() if isinstance(th, str) and th.strip() else "(none)"
-
     # ──────────────────── consensus スナップショット ──────────────────── #
     def _build_consensus_state_snapshot(self) -> Dict[str, Dict[str, Any]]:
         """
-        各エージェントについて、直近 plan の合意状態を抜き出して
-        { agent_name: { "agreed": bool, "answer": "A|B|C|D" or None } } を返す
-        - 新形式（トップレベル agreed/answer）と旧形式（consensus 辞書）を両対応
+        各エージェントについて、直近 plan の合意状態を抽出して
+        { agent_name: { "consensus": bool, "answer": "A|B|C|D" or None } } を返す
+        - 新形式（トップレベル consensus/answer）と旧形式（consensus 辞書）両対応
         """
         snap: Dict[str, Dict[str, Any]] = {}
         for ag in self.agents:
             plan = self.last_plan_by_agent.get(ag.name, {}) or {}
-            agreed, answer = self._extract_agreement(plan)
-            snap[ag.name] = {"agreed": agreed, "answer": answer}
+            consensus, answer = self._extract_agreement(plan)
+            snap[ag.name] = {"consensus": consensus, "answer": answer}
         return snap
 
     def _build_consensus_meta_snapshot(self) -> Dict[str, Any]:
         snap = self._build_consensus_state_snapshot()
-        answers = [v["answer"] for v in snap.values() if v["agreed"] and v["answer"]]
-        all_agreed = len(answers) == len(self.agents) and len(set(answers)) == 1
+        answers = [v["answer"] for v in snap.values() if v["consensus"] and v["answer"]]
+        all_consensus = len(answers) == len(self.agents) and len(set(answers)) == 1
         return {
-            "all_agreed": all_agreed,
-            "answer_if_all": answers[0] if all_agreed else None,
+            "all_consensus": all_consensus,
+            "answer_if_all": answers[0] if all_consensus else None,
             "streak": self.consensus_streak,
         }
 
-    # ★ 新規: plan から合意状態を抽出（新旧両方のスキーマに対応）
     def _extract_agreement(self, plan: Dict[str, Any]) -> Tuple[bool, Optional[str]]:
         """
-        Returns: (agreed: bool, answer: Optional[str in {'A','B','C','D'}])
-        - 新形式: plan['agreed'], plan['answer']
-        - 旧形式: plan['consensus'] = {'agreed': ..., 'answer': ...}
-        - answer が A-D 以外（例: 'none' や無効値）の場合は None を返す
+        Returns: (consensus: bool, answer: Optional[str in {'A','B','C','D'}])
+        - 新形式: plan['consensus'], plan['answer']
+        - 旧形式: plan['consensus'] = {'consensus': ..., 'answer': ...}
+        - answer が A-D 以外（例: 'none' や無効値）の場合は None
         """
-        agreed = False
+        consensus = False
         answer_val: Any = None
 
         if isinstance(plan, dict) and "consensus" in plan and isinstance(plan.get("consensus"), dict):
             c = plan["consensus"]
-            agreed = bool(c.get("agreed", False))
+            consensus = bool(c.get("consensus", False))
             answer_val = c.get("answer")
         else:
-            agreed = bool(plan.get("agreed", False)) if isinstance(plan, dict) else False
+            consensus = bool(plan.get("consensus", False)) if isinstance(plan, dict) else False
             answer_val = plan.get("answer") if isinstance(plan, dict) else None
 
         if isinstance(answer_val, str):
             ans = answer_val.strip().upper()
             if ans in {"A", "B", "C", "D"}:
-                return agreed, ans
-        return agreed, None
+                return consensus, ans
+        return consensus, None
 
     # ──────────────────── 早期終了判定 ──────────────────── #
     def _early_stop_check(self, turn: int) -> bool:
@@ -312,8 +308,8 @@ class DiscussionManager:
         # 合意状態と回答の一致を確認（新旧スキーマ両対応）
         answers: List[str] = []
         for p in plans:
-            agreed, ans = self._extract_agreement(p if isinstance(p, dict) else {})
-            if not agreed or ans is None:
+            consensus, ans = self._extract_agreement(p if isinstance(p, dict) else {})
+            if not consensus or ans is None:
                 self.consensus_streak = 0
                 return False
             answers.append(ans)
@@ -337,7 +333,7 @@ class DiscussionManager:
             for ag in self.agents:
                 self.final_answers[ag.name] = {
                     "answer": self._early_stop_answer,
-                    "reason": "Group consensus reached before max turns.",
+                    "reasoning": "Group consensus reached before max turns.",
                 }
                 print(f"[FINAL] {ag.name} -> {self.final_answers[ag.name]}")
             # 収集後のスナップショットも残す
@@ -354,7 +350,11 @@ class DiscussionManager:
         else:
             # 通常フロー
             for ag in self.agents:
-                ans = ag.generate_final_answer(self.topic, debate_history, latest_thoughts=self.__format_recent_thoughts(ag.name, current_turn=self.max_turns+1))
+                ans = ag.generate_final_answer(
+                    self.topic,
+                    debate_history,
+                    latest_thoughts=self.__format_recent_thoughts(ag.name, current_turn=self.max_turns + 1),
+                )
                 self.final_answers[ag.name] = ans
                 print(f"[FINAL] {ag.name} -> {ans}")
             self.log_data.append(
@@ -366,7 +366,7 @@ class DiscussionManager:
             )
             self._write_log()
 
-    # ──────────────────── スピーカー選定 ──────────────────── #
+    # ──────────────────── 次スピーカー選定 ──────────────────── #
     def _determine_next_speaker(self, current_turn: int) -> None:
         candidates = [
             (n, p)
@@ -395,12 +395,11 @@ class DiscussionManager:
             turn_log,
             self.topic,
             next_plan.get("thought", ""),
-            next_plan.get("intent", ""),
+            next_plan.get("purpose", ""),
             current_turn + 1,
             self.max_turns,
             peer_names=peers,
-            # ★ 自分の最新 thought のみを渡す
-            latest_thoughts=self.__format_recent_thoughts(self.speaker.name, current_turn=current_turn+1),
+            latest_thoughts=self.__format_recent_thoughts(self.speaker.name, current_turn=current_turn + 1),
         )
         mode = "interrupt" if self._interrupt_once else "speak"
         print(f"[Manager] 👉 Next speaker: {self.speaker.name} ({mode})")
@@ -412,6 +411,7 @@ class DiscussionManager:
         with open(self.log_path, "w", encoding="utf-8") as f:
             json.dump(self.log_data, f, ensure_ascii=False, indent=2)
 
+    # ──────────────────── thought の整形/保持 ──────────────────── #
     def __trim_thoughts(self, ag: Agent) -> None:
         """
         Agent.thought_history (List[Tuple[int,str]]) を thought_window 件に収める。
@@ -442,8 +442,11 @@ class DiscussionManager:
         except StopIteration:
             return "(none)"
 
-        hist = [(t, txt) for (t, txt) in ag.thought_history
-                if isinstance(t, int) and t < current_turn and isinstance(txt, str) and txt.strip()]
+        hist = [
+            (t, txt)
+            for (t, txt) in ag.thought_history
+            if isinstance(t, int) and t < current_turn and isinstance(txt, str) and txt.strip()
+        ]
         if not hist:
             return "(none)"
 

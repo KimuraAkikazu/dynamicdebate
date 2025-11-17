@@ -1,46 +1,35 @@
 # LLMモデルの設定
 llm:
-  # Hugging FaceのリポジトリID
   repo_id: "bartowski/Meta-Llama-3.1-8B-Instruct-GGUF"
-  # ダウンロードするモデルファイル名
   filename: "Meta-Llama-3.1-8B-Instruct-Q8_0.gguf"
-  # llama-cpp-python用の設定
-  n_gpu_layers: -1  # GPUにオフロードするレイヤー数 (-1で全て)
-  n_ctx: 30000       # コンテキストウィンドウサイズ
-  temperature: 0.7 # 生成の多様性
-  max_tokens: 1026    # 1回の生成における最大トークン数
+  n_gpu_layers: -1
+  n_ctx: 30000
+  temperature: 0.3
+  max_tokens: 1026
 
 # 議論全体の設定
 discussion:
   topic: "Question:Statement 1 | A ring homomorphism is one to one if and only if the kernel is {0}. Statement 2 | Q is an ideal in R. Choice: A: True, True, B: False, False, C: True, False, D: False, True"
-  max_turns: 20
+  max_turns: 18
   early_stop:
-    enabled: true           # 早期終了の有効/無効
-    require_consecutive: 1  # 連続ターンでの一致を必要とする回数（例: 2なら連続2回一致で確定）
-    min_turns: 2             # 少なくともこのターン以降でのみ早期終了判定
-  thought_window: 5
-
+    enabled: true
+    require_consecutive: 1
+    min_turns: 2
+  thought_window: 20
 
 # 参加エージェントの設定
 agents:
-  - name: "Takahashi"
+  - name: "Alex"
     persona: "You are a character who is introverted, conscientious, agreeable, open to experience, emotionally stable."
-  - name: "Tanaka"
+  - name: "Chris"
     persona: "You are a character who is extroverted, conscientious, antagonistic, open to experience, and emotionally stable."
-  - name: "Suzuki"
-    persona: "You are a charactor who is introverted, conscientious, agreeable, close to experience, and emotionally stable."
+  - name: "Jenny"
+    persona: "You are a character who is introverted, conscientious, agreeable, open to experience, and emotionally stable."
 
-# Question: Let V be the set of all real polynomials p(x). Let D be the differentiation operator and let T be the operator T(p(x)) = xp(x). Then DT - TD is equal to which of the following?(A) 0  (B) I (the identity operator)  (C) -I  (D) 2D  (E) 2T  (F) x  (G) p(x)  (H) -p(x)  (I) x^2  (J) D^2
-  # - name: "Takahashi"
-  #   persona: "You have high Extraversion, low Conscientiousness, high Agreeableness, high Openness, and low Neuroticism."
-  # - name: "Tanaka"
-  #   persona: "You have high Extraversion, low Conscientiousness, high Agreeableness, high Openness, and low Neuroticism."
-  # - name: "Suzuki"
-  #   persona: "You have low Extraversion, low Conscientiousness, high Agreeableness, low Openness, and high Neuroticism."
-
-  #   - name: "Takahashi"
-  #   persona: ""
-  # - name: "Tanaka"
-  #   persona: ""
-  # - name: "Suzuki"
-  #   persona: ""
+# ---- Adversary 設定（1 体だけ）----
+# ベースラインに合わせ、敵対者は固定の誤答ラベルを選び続けて他者を説得する。
+adversary:
+  enabled: false        # 敵対者を有効化（比較実験時は true / ベースラインなしは false）
+  agent_name: "Suzuki"     # どのエージェントを敵対者にするか（未指定なら最後のエージェント）
+  target_strategy: "random_wrong"  # "random_wrong" | "fixed"
+  fixed_label: "D"         # target_strategy: fixed のときのみ使用（A/B/C/D）
