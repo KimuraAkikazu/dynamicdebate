@@ -173,6 +173,14 @@ class LLMHandler:
         self, topic: str, *, agent_name: str, persona: str
     ) -> Dict[str, Any]:
         prompt = prompts.INITIAL_ANSWER_PROMPT_TEMPLATE.format(topic=topic, name=agent_name, persona=persona)
+        if self.logger:
+            self.logger.log(
+                agent_name=agent_name,
+                turn=0,
+                system_prompt="",
+                user_prompt=prompt,
+                phase="initial_prompt",
+            )
         return self._generate_json_only(
             prompt, agent_name=agent_name, persona=persona, phase="Initial"
         )
@@ -195,6 +203,14 @@ class LLMHandler:
             name=agent_name,
             persona=persona,
         )
+        if self.logger:
+            self.logger.log(
+                agent_name=agent_name,
+                turn=30,
+                system_prompt="",
+                user_prompt=prompt,
+                phase="final_prompt",
+            )
         return self._generate_json_only(
             prompt, agent_name=agent_name, persona=persona, phase="Final"
         )
