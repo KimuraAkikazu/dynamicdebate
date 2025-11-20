@@ -62,7 +62,7 @@ def main() -> None:
     base_cfg = load_config()
 
     # 実行フォルダ作成
-    run_ts = datetime.now().strftime("%Y%m%d_%H%M%S")
+    run_ts = datetime.now().strftime("%Y%m%d_%H%M%S_roundrobin")
     run_root = Path(__file__).resolve().parent / "logs" / f"run_{run_ts}"
     run_root.mkdir(parents=True, exist_ok=True)
 

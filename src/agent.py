@@ -1,7 +1,7 @@
 """Agent class for fixed-order ablation (no interrupts, no action-planning)."""
 from __future__ import annotations
 
-from typing import Any, List, Tuple
+from typing import Any, List, Tuple, Dict
 
 from .llm_handler import LLMHandler
 
@@ -13,7 +13,8 @@ class Agent:
         self.llm_handler = llm_handler
 
         # runtime state
-        self.thought_history: List[Tuple[int, str]] = []
+        # (turn, thought, current_answer, consensus)
+        self.thought_history: List[Tuple[int, str, str, bool]] = []
         self.initial_answer: dict[str, str] = {}
         self.initial_answer_str: str = ""
         self.all_initial_answers_str: str = ""  # 全員分
@@ -68,8 +69,11 @@ class Agent:
     # ──────────────────── 思考（LISTENER） ──────────────────── #
     def think_only(
         self, *, topic: str, turn_log: str, turn: int, max_turn: int
-    ) -> str:
-        thought, raw = self.llm_handler.generate_listener_thought(
+    ) -> Dict[str, Any]:
+        """
+        発言者ではないエージェントのみが呼ばれる想定。
+        """
+        thought, current_answer, consensus, raw = self.llm_handler.generate_listener_thought(
             agent_name=self.name,
             persona=self.persona,
             topic=topic,
@@ -78,9 +82,14 @@ class Agent:
             turn=turn,
             max_turn=max_turn,
         )
-        self.thought_history.append((turn, thought))
+        self.thought_history.append((turn, thought, current_answer, consensus))
         if self.llm_handler.logger:
             self.llm_handler.logger.log_generated(
                 agent_name=self.name, turn=turn, full_text=raw, phase="listener_generated"
             )
-        return thought
+        # manager 側で扱いやすいよう dict で返す
+        return {
+            "thought": thought,
+            "current_answer": current_answer,
+            "consensus": consensus,
+        }

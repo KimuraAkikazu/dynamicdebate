@@ -53,6 +53,11 @@ class DiscussionManager:
         self.final_answers: Dict[str, Dict[str, str]] = {}
         self.log_data: List[Dict[str, Any]] = []
 
+        # 早期終了用
+        self.early_stop_answer: Optional[str] = None
+        self.early_stop_turn: Optional[int] = None
+        self.early_stop_states: Optional[List[Dict[str, Any]]] = None
+
         self._write_log()  # 空配列でファイルを作成
 
     # ───────────────────────── 公開 API ───────────────────────── #
@@ -66,6 +71,16 @@ class DiscussionManager:
             for name in self.order:
                 turn += 1
                 self._run_fixed_turn(turn, speaker_name=name)
+
+                # 早期終了判定
+                if self.early_stop_answer is not None:
+                    print(
+                        f"=== Early consensus reached at turn {turn}: "
+                        f"answer={self.early_stop_answer} ==="
+                    )
+                    break
+            if self.early_stop_answer is not None:
+                break
 
         print("=== Debate End ===")
         self._collect_final_answers()
@@ -124,19 +139,56 @@ class DiscussionManager:
         else:
             print(f"[Turn {turn}] {speaker_name}: (empty utterance)")
 
-        # 非発言者の thought を取得
-        listener_thoughts: List[Dict[str, str]] = []
+        # 非発言者の thought / current_answer / consensus を取得
+        listener_thoughts: List[Dict[str, Any]] = []
         for ag in self.agents:
             if ag is speaker:
                 continue
-            # 非発言者にも同じ発話履歴を渡す
-            thought = ag.think_only(
+            thought_info = ag.think_only(
                 topic=self.topic,
                 turn_log=self._build_turn_log(limit=HISTORY_WINDOW),
                 turn=turn,
                 max_turn=self.max_turns,
             )
-            listener_thoughts.append({"agent_name": ag.name, "thought": thought})
+            listener_thoughts.append(
+                {
+                    "agent_name": ag.name,
+                    "thought": thought_info.get("thought", ""),
+                    "current_answer": thought_info.get("current_answer", ""),
+                    "consensus": bool(thought_info.get("consensus", False)),
+                }
+            )
+
+        # 全エージェントの「最新の」状態（発言者も含む）を thought_history から取得
+        agent_states: List[Dict[str, Any]] = []
+        for ag in self.agents:
+            if ag.thought_history:
+                last_turn, thought, current_answer, consensus = ag.thought_history[-1]
+            else:
+                thought, current_answer, consensus = "", "", False
+            agent_states.append(
+                {
+                    "agent_name": ag.name,
+                    # "thought": thought,
+                    "current_answer": current_answer,
+                    "consensus": consensus,
+                }
+            )
+
+        # 合意判定（全員 consensus==True かつ current_answer が一致）
+        consensus_all_true = bool(agent_states) and all(st["consensus"] for st in agent_states)
+        consensus_answer: Optional[str] = None
+        if consensus_all_true:
+            answers = {st["current_answer"] for st in agent_states if st["current_answer"]}
+            if len(answers) == 1:
+                only_ans = next(iter(answers))
+                if only_ans in {"A", "B", "C", "D"}:
+                    consensus_answer = only_ans
+                    # 早期終了情報を保持
+                    self.early_stop_answer = only_ans
+                    self.early_stop_turn = turn
+                    self.early_stop_states = agent_states
+                    print(f"[Consensus] Early stop triggered at turn {turn}, answer={only_ans}")
 
         # ログ
         record: Dict[str, Any] = {
@@ -144,8 +196,14 @@ class DiscussionManager:
             "event_type": "utterance",
             "speaker": speaker_name,
             "content": utterance,
-            "listener_thoughts": listener_thoughts,
+            "listener_thoughts": listener_thoughts,  # このターンで think した非発言者のみ
+            "agent_states": agent_states,            # この時点での全員の最新状態スナップショット
+            "consensus_all_true": consensus_all_true,
+            "consensus_answer": consensus_answer,
         }
+        # 早期終了ターンであることを明示
+        if self.early_stop_answer is not None and self.early_stop_turn == turn:
+            record["early_stop"] = True
         self.log_data.append(record)
         self._write_log()
 
@@ -153,6 +211,7 @@ class DiscussionManager:
     def _build_turn_log(self, limit: int) -> str:
         lines: List[str] = []
         for i, (spk, txt) in enumerate(self.history[-limit:], start=1):
+            lines.append(f"Turn{i}")
             lines.append(f"{spk}: {txt}")
         return "\n".join(lines)
 
@@ -174,6 +233,35 @@ class DiscussionManager:
     # ──────────────────── 最終回答収集 ──────────────────── #
     def _collect_final_answers(self) -> None:
         print("=== Collecting final answers ===")
+
+        # 早期合意がある場合：listener の current_answer / thought をそのまま採用
+        if self.early_stop_answer is not None and self.early_stop_states is not None:
+            self.final_answers = {}
+            for ag in self.agents:
+                st = next((s for s in self.early_stop_states if s["agent_name"] == ag.name), None)
+                reason = ""
+                if st is not None:
+                    reason = st.get("thought", "")
+                self.final_answers[ag.name] = {
+                    "answer": self.early_stop_answer,
+                    "reason": reason,
+                }
+                print(f"[FINAL/EARLY] {ag.name} -> {self.final_answers[ag.name]}")
+
+            self.log_data.append(
+                {
+                    "turn": "final",
+                    "event_type": "final_answers",
+                    "answers": self.final_answers,
+                    "early_stop": True,
+                    "early_stop_turn": self.early_stop_turn,
+                    "early_stop_answer": self.early_stop_answer,
+                }
+            )
+            self._write_log()
+            return
+
+        # 通常ケース：最後まで議論したあとに各エージェントに最終回答を生成させる
         debate_history = "\n".join(f"{spk}: {txt}" for spk, txt in self.history[-1000:])
         self.final_answers = {}
         for ag in self.agents:
@@ -186,6 +274,7 @@ class DiscussionManager:
                 "turn": "final",
                 "event_type": "final_answers",
                 "answers": self.final_answers,
+                "early_stop": False,
             }
         )
         self._write_log()

@@ -4,7 +4,7 @@ from __future__ import annotations
 import json
 import re
 from pathlib import Path
-from typing import Any, Dict, Optional, Sequence, Tuple
+from typing import Any, Dict, Optional, Tuple
 
 from llama_cpp import Llama
 
@@ -34,9 +34,11 @@ utterance_schema: Dict[str, Any] = {
 thought_schema: Dict[str, Any] = {
     "type": "object",
     "properties": {
-        "thought": {"type": "string",},
+        "thought": {"type": "string"},
+        "current_answer": {"type": "string", "enum": ["A", "B", "C", "D"]},
+        "consensus": {"type": "boolean"},
     },
-    "required": ["thought"],
+    "required": ["thought", "current_answer", "consensus"],
     "additionalProperties": False,
 }
 
@@ -221,7 +223,7 @@ class LLMHandler:
         initial_answers_all: str,
         turn: int,
         max_turn: int,
-    ) -> Tuple[str, str]:
+    ) -> Tuple[str, str, bool, str]:
         user_prompt = prompts.LISTENER_THINK_PROMPT_TEMPLATE.format(
             name=agent_name,
             topic=topic,
@@ -234,6 +236,10 @@ class LLMHandler:
         parsed = self._generate_json_only(
             user_prompt, agent_name=agent_name, phase="listener", response_schema=thought_schema
         )
+        # デフォルト値（モデルが一部キーを欠落させても落ちないように）
         thought = (parsed.get("thought") or "").strip()
+        current_answer = (parsed.get("current_answer") or "").strip()
+        consensus = bool(parsed.get("consensus", False))
+
         raw_text = json.dumps(parsed, ensure_ascii=False)
-        return thought, raw_text
+        return thought, current_answer, consensus, raw_text
