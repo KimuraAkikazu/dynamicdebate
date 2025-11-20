@@ -88,6 +88,11 @@ class DiscussionManager:
 
     # ───────────────────────── 初期化 ───────────────────────── #
     def _initialize_discussion(self) -> None:
+        # 0) Peer情報の登録 (ここを追加！)
+        all_names = [a.name for a in self.agents]
+        for ag in self.agents:
+            ag.set_peers(all_names)
+            
         # 1) 初回回答
         for ag in self.agents:
             ag.generate_initial_answer(self.topic)
@@ -262,7 +267,7 @@ class DiscussionManager:
             return
 
         # 通常ケース：最後まで議論したあとに各エージェントに最終回答を生成させる
-        debate_history = "\n".join(f"{spk}: {txt}" for spk, txt in self.history[-1000:])
+        debate_history = "\n".join(f"Turn{i} \n {spk}: {txt}" for i, (spk, txt) in enumerate(self.history[-1000:], start=1))
         self.final_answers = {}
         for ag in self.agents:
             ans = ag.generate_final_answer(self.topic, debate_history)

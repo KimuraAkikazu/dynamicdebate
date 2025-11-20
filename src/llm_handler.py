@@ -1,4 +1,4 @@
-# src/llm_handler.py (fixed-order ablation version)
+"""LLM Handler for Llama-3.1-8B (System Prompt Aware)"""
 from __future__ import annotations
 
 import json
@@ -11,11 +11,11 @@ from llama_cpp import Llama
 from . import prompts
 from .prompt_logger import PromptLogger
 
-# ===== JSON Schemas =====
+# ===== JSON Schemas (変更なし) =====
 qa_schema: Dict[str, Any] = {
     "type": "object",
     "properties": {
-        "reason": {"type": "string", "maxLength": 750},  # ~100 words
+        "reason": {"type": "string", "maxLength": 2000},
         "answer": {"type": "string", "enum": ["A", "B", "C", "D"]},
     },
     "required": ["reason", "answer"],
@@ -36,9 +36,9 @@ thought_schema: Dict[str, Any] = {
     "properties": {
         "thought": {"type": "string"},
         "current_answer": {"type": "string", "enum": ["A", "B", "C", "D"]},
-        "consensus": {"type": "boolean"},
+        "belief_team_consensus": {"type": "boolean"},
     },
-    "required": ["thought", "current_answer", "consensus"],
+    "required": ["thought", "current_answer", "belief_team_consensus"],
     "additionalProperties": False,
 }
 
@@ -51,7 +51,6 @@ class LLMHandler:
             cls._instance = super().__new__(cls)
         return cls._instance
 
-    # ──────────────────── 初期化 ──────────────────── #
     def __init__(
         self,
         config: Dict[str, Any],
@@ -67,95 +66,99 @@ class LLMHandler:
             Path(__file__).resolve().parents[1] / "models" / config["filename"]
         )
         if not self.model_path.exists():
-            raise FileNotFoundError(f"モデルが見つかりません: {self.model_path}")
+            # モデルパスが見つからない場合は適宜調整してください
+            raise FileNotFoundError(f"Model not found: {self.model_path}")
 
-        print(f"[LLMHandler] 🔄 モデル読み込み開始: {self.model_path}")
+        print(f"[LLMHandler] Loading model: {self.model_path}")
         self.model = Llama(
             model_path=str(self.model_path),
             n_gpu_layers=config.get("n_gpu_layers", -1),
-            n_ctx=config.get("n_ctx", 4096),
-            temperature=config.get("temperature", 0.0),
-            max_tokens=config.get("max_tokens", 512),
-            chat_format="llama-3",
+            n_ctx=config.get("n_ctx", 8192),
+            temperature=config.get("temperature", 0.3),
+            max_tokens=config.get("max_tokens", 1024),
+            verbose=False,
         )
-        print("[LLMHandler] ✅ モデル読み込み完了")
+        print("[LLMHandler] Model loaded.")
 
-    # ──────────────────── 内部ユーティリティ ──────────────────── #
-    @staticmethod
-    def _strip_code_fence(text: str) -> str:
-        """```json ... ``` や ``` ... ``` を除去して戻す"""
-        text = text.strip()
-        text = re.sub(r"^\s*```(?:json)?\s*", "", text, flags=re.I)
-        text = re.sub(r"\s*```", "", text).strip()
-        return text
-
+    # ──────────────────── ユーティリティ ──────────────────── #
     @staticmethod
     def _safe_load_json(raw_text: str) -> Dict[str, Any]:
-        """
-        多少壊れた JSON でも best-effort でパースして dict を返す。
-        """
-        txt = LLMHandler._strip_code_fence(raw_text)
-
-        # try-as-is
+        text = raw_text.strip()
+        # ```json ... ``` 除去
+        text = re.sub(r"^\s*```(?:json)?\s*", "", text, flags=re.I)
+        text = re.sub(r"\s*```\s*$", "", text)
+        
         try:
-            return json.loads(txt)
-        except Exception:
+            return json.loads(text)
+        except json.JSONDecodeError:
             pass
-
-        # single quotes → double quotes
-        txt_q = txt.replace("'", '"')
-        try:
-            return json.loads(txt_q)
-        except Exception:
-            pass
-
-        # substring between first { ... last }
-        first = txt.find("{")
-        last = txt.rfind("}")
-        if first != -1 and last != -1 and last > first:
-            sub = txt[first : last + 1]
+            
+        # 簡易的な復旧処理（必要に応じて強化）
+        start = text.find("{")
+        end = text.rfind("}")
+        if start != -1 and end != -1 and end > start:
             try:
-                return json.loads(sub)
-            except Exception:
+                return json.loads(text[start : end + 1])
+            except:
                 pass
-
         return {}
 
-    # ──────────────────── 共通 JSON 生成ユーティリティ ──────────────────── #
     def _generate_json_only(
         self,
         user_prompt: str,
+        system_prompt: str,  # 追加: システムプロンプトを受け取る
         *,
         agent_name: str,
         phase: str,
         response_schema: Dict[str, Any],
-        max_tokens: int = 512,
     ) -> Dict[str, Any]:
-        messages = [{"role": "user", "content": user_prompt}]
-        if self.logger:
-            # systemは最小構成なので user_prompt のみを保存
-            self.logger.log(agent_name, phase, 0, system_prompt="", user_prompt=user_prompt)
+        
+        # Llama-3 形式のメッセージ構築 (System / User 分離)
+        messages = [
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": user_prompt},
+        ]
 
+        if self.logger:
+            self.logger.log(
+                agent_name, phase, 0, 
+                system_prompt=system_prompt, 
+                user_prompt=user_prompt
+            )
+
+        # JSON Schema 強制 (grammar) を使うとより確実ですが、
+        # ここでは json_object モードを使用
         resp = self.model.create_chat_completion(
             messages=messages,
             response_format={"type": "json_object", "schema": response_schema},
-            max_tokens=max_tokens,
         )
+        
         content = resp["choices"][0]["message"]["content"]
+        parsed = self._safe_load_json(str(content))
 
-        parsed = content if isinstance(content, dict) else self._safe_load_json(str(content))
-
-        # 生出力も保存
         if self.logger:
-            self.logger.log_generated(agent_name=agent_name, turn=0, full_text=str(content), phase=f"{phase}_generated")
+            self.logger.log_generated(
+                agent_name=agent_name, 
+                turn=0, 
+                full_text=str(content), 
+                phase=f"{phase}_generated"
+            )
 
         return parsed
 
-    # ──────────────────── 初回回答 / 最終回答 ──────────────────── #
-    def generate_initial_answer(self, topic: str, *, agent_name: str, persona: str) -> Dict[str, Any]:
-        prompt = prompts.INITIAL_ANSWER_PROMPT_TEMPLATE.format(topic=topic, name=agent_name, persona=persona)
+    # ──────────────────── 各フェーズ (System Prompt 対応) ──────────────────── #
+    
+    def generate_initial_answer(
+        self, topic: str, system_prompt: str, agent_name: str
+    ) -> Dict[str, Any]:
+        user_prompt = prompts.INITIAL_ANSWER_PROMPT_TEMPLATE.format(topic=topic)
+        
         parsed = self._generate_json_only(
-            prompt, agent_name=agent_name, phase="initial", response_schema=qa_schema
+            user_prompt,
+            system_prompt,
+            agent_name=agent_name,
+            phase="initial",
+            response_schema=qa_schema
         )
         parsed.setdefault("answer", "")
         parsed.setdefault("reason", "")
@@ -166,30 +169,30 @@ class LLMHandler:
         topic: str,
         initial_answer_str: str,
         debate_history: str,
-        *,
+        system_prompt: str,
         agent_name: str,
-        persona: str,
     ) -> Dict[str, Any]:
-        prompt = prompts.FINAL_ANSWER_PROMPT_TEMPLATE.format(
+        user_prompt = prompts.FINAL_ANSWER_PROMPT_TEMPLATE.format(
             topic=topic,
             initial_answer=initial_answer_str,
             debate_history=debate_history,
-            name=agent_name,
-            persona=persona,
         )
         parsed = self._generate_json_only(
-            prompt, agent_name=agent_name, phase="final", response_schema=qa_schema
+            user_prompt,
+            system_prompt,
+            agent_name=agent_name,
+            phase="final",
+            response_schema=qa_schema
         )
         parsed.setdefault("answer", "")
         parsed.setdefault("reason", "")
         return parsed
 
-    # ──────────────────── 固定順序: 発言／思考 ──────────────────── #
     def generate_speaker_utterance(
         self,
         *,
         agent_name: str,
-        persona: str,
+        system_prompt: str,
         topic: str,
         turn_log: str,
         initial_answers_all: str,
@@ -207,7 +210,11 @@ class LLMHandler:
             max_turn=max_turn,
         )
         parsed = self._generate_json_only(
-            user_prompt, agent_name=agent_name, phase="speaker", response_schema=utterance_schema
+            user_prompt,
+            system_prompt,
+            agent_name=agent_name,
+            phase="speaker",
+            response_schema=utterance_schema
         )
         utterance = (parsed.get("utterance") or "").strip()
         raw_text = json.dumps(parsed, ensure_ascii=False)
@@ -217,29 +224,38 @@ class LLMHandler:
         self,
         *,
         agent_name: str,
-        persona: str,
+        system_prompt: str,
         topic: str,
         turn_log: str,
         initial_answers_all: str,
         turn: int,
         max_turn: int,
     ) -> Tuple[str, str, bool, str]:
+        # turns_left は Listener には厳密には不要だが prompt にあるなら渡す
         user_prompt = prompts.LISTENER_THINK_PROMPT_TEMPLATE.format(
-            name=agent_name,
             topic=topic,
             initial_answer=initial_answers_all,
             turn_log=turn_log,
             turn=turn,
-            turns_left="N/A",
+            turns_left="N/A", 
             max_turn=max_turn,
         )
         parsed = self._generate_json_only(
-            user_prompt, agent_name=agent_name, phase="listener", response_schema=thought_schema
+            user_prompt,
+            system_prompt,
+            agent_name=agent_name,
+            phase="listener",
+            response_schema=thought_schema
         )
-        # デフォルト値（モデルが一部キーを欠落させても落ちないように）
+        
         thought = (parsed.get("thought") or "").strip()
         current_answer = (parsed.get("current_answer") or "").strip()
-        consensus = bool(parsed.get("consensus", False))
+        # booleanのパース揺れ対応
+        c_val = parsed.get("belief_team_consensus")
+        if isinstance(c_val, str):
+            consensus = c_val.lower() == "true"
+        else:
+            consensus = bool(c_val)
 
         raw_text = json.dumps(parsed, ensure_ascii=False)
         return thought, current_answer, consensus, raw_text
