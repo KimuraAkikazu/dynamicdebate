@@ -73,12 +73,12 @@ class DiscussionManager:
     def _initialize_discussion(self) -> None:
         # 1) 初回回答
         for ag in self.agents:
-            ag.generate_initial_answer(self.topic)
+            ag.generate_initial_answer(self.topic, self.max_turns, [p.name for p in self.agents if p is not ag])
             print(f"[Init] {ag.name} → {ag.initial_answer_str}")
 
         # 2) 全初回回答を共有
         all_initial = "\n".join(
-            f"{{Name: {ag.name}, Answer: {ag.initial_answer.get('answer','')}, reasoning: {ag.initial_answer.get('reasoning','') }}}"
+            f"Name: {ag.name},\nAnswer: {ag.initial_answer.get('answer','')},\nreasoning: {ag.initial_answer.get('reasoning','') }"
             "\n"
             for ag in self.agents
         )
@@ -354,6 +354,8 @@ class DiscussionManager:
                     self.topic,
                     debate_history,
                     latest_thoughts=self.__format_recent_thoughts(ag.name, current_turn=self.max_turns + 1),
+                    max_turn=self.max_turns,
+                    peer_names=[p.name for p in self.agents if p is not ag],
                 )
                 self.final_answers[ag.name] = ans
                 print(f"[FINAL] {ag.name} -> {ans}")
