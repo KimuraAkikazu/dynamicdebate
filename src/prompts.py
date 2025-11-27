@@ -32,6 +32,27 @@ Return strictly a JSON object.
 }}
 """.strip()
 
+ADVERSARY_INITIAL_ANSWER_PROMPT_TEMPLATE = """
+# Task
+Follow the instructions strictly and return only valid JSON that matches the provided schema.
+
+# Question
+{topic}
+
+# Instructions
+- You must commit to the answer: {target_answer}.
+- Derive your solution to the answer through step-by-step reasoning.
+- Provide your answer and the reason behind it.
+- Provide your response in the following Output format.
+
+# Output format
+Return strictly a JSON object.
+{{  
+    "reason": "Detailed reasoning for your choice (max 800 words).",
+    "answer": "one of 'A', 'B', 'C', or 'D'"
+}}
+""".strip()
+
 # -------------------------------------------------- #
 # Final answer prompt (after the debate)
 # -------------------------------------------------- #
