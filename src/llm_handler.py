@@ -17,10 +17,10 @@ TOKENS_PER_CHUNK =32
 qa_schema: Dict[str, Any] = {
     "type": "object",
     "properties": {
-        "reasoning": {"type": "string"},
+        "reason": {"type": "string"},
         "answer": {"type": "string", "enum": ["A", "B", "C", "D"]},
     },
-    "required": ["reasoning", "answer"],
+    "required": ["reason", "answer"],
     "strict": True,
     "additionalProperties": False,
 }
@@ -31,11 +31,11 @@ plan_action_schema: Dict[str, Any] = {
         "thought": {"type": "string"},
         "action": {"type": "string", "enum": ["listen", "speak", "interrupt"]},
         "urgency": {"type": "integer", "minimum": 0, "maximum": 9},
-        "intent": {"type": "string", "maxLength": 50},
+        "purpose": {"type": "string", "maxLength": 50},
         "answer": {"type": "string", "enum": ["A", "B", "C", "D","none"]},
         "consensus": {"type": "boolean"},
     },
-    "required": ["thought", "action", "urgency", "intent", "answer", "consensus"],
+    "required": ["thought", "action", "urgency", "purpose", "answer", "consensus"],
     "additionalProperties": False,
 }
 
@@ -157,7 +157,7 @@ class LLMHandler:
         content = resp["choices"][0]["message"]["content"]
         parsed: Dict[str, Any] = content if isinstance(content, dict) else self._safe_load_json(str(content))
         parsed.setdefault("answer", "")
-        parsed.setdefault("reasoning", "")
+        parsed.setdefault("reason", "")
 
         if self.logger:
             self.logger.log_generated(
@@ -170,14 +170,21 @@ class LLMHandler:
 
     # ====================== 通常: 初回/最終 ====================== #
     def generate_initial_answer(
-        self, topic: str, *, agent_name: str, persona: str
+        self, topic: str, *, agent_name: str, persona: str, max_turn: int, peer_names: Sequence[str]
     ) -> Dict[str, Any]:
+        
+        system_prompt = self._build_system_prompt(
+        name=agent_name,
+        peer_names=peer_names,
+        persona=persona,
+        max_turn=max_turn,
+        )
         prompt = prompts.INITIAL_ANSWER_PROMPT_TEMPLATE.format(topic=topic, name=agent_name, persona=persona)
         if self.logger:
             self.logger.log(
                 agent_name=agent_name,
                 turn=0,
-                system_prompt="",
+                system_prompt=system_prompt,
                 user_prompt=prompt,
                 phase="initial_prompt",
             )
@@ -194,7 +201,15 @@ class LLMHandler:
         *,
         agent_name: str,
         persona: str,
+        max_turn: int,
+        peer_names: Sequence[str],
     ) -> Dict[str, Any]:
+        system_prompt = self._build_system_prompt(
+        name=agent_name,
+        peer_names=peer_names,
+        persona=persona,
+        max_turn=max_turn,
+        )
         prompt = prompts.FINAL_ANSWER_PROMPT_TEMPLATE.format(
             topic=topic,
             initial_answer=initial_answer_str,
@@ -207,7 +222,7 @@ class LLMHandler:
             self.logger.log(
                 agent_name=agent_name,
                 turn=30,
-                system_prompt="",
+                system_prompt=system_prompt,
                 user_prompt=prompt,
                 phase="final_prompt",
             )
@@ -217,13 +232,16 @@ class LLMHandler:
 
     # ====================== adversary: 初回/最終 ====================== #
     def generate_adversary_initial_answer(
-        self, topic: str, *, target_answer: str, agent_name: str, persona: str
+        self, topic: str, *, target_answer: str, agent_name: str, persona: str, max_turn: int, peer_names: Sequence[str]
     ) -> Dict[str, Any]:
         prompt = prompts.ADVERSARY_INITIAL_ANSWER_PROMPT_TEMPLATE.format(
             topic=topic, name=agent_name, target_answer=target_answer
         )
         sys = prompts.ADVERSARY_SYSTEM_PROMPT.format(
-            peer1="Peer1", peer2="Peer2", target_answer=target_answer
+            name = agent_name,
+            peer1=peer_names[0] if len(peer_names) >= 1 else "Another agent",
+            peer2=peer_names[1] if len(peer_names) >= 2 else "Another agent",
+            max_turn=max_turn,
         )
         return self._generate_json_only(
             prompt, agent_name=agent_name, persona=persona, phase="Initial", system_prompt=sys
@@ -239,6 +257,8 @@ class LLMHandler:
         target_answer: str,
         agent_name: str,
         persona: str,
+        max_turn: int,
+        peer_names: Sequence[str],
     ) -> Dict[str, Any]:
         prompt = prompts.ADVERSARY_FINAL_ANSWER_PROMPT_TEMPLATE.format(
             topic=topic,
@@ -249,7 +269,10 @@ class LLMHandler:
             target_answer=target_answer,
         )
         sys = prompts.ADVERSARY_SYSTEM_PROMPT.format(
-            peer1="Peer1", peer2="Peer2", target_answer=target_answer
+            name = agent_name,
+            peer1=peer_names[0] if len(peer_names) >= 1 else "Another agent",
+            peer2=peer_names[1] if len(peer_names) >= 2 else "Another agent",
+            max_turn=max_turn,
         )
         return self._generate_json_only(
             prompt, agent_name=agent_name, persona=persona, phase="Final", system_prompt=sys
@@ -279,13 +302,17 @@ class LLMHandler:
         *,
         peer_names: Sequence[str],
         target_answer: str,
+        agent_name: str,
+        max_turn: int,
     ) -> str:
         p1 = peer_names[0] if len(peer_names) >= 1 else "Another agent"
         p2 = peer_names[1] if len(peer_names) >= 2 else "Another agent"
         return prompts.ADVERSARY_SYSTEM_PROMPT.format(
+            name = agent_name,
             peer1=p1,
             peer2=p2,
             target_answer=target_answer,
+            max_turn=max_turn,
         )
 
     # ======================  行動計画 / 発話生成 ====================== #
@@ -343,7 +370,7 @@ class LLMHandler:
         target_answer: str,
     ) -> Dict[str, Any]:
         system_prompt = self._build_adversary_system_prompt(
-            peer_names=peer_names, target_answer=target_answer
+            peer_names=peer_names, target_answer=target_answer, agent_name=agent_name, max_turn=max_turn
         )
         messages = [
             {"role": "system", "content": system_prompt},
@@ -468,7 +495,7 @@ class LLMHandler:
         target_answer: str,
     ) -> Tuple[str, str]:
         system_prompt = self._build_adversary_system_prompt(
-            peer_names=peer_names, target_answer=target_answer
+            peer_names=peer_names, target_answer=target_answer, agent_name=agent_name, max_turn=max_turn
         )
         messages = [
             {"role": "system", "content": system_prompt},

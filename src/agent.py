@@ -32,22 +32,22 @@ class Agent:
         self.adversary_target = (target_answer or "").strip().upper() or "A"
 
     # ──────────────────── 初回回答 ──────────────────── #
-    def generate_initial_answer(self, topic: str) -> None:
+    def generate_initial_answer(self, topic: str, max_turn: int, peer_names: Sequence[str]) -> None:
         if self.role == "adversary" and self.adversary_target:
             self.initial_answer = self.llm_handler.generate_adversary_initial_answer(
-                topic, target_answer=self.adversary_target, agent_name=self.name, persona=self.persona
+                topic, target_answer=self.adversary_target, agent_name=self.name, persona=self.persona, max_turn=max_turn, peer_names=peer_names
             )
         else:
             self.initial_answer = self.llm_handler.generate_initial_answer(
-                topic, agent_name=self.name, persona=self.persona
+                topic, agent_name=self.name, persona=self.persona, max_turn=max_turn, peer_names=peer_names
             )
         self.initial_answer_str = (
-            f"Answer: {self.initial_answer.get('answer','')}, "
-            f"reasoning: {self.initial_answer.get('reasoning','')}"
+            f"answer: {self.initial_answer.get('answer','')}, "
+            f"reason: {self.initial_answer.get('reason','')}"
         )
 
     # ──────────────────── 最終回答 ──────────────────── #
-    def generate_final_answer(self, topic: str, debate_history: str, latest_thoughts: str) -> dict[str, str]:
+    def generate_final_answer(self, topic: str, debate_history: str, latest_thoughts: str, max_turn: int, peer_names: Sequence[str]) -> dict[str, str]:
         if self.role == "adversary" and self.adversary_target:
             return self.llm_handler.generate_adversary_final_answer(
                 topic,
@@ -57,6 +57,8 @@ class Agent:
                 target_answer=self.adversary_target,
                 agent_name=self.name,
                 persona=self.persona,
+                max_turn=max_turn,
+                peer_names=peer_names,
             )
         return self.llm_handler.generate_final_answer(
             topic,
@@ -65,6 +67,8 @@ class Agent:
             latest_thoughts,
             agent_name=self.name,
             persona=self.persona,
+            max_turn=max_turn,
+            peer_names=peer_names,
         )
 
     # ───────────────────── Action planning ───────────────────── #
