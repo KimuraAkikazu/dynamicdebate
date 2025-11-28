@@ -78,7 +78,7 @@ class DiscussionManager:
 
         # 2) 全初回回答を共有
         all_initial = "\n".join(
-            f"Name: {ag.name},\nAnswer: {ag.initial_answer.get('answer','')},\nreasoning: {ag.initial_answer.get('reasoning','') }"
+            f"Name: {ag.name},\nAnswer: {ag.initial_answer.get('answer','')},\nreason: {ag.initial_answer.get('reason','') }"
             "\n"
             for ag in self.agents
         )
@@ -219,7 +219,7 @@ class DiscussionManager:
                 {
                     "turn": turn,
                     "event_type": "early_stop",
-                    "reasoning": "consensus",
+                    "reason": "consensus",
                     "answer": self._early_stop_answer,
                     "streak": self.consensus_streak,
                     "consensus_state": self._build_consensus_state_snapshot(),
@@ -326,14 +326,14 @@ class DiscussionManager:
     # ──────────────────── 最終回答収集 ──────────────────── #
     def _collect_final_answers(self) -> None:
         print("=== Collecting final answers ===")
-        debate_history = "\n".join(f"{spk}: {txt}" for spk, txt in self.history[-1000:])
+        debate_history = self._build_turn_log("", HISTORY_WINDOW * 10)
         self.final_answers = {}
         if self._early_stop_answer:
             # 早期終了時は合意解答を全員の回答に採用
             for ag in self.agents:
                 self.final_answers[ag.name] = {
                     "answer": self._early_stop_answer,
-                    "reasoning": "Group consensus reached before max turns.",
+                    "reason": "Group consensus reached before max turns.",
                 }
                 print(f"[FINAL] {ag.name} -> {self.final_answers[ag.name]}")
             # 収集後のスナップショットも残す
