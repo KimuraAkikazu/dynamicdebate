@@ -49,7 +49,7 @@ Follow the instructions strictly and return only valid JSON that matches the pro
 Return strictly a JSON object.
 {{  
     "reason": "Detailed reasoning for your choice (max 800 words).",
-    "answer": "one of 'A', 'B', 'C', or 'D'"
+    "answer": "{target_answer}"
 }}
 """.strip()
 

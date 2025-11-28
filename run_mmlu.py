@@ -93,6 +93,9 @@ def main() -> None:
     for run_id, ds_idx in enumerate(selected, start=1):
         ex = ds[ds_idx]
 
+        # 正解ラベルを先に求める
+        gold_label = idx_to_label(ex["answer"])
+
         # ---- 問題フォルダ ----
         prob_dir = run_root / f"problem_{run_id:03d}"
         prob_dir.mkdir(parents=True, exist_ok=True)
@@ -111,6 +114,43 @@ def main() -> None:
         # ---- エージェント生成 ----
         agents = [Agent(a["name"], a["persona"], llm_handler) for a in cfg["agents"]]
 
+        # ---- adversary 設定 ----
+        adv_cfg = cfg.get("adversary", {})
+        if adv_cfg.get("enabled", False) and agents:
+            adv_name = adv_cfg.get("agent_name")
+            strategy = adv_cfg.get("target_strategy", "random_wrong")
+            fixed_label = (adv_cfg.get("fixed_label") or "A").strip().upper()
+
+            num_choices = len(ex["choices"])
+            valid_labels = LABELS[:num_choices]  # 例: ["A","B","C","D"]
+
+            # ターゲット回答ラベル決定
+            if strategy == "fixed":
+                target = fixed_label
+                # fixed が正解と同じ or 無効な場合はランダム誤答にフォールバック
+                if (target == gold_label) or (target not in valid_labels):
+                    wrongs = [lab for lab in valid_labels if lab != gold_label]
+                    target = random.choice(wrongs) if wrongs else gold_label
+            else:  # "random_wrong"
+                wrongs = [lab for lab in valid_labels if lab != gold_label]
+                target = random.choice(wrongs) if wrongs else gold_label
+
+            # adversary エージェントの特定
+            target_agent = None
+            for ag in agents:
+                if ag.name == adv_name:
+                    target_agent = ag
+                    break
+            # 見つからなければ最後のエージェントを adversary にする
+            if target_agent is None:
+                target_agent = agents[-1]
+
+            target_agent.set_adversary(target)
+            print(
+                f"[Adversary] {target_agent.name} will commit to answer {target} "
+                f"(gold={gold_label})"
+            )
+
         # ---- ディベート実行 ----
         manager = DiscussionManager(agents, cfg, log_dir=prob_dir)
         final = manager.run_discussion()
@@ -118,13 +158,11 @@ def main() -> None:
         # ---- 予測 ----
         preds = [ans.get("answer", "").strip().upper() for ans in final.values()]
         pred_label = majority_vote(preds)
-        gold_label = idx_to_label(ex["answer"])
 
         is_correct = pred_label == gold_label
         if is_correct:
             correct += 1
 
-        # ---- コンソール表示 ----
         print(
             f"[Q{run_id:03}] (idx={ds_idx}) Pred={pred_label} | Gold={gold_label} | "
             f"{'✅ 正解' if is_correct else '❌ 不正解'}"
@@ -134,8 +172,8 @@ def main() -> None:
         result_fp.write(
             json.dumps(
                 {
-                    "question_id": run_id,      # 実行順のID
-                    "index_in_split": ds_idx,   # 元データ内のインデックス
+                    "question_id": run_id,
+                    "index_in_split": ds_idx,
                     "pred": pred_label,
                     "gold": gold_label,
                     "correct": is_correct,
@@ -150,7 +188,6 @@ def main() -> None:
     accuracy = correct / total if total else 0.0
     print(f"\nAccuracy: {correct}/{total} = {accuracy:.2%}")
 
-    # ---- Accuracy を記録ファイルに追記 ----
     result_fp.write(
         json.dumps(
             {

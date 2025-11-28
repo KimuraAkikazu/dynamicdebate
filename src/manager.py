@@ -21,23 +21,28 @@ class DiscussionManager:
     ):
         self.agents = agents
         self.topic: str = config["discussion"]["topic"]
+        self.config = config
 
         # 固定順序設定
         order_cfg = config.get("discussion", {}).get("speaking_order")
-        if order_cfg and isinstance(order_cfg, list) and all(isinstance(n, str) for n in order_cfg):
+        if order_cfg and isinstance(order_cfg, list) and all(
+            isinstance(n, str) for n in order_cfg
+        ):
             self.order: List[str] = list(order_cfg)
         else:
             self.order = [a.name for a in agents]
 
-        self.turns_per_agent: int = int(config.get("discussion", {}).get("turns_per_agent", 3))
+        self.turns_per_agent: int = int(
+            config.get("discussion", {}).get("turns_per_agent", 3)
+        )
         self.max_turns: int = len(self.order) * self.turns_per_agent
 
         # name -> Agent
         self._agent_by_name = {a.name: a for a in self.agents}
-        # 全員存在検証
         missing = [n for n in self.order if n not in self._agent_by_name]
         if missing:
             raise ValueError(f"speaking_order に未知のエージェント名があります: {missing}")
+        
 
         # ---------- ログ用ディレクトリ ----------
         if log_dir is None:
@@ -66,13 +71,11 @@ class DiscussionManager:
         self._initialize_discussion()
 
         turn = 0
-        # ラウンドロビン：各エージェントが turns_per_agent 回発言
-        for r in range(1, self.turns_per_agent + 1):
+        for _r in range(1, self.turns_per_agent + 1):
             for name in self.order:
                 turn += 1
                 self._run_fixed_turn(turn, speaker_name=name)
 
-                # 早期終了判定
                 if self.early_stop_answer is not None:
                     print(
                         f"=== Early consensus reached at turn {turn}: "
@@ -87,18 +90,59 @@ class DiscussionManager:
         return self.final_answers
 
     # ───────────────────────── 初期化 ───────────────────────── #
+        # ───────────────────────── 初期化 ───────────────────────── #
     def _initialize_discussion(self) -> None:
-        # 0) Peer情報の登録 (ここを追加！)
+        # 0) adversary 設定（まだ誰も adversary になっていない場合のみ）
+        adv_cfg = self.config.get("adversary", {})
+        if adv_cfg.get("enabled", False) and not any(
+            ag.role == "adversary" for ag in self.agents
+        ):
+            adv_name = adv_cfg.get("agent_name")
+            strategy = adv_cfg.get("target_strategy", "fixed")
+            fixed_label = (adv_cfg.get("fixed_label") or "A").strip().upper()
+
+            # とりあえず 4 択想定で候補ラベルを作る
+            # （MMLU 実験では run_mmlu.py が正解ラベルを見て random_wrong を設定する）
+            import random
+            valid_labels = ["A", "B", "C", "D"]
+
+            if strategy == "fixed":
+                target = fixed_label if fixed_label in valid_labels else "A"
+            else:
+                # random_wrong だが、ここでは正解がわからないので
+                # 便宜的にランダムなラベルを選ぶ
+                target = random.choice(valid_labels)
+
+            # 対象エージェントを取得（名前が見つからなければ最後のエージェント）
+            adv_agent = next(
+                (ag for ag in self.agents if ag.name == adv_name),
+                None,
+            )
+            if adv_agent is None and self.agents:
+                adv_agent = self.agents[-1]
+
+            if adv_agent is not None:
+                adv_agent.set_adversary(target)
+                print(
+                    f"[Adversary/Manager] {adv_agent.name} set as adversary "
+                    f"with target_answer={target}"
+                )
+
+        # 1) Peer 情報の登録
         all_names = [a.name for a in self.agents]
         for ag in self.agents:
             ag.set_peers(all_names)
-            
-        # 1) 初回回答
+
+        # 2) 初回回答
         for ag in self.agents:
-            ag.generate_initial_answer(self.topic)
-            print(f"[Init] {ag.name} → Answer={ag.initial_answer.get('answer','')}, "
-                  f"Reason={ag.initial_answer.get('reason','')}")
-        # 2) 全初回回答を共有
+            peer_names = [n for n in all_names if n != ag.name]
+            ag.generate_initial_answer(self.topic, self.max_turns, peer_names)
+            print(
+                f"[Init] {ag.name} → Answer={ag.initial_answer.get('answer','')}, "
+                f"Reason={ag.initial_answer.get('reason','')}"
+            )
+
+        # 3) 全初回回答を共有
         all_initial = "\n".join(
             f"{ag.name}: Answer={ag.initial_answer.get('answer','')}, "
             f"Reason={ag.initial_answer.get('reason','')}"
@@ -122,6 +166,7 @@ class DiscussionManager:
         self.log_data.append(init_record)
         self._write_log()
 
+
     # ───────────────────── 固定順序の1ターン処理 ───────────────────── #
     def _run_fixed_turn(self, turn: int, speaker_name: str) -> None:
         speaker = self._agent_by_name[speaker_name]
@@ -129,8 +174,9 @@ class DiscussionManager:
         # 発言者向け turn_log（直近の発話のみ）
         turn_log_for_speaker = self._build_turn_log(limit=HISTORY_WINDOW)
 
-        # 発言者が1発話
-        turns_left_for_agent = self._turns_left_of_agent_after_this_turn(speaker_name, turn)
+        turns_left_for_agent = self._turns_left_of_agent_after_this_turn(
+            speaker_name, turn
+        )
         utterance = speaker.produce_speech(
             topic=self.topic,
             turn_log=turn_log_for_speaker,
@@ -164,7 +210,7 @@ class DiscussionManager:
                 }
             )
 
-        # 全エージェントの「最新の」状態（発言者も含む）を thought_history から取得
+        # 全エージェントの「最新の」状態を thought_history から取得
         agent_states: List[Dict[str, Any]] = []
         for ag in self.agents:
             if ag.thought_history:
@@ -174,14 +220,16 @@ class DiscussionManager:
             agent_states.append(
                 {
                     "agent_name": ag.name,
-                    # "thought": thought,
+                    # "thought": thought,  # 必要なら有効化
                     "current_answer": current_answer,
                     "consensus": consensus,
                 }
             )
 
         # 合意判定（全員 consensus==True かつ current_answer が一致）
-        consensus_all_true = bool(agent_states) and all(st["consensus"] for st in agent_states)
+        consensus_all_true = bool(agent_states) and all(
+            st["consensus"] for st in agent_states
+        )
         consensus_answer: Optional[str] = None
         if consensus_all_true:
             answers = {st["current_answer"] for st in agent_states if st["current_answer"]}
@@ -189,24 +237,24 @@ class DiscussionManager:
                 only_ans = next(iter(answers))
                 if only_ans in {"A", "B", "C", "D"}:
                     consensus_answer = only_ans
-                    # 早期終了情報を保持
                     self.early_stop_answer = only_ans
                     self.early_stop_turn = turn
                     self.early_stop_states = agent_states
-                    print(f"[Consensus] Early stop triggered at turn {turn}, answer={only_ans}")
+                    print(
+                        f"[Consensus] Early stop triggered at turn {turn}, "
+                        f"answer={only_ans}"
+                    )
 
-        # ログ
         record: Dict[str, Any] = {
             "turn": turn,
             "event_type": "utterance",
             "speaker": speaker_name,
             "content": utterance,
-            "listener_thoughts": listener_thoughts,  # このターンで think した非発言者のみ
-            "agent_states": agent_states,            # この時点での全員の最新状態スナップショット
+            "listener_thoughts": listener_thoughts,
+            "agent_states": agent_states,
             "consensus_all_true": consensus_all_true,
             "consensus_answer": consensus_answer,
         }
-        # 早期終了ターンであることを明示
         if self.early_stop_answer is not None and self.early_stop_turn == turn:
             record["early_stop"] = True
         self.log_data.append(record)
@@ -221,14 +269,10 @@ class DiscussionManager:
         return "\n".join(lines)
 
     def _turns_left_of_agent_after_this_turn(self, agent_name: str, turn: int) -> int:
-        """このターン発言後に、そのエージェントが残す発言回数（情報用）"""
-        idx_in_order = self.order.index(agent_name)  # 0-based
-        # これまでに agent_name が何回スピーカーだったかを数える
-        # 1..turn の中で、order順に回っているので計算できる
+        idx_in_order = self.order.index(agent_name)
         per_round = len(self.order)
         spoken_count = 0
         for t in range(1, turn + 1):
-            r = (t - 1) // per_round  # 0-based round
             pos = (t - 1) % per_round
             if self.order[pos] == agent_name:
                 spoken_count += 1
@@ -239,14 +283,16 @@ class DiscussionManager:
     def _collect_final_answers(self) -> None:
         print("=== Collecting final answers ===")
 
-        # 早期合意がある場合：listener の current_answer / thought をそのまま採用
         if self.early_stop_answer is not None and self.early_stop_states is not None:
             self.final_answers = {}
             for ag in self.agents:
-                st = next((s for s in self.early_stop_states if s["agent_name"] == ag.name), None)
+                st = next(
+                    (s for s in self.early_stop_states if s["agent_name"] == ag.name),
+                    None,
+                )
                 reason = ""
                 if st is not None:
-                    reason = st.get("thought", "")
+                    reason = st.get("thought", "")  # thought は上でコメントアウトしているので基本 ""
                 self.final_answers[ag.name] = {
                     "answer": self.early_stop_answer,
                     "reason": reason,
@@ -266,8 +312,11 @@ class DiscussionManager:
             self._write_log()
             return
 
-        # 通常ケース：最後まで議論したあとに各エージェントに最終回答を生成させる
-        debate_history = "\n".join(f"Turn{i} \n {spk}: {txt}" for i, (spk, txt) in enumerate(self.history[-1000:], start=1))
+        # 通常ケース
+        debate_history = "\n".join(
+            f"Turn{i} \n {spk}: {txt}"
+            for i, (spk, txt) in enumerate(self.history[-1000:], start=1)
+        )
         self.final_answers = {}
         for ag in self.agents:
             ans = ag.generate_final_answer(self.topic, debate_history)

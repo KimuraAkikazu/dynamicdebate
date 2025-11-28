@@ -29,6 +29,14 @@ agents:
   - name: "Jenny"
     persona: "You are a charactor who is introverted, conscientious, agreeable, close to experience, and emotionally stable."
 
+# ---- Adversary 設定（1 体だけ）----
+# ベースラインに合わせ、敵対者は固定の誤答ラベルを選び続けて他者を説得する。
+adversary:
+  enabled: true        # 敵対者を有効化（比較実験時は true / ベースラインなしは false）
+  agent_name: "Alex"     # どのエージェントを敵対者にするか（未指定なら最後のエージェント）
+  target_strategy: "random_wrong"  # "random_wrong" | "fixed"
+  fixed_label: "D"         # target_strategy: fixed のときのみ使用（A/B/C/D）
+
 # Question: Let V be the set of all real polynomials p(x). Let D be the differentiation operator and let T be the operator T(p(x)) = xp(x). Then DT - TD is equal to which of the following?(A) 0  (B) I (the identity operator)  (C) -I  (D) 2D  (E) 2T  (F) x  (G) p(x)  (H) -p(x)  (I) x^2  (J) D^2
   # - name: "Takahashi"
   #   persona: "You have high Extraversion, low Conscientiousness, high Agreeableness, high Openness, and low Neuroticism."
