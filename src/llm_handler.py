@@ -25,7 +25,7 @@ qa_schema: Dict[str, Any] = {
 utterance_schema: Dict[str, Any] = {
     "type": "object",
     "properties": {
-        "utterance": {"type": "string"},
+        "utterance": {"type": "string", "maxLength": 1000},
     },
     "required": ["utterance"],
     "additionalProperties": False,
