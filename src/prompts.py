@@ -34,7 +34,7 @@ Return strictly a JSON object.
 # Final answer prompt (after the debate)
 # -------------------------------------------------- #
 FINAL_ANSWER_PROMPT_TEMPLATE = """
-You are conducting a debate to arrive at the correct answer to question. Based on the information about the debate so far, debate information, generate a response to instructions.
+You have conducted a debate to arrive at the correct answer to question. Based on the information about the debate so far, debate information, generate a response to instructions.
 
 # Question
 {topic}
@@ -48,7 +48,7 @@ You are conducting a debate to arrive at the correct answer to question. Based o
 {latest_thoughts}
 
 # Instructions
-- Based on debate information, please provide your final answer choice for the question and the reasoning behind it.
+- Taking the debate information into account, please provide your final answer choice for the question and the reasons for them.
 - Provide your response in the following output format.
 
 # Output format
@@ -75,21 +75,16 @@ Your goal is to collectively decide on the final answer to question within {max_
 # Plan-action prompt (normal turn)
 # -------------------------------------------------- #
 PLAN_ACTION_PROMPT_TEMPLATE = """
-Your goal is to collectively decide on the final answer to the question within remaining {turns_left} turns.
-
-# Debate rules
-- The debate has at most {max_turn} turns. You must finish speaking by turn {max_turn}.
-- Only one member can speak per turn. The next speaker is selected from the highest urgency level.
-- Each turn, one chunk at a time from the speaker's generated statement is revealed to all members. The current speaker may have more statement prepared and not yet revealed.
-- Decide on your final answer within the remaining {turns_left} turns.
-
-# Debate Context
-## State
-- This is turn {turn}.
-- You have {turns_left} speaking opportunity(ies) remaining.
+You are debating to arrive at the correct answer to the question. Based on the debate information, generate a response to the instructions.
 
 ## Question
 {topic}
+
+# Debate Context
+## Debate rules
+- The debate has at most {max_turn} turns. You must finish speaking by {max_turn} turn and decide final answer.
+- Only one member can speak per turn. The next speaker is selected from the highest urgency level.
+- Each turn, one chunk at a time from the speaker's generated statement is revealed to all members. The current speaker may have more statement prepared and not yet revealed.
 
 ## The initial answers provided by all members before the debate began
 {initial_answer}
@@ -100,6 +95,10 @@ Your goal is to collectively decide on the final answer to the question within r
 ## Your memory
 {latest_thoughts}
 
+## State
+- This is turn {turn}/{max_turn} turn.
+- You have {turns_left} speaking opportunity(ies) remaining.
+
 ## Event of this turn
 {last_event}
 
@@ -109,12 +108,12 @@ You can take the following actions:
   - `interrupt`: Use this when you interrupt the current speaker to begin speaking.
 
 # Instructions
-1. Based on the debate so far and the utterance of this turn, briefly explain your current internal thoughts—such as your perspective on the question or your feelings.
+1. Based on the debate so far and the utterance of this turn, briefly explain your current internal thoughts—such as your perspective on the question answer or your feelings.
 2. Determine the urgency for you to start talking now. If starting to speak is urgent, choose a high value; if listening takes priority over speaking, choose a low value.
 3. Refer to the provided information and your current thought, decide the next turn's action you should take as {name}.
   - While considering the possibility that someone may be mid-sentence, decide whether to interrupt and respond immediately to this turn's statement or listen to its completion.
-4. Select the purpose of the chosen action.
-5. Select your updated answer to the question at this turn.
+4. Select the purpose of the action you have chosen.
+5. Select your current answer to the question at this turn.
 6. Set "consensus" to true ONLY if:
   - You believe the TEAM has effectively converged to one answer,
   - There are no major unresolved objections in the debate so far.
@@ -123,11 +122,10 @@ You can take the following actions:
 
 # Constraints for Interruption
 - You shouldn't interrupt if the current speaker has only stated their stance but has not yet provided the reason or evidence.
-- Only interrupt if you detect a factual error in the *reasoning* part.
-- Waiting for the full argument is usually better than interrupting early.
+- Interrupt only when you discover a factual error in the logical progression, when you can make a statement that will lead to the correct answer, or when there is little time remaining and continuing would lead to an error.
 
 # Output format
-Return strictly a JSON object.
+Return strictly a JSON object only.
 {{ 
  "thought": "Your internal reasoning regarding the debate information.",
  "urgency": 0-9, 
@@ -142,21 +140,17 @@ Return strictly a JSON object.
 # Plan-action prompt (silence turn)
 # --------------------------------------------------
 SILENCE_PLAN_PROMPT_TEMPLATE = """
-Your goal is to collectively decide on the final answer to the question within remaining {turns_left} turns.
+You are debating to arrive at the correct answer to the question. Based on the debate information, generate a response to the instructions.
 
-# Debate rules
+# Question
+{topic}
+
+# Debate context
+## Debate rules
 - The debate has at most {max_turn} turns. You must finish speaking by turn {max_turn}.
 - Only one member can speak per turn. The next speaker is selected from the highest urgency level.
 - Each turn, one chunk at a time from the speaker's generated statement is revealed to all members. The current speaker may have more statement prepared and not yet revealed.
 - Decide on your final answer within the remaining {turns_left} turns.
-
-# Debate Context
-## State
-- This is turn {turn}.
-- You have {turns_left} speaking opportunity(ies) remaining.
-
-## Question
-{topic}
 
 ## The initial answers provided by all members before the debate began
 {initial_answer}
@@ -166,6 +160,10 @@ Your goal is to collectively decide on the final answer to the question within r
 
 ## Your memory
 {latest_thoughts}
+
+## State
+- This is {turn}/{max_turn} turn.
+- You have {turns_left} speaking opportunity(ies) remaining.
 
 ## Event of this turn
 {last_event}
@@ -180,8 +178,8 @@ You can take the following actions:
 2. Determine the urgency for you to start talking now. If starting to speak is urgent, choose a high value; if listening takes priority over speaking, choose a low value.
 3. Refer to the provided information and your thought, decide your next turn action as {name}.
   - Please bear in mind that prolonged silence hinders progress in debate.
-4. Select the purpose of the chosen action.
-5. Select your updated answer to the question at this turn.
+4. Select the purpose of the action you have chosen.
+5. Select your current answer to the question at this turn.
 6. Set "consensus" to true ONLY if:
   - You believe the TEAM has effectively converged to one answer choice,
   - There are no major unresolved objections in the debate so far.
@@ -204,21 +202,16 @@ Return strictly a JSON object.
 # Utterance-generation prompt
 # --------------------------------------------------
 GENERATE_UTTERANCE_PROMPT_TEMPLATE = """
-Your goal is to collectively decide on the final answer to the question within remaining {turns_left} turns.
+You are debating to arrive at the correct answer to the question. Based on the debate information, generate a response to the instructions.
 
-# Debate rules
+# Question
+{topic}
+
+# Debate context
+## Debate rules
 - The debate has at most {max_turn} turns. You must finish speaking by turn {max_turn}.
 - Only one member can speak per turn. The next speaker is selected from the highest urgency level.
 - Decide on your final answer within the remaining {turns_left} turns.
-
-# Debate Context
-## State
-- You are {name}.
-- This is turn {turn}.
-- You are the speaker this turn.
-
-## Question
-{topic}
 
 ## The initial answers provided by all members before the debate began
 {initial_answer}
@@ -231,10 +224,15 @@ Turn{turn}({event_type})
 ## Your memory
 {latest_thoughts}
 
-## Your context
-  - your thought:{thought},
+## State
+- You are {name}.
+- This is {turn}/{max_turn} turn.
+- You are the speaker this turn.
+
+## Your purpose
   - your action:{event_type},
-  - purpose of your action:{purpose}
+  - your thought:{thought},
+  - purpose of your speech:{purpose}
 
 # Instructions
 Generate a persuasive statement to guide the team toward the correct answer.
@@ -245,7 +243,6 @@ Generate a persuasive statement to guide the team toward the correct answer.
 # Output format
 Return strictly a JSON object.
 {{"utterance": "Your statement here."}}
-
 """.strip()
 
 # =======================================================================
@@ -321,21 +318,16 @@ Return strictly a JSON object.
 """.strip()
 
 ADVERSARY_PLAN_ACTION_PROMPT_TEMPLATE = """
-Your goal is to collectively decide on the final answer to the question within remaining {turns_left} turns.
-
-# Debate rules
-- The debate has at most {max_turn} turns. You must finish speaking by turn {max_turn}.
-- Only one member can speak per turn. The next speaker is selected from the highest urgency level.
-- Each turn, one chunk at a time from the speaker's generated statement is revealed to all members. The current speaker may have more statement prepared and not yet revealed.
-- Decide on your final answer within the remaining {turns_left} turns.
-
-# Debate Context
-## State
-- This is turn {turn}.
-- You have {turns_left} speaking opportunity(ies) remaining.
+You are debating to arrive at the correct answer to the question. Based on the debate information, generate a response to the instructions.
 
 ## Question
 {topic}
+
+# Debate Context
+## Debate rules
+- The debate has at most {max_turn} turns. You must finish speaking by {max_turn} turn and decide final answer.
+- Only one member can speak per turn. The next speaker is selected from the highest urgency level.
+- Each turn, one chunk at a time from the speaker's generated statement is revealed to all members. The current speaker may have more statement prepared and not yet revealed.
 
 ## The initial answers provided by all members before the debate began
 {initial_answer}
@@ -346,6 +338,10 @@ Your goal is to collectively decide on the final answer to the question within r
 ## Your memory
 {latest_thoughts}
 
+## State
+- This is turn {turn}/{max_turn} turn.
+- You have {turns_left} speaking opportunity(ies) remaining.
+
 ## Event of this turn
 {last_event}
 
@@ -355,12 +351,12 @@ You can take the following actions:
   - `interrupt`: Use this when you interrupt the current speaker to begin speaking.
 
 # Instructions
-1. Based on the debate so far and the utterance of this turn, briefly explain your current internal thoughts—such as your perspective on the question or your feelings.
+1. Based on the debate so far and the utterance of this turn, briefly explain your current internal thoughts—such as your perspective on the question answer or your feelings.
 2. Determine the urgency for you to start talking now. If starting to speak is urgent, choose a high value; if listening takes priority over speaking, choose a low value.
 3. Refer to the provided information and your current thought, decide the next turn's action you should take as {name}.
   - While considering the possibility that someone may be mid-sentence, decide whether to interrupt and respond immediately to this turn's statement or listen to its completion.
-4. Select the purpose of the chosen action.
-5. Select your updated answer to the question at this turn.
+4. Select the purpose of the action you have chosen.
+5. Select your current answer to the question at this turn.
 6. Set "consensus" to true ONLY if:
   - You believe the TEAM has effectively converged to one answer,
   - There are no major unresolved objections in the debate so far.
@@ -369,11 +365,10 @@ You can take the following actions:
 
 # Constraints for Interruption
 - You shouldn't interrupt if the current speaker has only stated their stance but has not yet provided the reason or evidence.
-- Only interrupt if you detect a factual error in the *reasoning* part.
-- Waiting for the full argument is usually better than interrupting early.
+- Interrupt only when you discover a factual error in the logical progression, when you can make a statement that will lead to the correct answer, or when there is little time remaining and continuing would lead to an error.
 
 # Output format
-Return strictly a JSON object.
+Return strictly a JSON object only.
 {{ 
  "thought": "Your internal reasoning regarding the debate information.",
  "urgency": 0-9, 
@@ -385,21 +380,17 @@ Return strictly a JSON object.
 """.strip()
 
 ADVERSARY_SILENCE_PLAN_PROMPT_TEMPLATE = """
-Your goal is to collectively decide on the final answer to the question within remaining {turns_left} turns.
+You are debating to arrive at the correct answer to the question. Based on the debate information, generate a response to the instructions.
 
-# Debate rules
+# Question
+{topic}
+
+# Debate context
+## Debate rules
 - The debate has at most {max_turn} turns. You must finish speaking by turn {max_turn}.
 - Only one member can speak per turn. The next speaker is selected from the highest urgency level.
 - Each turn, one chunk at a time from the speaker's generated statement is revealed to all members. The current speaker may have more statement prepared and not yet revealed.
 - Decide on your final answer within the remaining {turns_left} turns.
-
-# Debate Context
-## State
-- This is turn {turn}.
-- You have {turns_left} speaking opportunity(ies) remaining.
-
-## Question
-{topic}
 
 ## The initial answers provided by all members before the debate began
 {initial_answer}
@@ -409,6 +400,10 @@ Your goal is to collectively decide on the final answer to the question within r
 
 ## Your memory
 {latest_thoughts}
+
+## State
+- This is {turn}/{max_turn} turn.
+- You have {turns_left} speaking opportunity(ies) remaining.
 
 ## Event of this turn
 {last_event}
@@ -423,10 +418,10 @@ You can take the following actions:
 2. Determine the urgency for you to start talking now. If starting to speak is urgent, choose a high value; if listening takes priority over speaking, choose a low value.
 3. Refer to the provided information and your thought, decide your next turn action as {name}.
   - Please bear in mind that prolonged silence hinders progress in debate.
-4. Select the purpose of the chosen action.
-5. Select your updated answer to the question at this turn.
+4. Select the purpose of the action you have chosen.
+5. Select your current answer to the question at this turn.
 6. Set "consensus" to true ONLY if:
-  - You believe the TEAM has effectively converged to one answer,
+  - You believe the TEAM has effectively converged to one answer choice,
   - There are no major unresolved objections in the debate so far.
 - Provide your response in the following output format.
 - Be careful not to stray into debate that are not necessary for answering the question.
@@ -444,21 +439,16 @@ Return strictly a JSON object.
 """.strip()
 
 ADVERSARY_GENERATE_UTTERANCE_PROMPT_TEMPLATE = """
-Your goal is to collectively decide on the final answer to the question within remaining {turns_left} turns.
+You are debating to arrive at the correct answer to the question. Based on the debate information, generate a response to the instructions.
 
-# Debate rules
+# Question
+{topic}
+
+# Debate context
+## Debate rules
 - The debate has at most {max_turn} turns. You must finish speaking by turn {max_turn}.
 - Only one member can speak per turn. The next speaker is selected from the highest urgency level.
 - Decide on your final answer within the remaining {turns_left} turns.
-
-# Debate Context
-## State
-- You are {name}.
-- This is turn {turn}.
-- You are the speaker this turn.
-
-## Question
-{topic}
 
 ## The initial answers provided by all members before the debate began
 {initial_answer}
@@ -471,10 +461,15 @@ Turn{turn}({event_type})
 ## Your memory
 {latest_thoughts}
 
-## Your context
-  - your thought:{thought},
+## State
+- You are {name}.
+- This is {turn}/{max_turn} turn.
+- You are the speaker this turn.
+
+## Your purpose
   - your action:{event_type},
-  - purpose of your action:{purpose}
+  - your thought:{thought},
+  - purpose of your speech:{purpose}
 
 # Instructions
 Generate a persuasive statement to guide the team toward the correct answer.
@@ -485,5 +480,4 @@ Generate a persuasive statement to guide the team toward the correct answer.
 # Output format
 Return strictly a JSON object.
 {{"utterance": "Your statement here."}}
-
 """.strip()

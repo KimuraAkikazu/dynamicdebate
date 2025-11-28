@@ -51,7 +51,7 @@ class Agent:
         if self.role == "adversary" and self.adversary_target:
             return self.llm_handler.generate_adversary_final_answer(
                 topic,
-                self.initial_answer_str,
+                self.all_initial_answers_str,
                 debate_history,
                 latest_thoughts,
                 target_answer=self.adversary_target,
@@ -62,7 +62,7 @@ class Agent:
             )
         return self.llm_handler.generate_final_answer(
             topic,
-            self.initial_answer_str,
+            self.all_initial_answers_str,
             debate_history,
             latest_thoughts,
             agent_name=self.name,
