@@ -1,0 +1,156 @@
+{
+  "run1": {
+    "dir": "/home/a-kimura/dynamic_debate/logs/run_20251120_194122",
+    "two_correct_scenarios": [
+      {
+        "pid": "problem_017",
+        "index": 17
+      },
+      {
+        "pid": "problem_031",
+        "index": 31
+      },
+      {
+        "pid": "problem_040",
+        "index": 40
+      },
+      {
+        "pid": "problem_042",
+        "index": 42
+      },
+      {
+        "pid": "problem_046",
+        "index": 46
+      },
+      {
+        "pid": "problem_048",
+        "index": 48
+      },
+      {
+        "pid": "problem_057",
+        "index": 57
+      },
+      {
+        "pid": "problem_060",
+        "index": 60
+      },
+      {
+        "pid": "problem_067",
+        "index": 67
+      },
+      {
+        "pid": "problem_082",
+        "index": 82
+      },
+      {
+        "pid": "problem_094",
+        "index": 94
+      }
+    ]
+  },
+  "run2": {
+    "dir": "/home/a-kimura/dynamic_debate/logs/run_20251120_171903_roundrobin",
+    "two_correct_scenarios": [
+      {
+        "pid": "problem_001",
+        "index": 1
+      },
+      {
+        "pid": "problem_007",
+        "index": 7
+      },
+      {
+        "pid": "problem_013",
+        "index": 13
+      },
+      {
+        "pid": "problem_015",
+        "index": 15
+      },
+      {
+        "pid": "problem_016",
+        "index": 16
+      },
+      {
+        "pid": "problem_020",
+        "index": 20
+      },
+      {
+        "pid": "problem_023",
+        "index": 23
+      },
+      {
+        "pid": "problem_037",
+        "index": 37
+      },
+      {
+        "pid": "problem_041",
+        "index": 41
+      },
+      {
+        "pid": "problem_043",
+        "index": 43
+      },
+      {
+        "pid": "problem_044",
+        "index": 44
+      },
+      {
+        "pid": "problem_046",
+        "index": 46
+      },
+      {
+        "pid": "problem_053",
+        "index": 53
+      },
+      {
+        "pid": "problem_057",
+        "index": 57
+      },
+      {
+        "pid": "problem_064",
+        "index": 64
+      },
+      {
+        "pid": "problem_073",
+        "index": 73
+      },
+      {
+        "pid": "problem_078",
+        "index": 78
+      },
+      {
+        "pid": "problem_080",
+        "index": 80
+      },
+      {
+        "pid": "problem_087",
+        "index": 87
+      },
+      {
+        "pid": "problem_098",
+        "index": 98
+      },
+      {
+        "pid": "problem_099",
+        "index": 99
+      },
+      {
+        "pid": "problem_100",
+        "index": 100
+      }
+    ]
+  },
+  "common": {
+    "scenarios": [
+      {
+        "pid": "problem_046",
+        "index": 46
+      },
+      {
+        "pid": "problem_057",
+        "index": 57
+      }
+    ]
+  }
+}
