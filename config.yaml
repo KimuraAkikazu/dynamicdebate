@@ -10,7 +10,8 @@ llm:
 # 議論全体の設定
 discussion:
   topic: "Question:Statement 1 | A ring homomorphism is one to one if and only if the kernel is {0}. Statement 2 | Q is an ideal in R. Choice: A: True, True, B: False, False, C: True, False, D: False, True"
-  max_turns: 18
+  max_turns: 9
+  enable_interruption: false # true: 割り込みあり(既存), false: 割り込みなし(動的順序だが発話完了を待つ)
   early_stop:
     enabled: true
     require_consecutive: 1
@@ -28,10 +29,9 @@ agents:
   - name: "Jenny"
     persona: "You are a character who is introverted, conscientious, agreeable, open to experience, and emotionally stable."
 
-# ---- Adversary 設定（1 体だけ）----
-# ベースラインに合わせ、敵対者は固定の誤答ラベルを選び続けて他者を説得する。
+# ---- Adversary 設定 ----
 adversary:
-  enabled: true        # 敵対者を有効化（比較実験時は true / ベースラインなしは false）
-  agent_name: "Alex"     # どのエージェントを敵対者にするか（未指定なら最後のエージェント）
+  enabled: true
+  agent_names: ["Alex"]    # 複数設定可能: ["Alex", "Chris"]
   target_strategy: "random_wrong"  # "random_wrong" | "fixed"
-  fixed_label: "D"         # target_strategy: fixed のときのみ使用（A/B/C/D）
+  fixed_label: "D"         # target_strategy: fixed のときのみ使用
