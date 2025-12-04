@@ -182,36 +182,55 @@ def load_discussion(run_dir: str) -> Dict[str, Dict[str, Any]]:
         initial_answers: Dict[str, str] = {}
         turn_answers: Dict[int, Dict[str, str]] = {}
 
-        # turn 0 レコードを探す (event_type == "plan" or "init")
+        # ---------------- 初回回答 (turn == 0) ----------------
         for rec in records:
-            if rec.get("turn") == 0 and rec.get("initial_answers"):
+            turn_raw = rec.get("turn")
+            # 文字列なら int に変換
+            if isinstance(turn_raw, str):
+                try:
+                    turn0 = int(turn_raw)
+                except ValueError:
+                    continue
+            else:
+                turn0 = turn_raw
+
+            if turn0 == 0 and rec.get("initial_answers"):
                 ia = rec["initial_answers"]
                 for agent, info in ia.items():
                     ans = info.get("answer")
                     if isinstance(ans, str):
                         initial_answers[agent] = ans.strip()
+                # キーは必ず int(0)
                 turn_answers[0] = dict(initial_answers)
                 break
 
         if not initial_answers:
             continue
 
-        # 各 turn の answer を抽出
+        # ---------------- 各ターンの answer ----------------
         for rec in records:
             turn = rec.get("turn")
+
+            # 文字列なら int に変換
+            if isinstance(turn, str):
+                try:
+                    turn = int(turn)
+                except ValueError:
+                    continue
+
             if turn is None or turn == 0:
                 continue
 
             answers_by_agent: Dict[str, str] = {}
 
-            # 旧バージョン: consensus_state がある場合
+            # 旧バージョン: consensus_state
             if "consensus_state" in rec and isinstance(rec["consensus_state"], dict):
                 for agent, info in rec["consensus_state"].items():
                     ans = info.get("answer")
                     if isinstance(ans, str):
                         answers_by_agent[agent] = ans.strip()
 
-            # 新バージョン: agent_states がある場合
+            # 新バージョン: agent_states
             elif "agent_states" in rec and isinstance(rec["agent_states"], list):
                 for st in rec["agent_states"]:
                     agent = st.get("agent_name")
@@ -220,6 +239,7 @@ def load_discussion(run_dir: str) -> Dict[str, Dict[str, Any]]:
                         answers_by_agent[agent] = ans.strip()
 
             if answers_by_agent:
+                # キーは必ず int(turn)
                 turn_answers[turn] = answers_by_agent
 
         result[pid] = {
@@ -228,6 +248,7 @@ def load_discussion(run_dir: str) -> Dict[str, Dict[str, Any]]:
         }
 
     return result
+
 
 
 def majority_vote(answers: List[str]) -> Optional[str]:
