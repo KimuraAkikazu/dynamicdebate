@@ -429,6 +429,7 @@ def plot_turn_accuracy(
     plt.xlabel("Turn")
     plt.ylabel("Accuracy (majority vote)")
     plt.title(title)
+    plt.xticks(range(0, max(xs1 + xs2) + 1))
     plt.ylim(0.0, 1.05)
     plt.grid(True, alpha=0.3)
     if has_label:
