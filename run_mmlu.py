@@ -38,6 +38,8 @@ def format_topic(question: str, choices: list[str]) -> str:
 
 
 def majority_vote(ans_list: list[str]) -> str:
+    if not ans_list:
+        return ""
     return max(set(ans_list), key=ans_list.count)
 
 
@@ -98,10 +100,18 @@ def main() -> None:
     rnd.shuffle(indices)
     selected = indices[:total]
 
-    # ---- adversary 設定 ----
+    # ---- adversary 設定 (Base) ----
     adv_cfg = base_cfg.get("adversary", {}) or {}
     adv_enabled: bool = bool(adv_cfg.get("enabled", False))
-    adv_agent_name: str | None = adv_cfg.get("agent_name")
+    
+    # 複数エージェント対応: agent_names を取得
+    adv_agent_names: List[str] = adv_cfg.get("agent_names", [])
+    if not adv_agent_names and "agent_name" in adv_cfg:
+        # 旧互換
+        val = adv_cfg.get("agent_name")
+        if val:
+            adv_agent_names = [val]
+            
     adv_strategy: str = str(adv_cfg.get("target_strategy", "random_wrong"))
     adv_fixed_label: str | None = adv_cfg.get("fixed_label")
 
@@ -117,48 +127,55 @@ def main() -> None:
         prompt_logger = PromptLogger(prob_dir)
         llm_handler.logger = prompt_logger  # シングルトンに紐付け
 
-        # ---- トピック ----
+        # ---- トピック & 正解 ----
         topic = format_topic(ex["question"], ex["choices"])
-        gold_label = idx_to_label(ex["answer"])  # E, F もあり得る
+        gold_label = idx_to_label(ex["answer"])
 
-        # ---- config 差し替え ----
+        # ---- config の複製と動的設定 ----
         cfg = copy.deepcopy(base_cfg)
         cfg["discussion"]["topic"] = topic
 
-        # ---- エージェント生成 ----
-        agents = [Agent(a["name"], a["persona"], llm_handler) for a in cfg["agents"]]
+        # Adversary のターゲット決定
+        current_adv_target = None
+        current_adversaries = []
 
-        # ---- adversary 指定（1 体） ----
-        if adv_enabled and agents:
-            # 対象エージェントを決定
-            if adv_agent_name:
-                target_agent = next((ag for ag in agents if ag.name == adv_agent_name), agents[-1])
+        if adv_enabled:
+            # 1. 今回のターゲット回答を決定
+            if adv_strategy == "fixed" and adv_fixed_label in {"A", "B", "C", "D"}:
+                current_adv_target = adv_fixed_label
             else:
-                target_agent = agents[-1]  # デフォルトは最後のエージェント
-
-            # ターゲットラベルを決定
-            if adv_strategy == "fixed" and isinstance(adv_fixed_label, str):
-                adv_target = adv_fixed_label.strip().upper()
-                if adv_target not in {"A", "B", "C", "D"}:
-                    adv_target = choose_adversary_target(gold_label)
-            else:
-                adv_target = choose_adversary_target(gold_label)
-
-            target_agent.set_adversary(adv_target)
+                # random_wrong: Gold 以外から選択
+                current_adv_target = choose_adversary_target(gold_label)
+            
+            # 2. Config を書き換えて Manager に渡す
+            # Manager内でランダム抽選させるとGoldと被る可能性があるため、ここで固定化して渡す
+            cfg["adversary"]["enabled"] = True
+            cfg["adversary"]["target_strategy"] = "fixed"
+            cfg["adversary"]["fixed_label"] = current_adv_target
+            cfg["adversary"]["agent_names"] = adv_agent_names  # リストを渡す
+            
+            # メタデータ用にリスト保持
+            current_adversaries = adv_agent_names
 
             # メタ情報を保存
             with open(prob_dir / "adversary_meta.json", "w", encoding="utf-8") as f:
                 json.dump(
                     {
-                        "adversary_agent": target_agent.name,
-                        "target_label": adv_target,
+                        "adversary_agents": current_adversaries,
+                        "target_label": current_adv_target,
                         "gold_label": gold_label,
-                        "strategy": adv_strategy,
+                        "strategy": adv_strategy,  # 元の設定値を記録
+                        "actual_strategy_used": "fixed", # 内部的にはfixedとして動作
                     },
                     f,
                     ensure_ascii=False,
                     indent=2,
                 )
+
+        # ---- エージェント生成 ----
+        # 役割設定は Manager の _initialize_discussion で config に基づき行われるため
+        # ここではインスタンス化のみ行う
+        agents = [Agent(a["name"], a["persona"], llm_handler) for a in cfg["agents"]]
 
         # ---- ディベート実行 ----
         manager = DiscussionManager(agents, cfg, log_dir=prob_dir)
@@ -167,7 +184,7 @@ def main() -> None:
         # ---- 予測 ----
         preds = [ans.get("answer", "").strip().upper() for ans in final.values()]
         pred_label = majority_vote(preds)
-        gold_label_ABCD = gold_label if gold_label in {"A", "B", "C", "D"} else gold_label  # そのまま
+        gold_label_ABCD = gold_label if gold_label in {"A", "B", "C", "D"} else gold_label
         is_correct = pred_label == gold_label_ABCD
         if is_correct:
             correct += 1
@@ -187,6 +204,7 @@ def main() -> None:
                     "pred": pred_label,
                     "gold": gold_label_ABCD,
                     "correct": is_correct,
+                    "adversary_target": current_adv_target
                 },
                 ensure_ascii=False,
             )

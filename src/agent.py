@@ -31,6 +31,10 @@ class Agent:
         self.role = "adversary"
         self.adversary_target = (target_answer or "").strip().upper() or "A"
 
+    def reset_role(self) -> None:
+        self.role = "normal"
+        self.adversary_target = None
+
     # ──────────────────── 初回回答 ──────────────────── #
     def generate_initial_answer(self, topic: str, max_turn: int, peer_names: Sequence[str]) -> None:
         if self.role == "adversary" and self.adversary_target:
@@ -83,13 +87,21 @@ class Agent:
         silence: bool,
         peer_names: Sequence[str],
         latest_thoughts: str,
+        allow_interruption: bool = True
     ) -> dict[str, Any]:
+        
+        # 敵対者ロジック
         if self.role == "adversary" and self.adversary_target:
-            template = (
-                prompts.ADVERSARY_SILENCE_PLAN_PROMPT_TEMPLATE
-                if silence
-                else prompts.ADVERSARY_PLAN_ACTION_PROMPT_TEMPLATE
-            )
+            if not allow_interruption:
+                # 割り込みなしモード用 (Adversary)
+                template = prompts.ADVERSARY_PLAN_ACTION_NO_INTERRUPT_PROMPT_TEMPLATE
+            else:
+                template = (
+                    prompts.ADVERSARY_SILENCE_PLAN_PROMPT_TEMPLATE
+                    if silence
+                    else prompts.ADVERSARY_PLAN_ACTION_PROMPT_TEMPLATE
+                )
+
             if turn == 0:
                 last_event = "Let's start the discussion now."
             prompt = template.format(
@@ -114,12 +126,19 @@ class Agent:
                 peer_names=peer_names,
                 target_answer=self.adversary_target,
             )
+        
+        # 通常エージェントロジック
         else:
-            template = (
-                prompts.SILENCE_PLAN_PROMPT_TEMPLATE
-                if silence
-                else prompts.PLAN_ACTION_PROMPT_TEMPLATE
-            )
+            if not allow_interruption:
+                # 割り込みなし専用プロンプト (Normal)
+                template = prompts.PLAN_ACTION_NO_INTERRUPT_PROMPT_TEMPLATE
+            else:
+                template = (
+                    prompts.SILENCE_PLAN_PROMPT_TEMPLATE
+                    if silence
+                    else prompts.PLAN_ACTION_PROMPT_TEMPLATE
+                )
+
             if turn == 0:
                 last_event = "Let's start the discussion now."
             prompt = template.format(
@@ -128,10 +147,10 @@ class Agent:
                 last_event=last_event,
                 turns_left=max_turn - turn,
                 max_turn=max_turn,
-                turn=turn,                    # plan用プロンプトに {turn} を渡す
+                turn=turn,
                 initial_answer=self.all_initial_answers_str,
                 topic=topic,
-                latest_thoughts=latest_thoughts,  # ★ 自分の最新 thought のみ
+                latest_thoughts=latest_thoughts,
             )
             action_plan = self.llm_handler.generate_action(
                 prompt,
@@ -197,10 +216,10 @@ class Agent:
                 purpose=purpose,
                 turns_left=max_turn - turn,
                 name=self.name,
-                turn=turn,                    # plan用プロンプトに {turn} を渡す
+                turn=turn,
                 initial_answer=self.all_initial_answers_str,
                 max_turn=max_turn,
-                latest_thoughts=latest_thoughts,  # ★ 自分の最新 thought のみ
+                latest_thoughts=latest_thoughts,
             ).strip()
             result = self.llm_handler.generate_utterance(
                 utterance_prompt,
@@ -217,13 +236,11 @@ class Agent:
         else:
             utterance_text = raw_text = result  # type: ignore
 
-        # ログにはモデルの生出力を保存
         if self.llm_handler.logger:
             self.llm_handler.logger.log_generated(
                 agent_name=self.name, turn=turn, full_text=raw_text
             )
 
-        # 発話キューには 8トークン単位のチャンクを格納（sbd 文分割→置換）
         self.utterance_queue.extend(self._chunk_utterance(utterance_text))
 
     # ───────────────────── Chunk utilities ───────────────────── #

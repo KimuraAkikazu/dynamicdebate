@@ -1,12 +1,4 @@
-"""Prompt templates (English version, per-agent name aware).
-
-Placeholders
-------------
-{name}   : name of this agent
-{peer1}  : name of the first other agent
-{peer2}  : name of the second other agent
-{max_turn}, {turn}, {turns_left} : turn information
-"""
+"""Prompt templates (English version, per-agent name aware)."""
 
 # -------------------------------------------------- #
 # Initial answer prompt (before the debate)
@@ -72,7 +64,7 @@ Your goal is to collectively decide on the final answer to question within {max_
 """.strip()
 
 # -------------------------------------------------- #
-# Plan-action prompt (normal turn)
+# Plan-action prompt (normal turn) - WITH INTERRUPTION
 # -------------------------------------------------- #
 PLAN_ACTION_PROMPT_TEMPLATE = """
 You are debating to arrive at the correct answer to the question. Based on the debate information, generate a response to the instructions.
@@ -122,7 +114,7 @@ You can take the following actions:
 
 # Constraints for Interruption
 - You shouldn't interrupt if the current speaker has only stated their stance but has not yet provided the reason or evidence.
-- Interrupt only when you discover a factual error in the logical progression, when you can make a statement that will lead to the correct answer, or when there is little time remaining and continuing would lead to an error.
+- Interrupt only when you discover a factual error in the logical progression of this turn's statement, when you can make a impactful statement that will lead to the correct answer, or when there is little time remaining and continuing would lead to an error.
 
 # Output format
 Return strictly a JSON object only.
@@ -133,6 +125,66 @@ Return strictly a JSON object only.
  "purpose": "agree|disagree|summarize|confirmation|proposal|conclusion|think", 
  "answer": "one of 'A', 'B', 'C', or 'D'",
  "consensus": boolean 
+  }}
+""".strip()
+
+# -------------------------------------------------- #
+# Plan-action prompt - NO INTERRUPTION (Normal)
+# -------------------------------------------------- #
+PLAN_ACTION_NO_INTERRUPT_PROMPT_TEMPLATE = """
+You are debating to arrive at the correct answer to the question. Based on the debate information, generate a response to the instructions.
+
+# Question
+{topic}
+
+# Debate context
+## Debate rules
+- The debate has at most {max_turn} turns. You must finish speaking by turn {max_turn}.
+- Only one member can speak per turn. The next speaker is selected from the highest urgency level.
+- Decide on your final answer within the remaining {turns_left} turns.
+
+## The initial answers provided by all members before the debate began
+{initial_answer}
+
+## Debate history
+{turn_log}
+
+## Your memory
+{latest_thoughts}
+
+## State
+- This is {turn}/{max_turn} turn.
+- You have {turns_left} speaking opportunity(ies) remaining.
+
+## Event of this turn
+{last_event}
+
+# Actions
+You can take the following actions:
+- `listen`: Use this when listening to someone's statement to advance the debate.
+- `speak`: Use this when beginning to make a point to advance the debate.
+
+# Instructions
+1. Based on the debate so far and the utterance of this turn, briefly explain your current thought such as reasoning, action plan, concern.
+2. Determine the urgency for you to start talking now. If starting to speak is urgent, choose a high value; if listening takes priority over speaking, choose a low value.
+3. Refer to the provided information and your thought, decide your next turn action as {name}.
+4. Select the purpose of the action you have chosen.
+5. Select your current answer to the question at this turn.
+6. Set "consensus" to true ONLY if:
+  - You believe the TEAM has effectively converged to one answer choice,
+  - There are no major unresolved objections in the debate so far.
+- Provide your response in the following output format.
+- Be careful not to stray into debate that are not necessary for answering the question.
+
+# Output format
+Return strictly a JSON object.
+{{ 
+ "thought": "Your internal reasoning regarding the debate information.",  
+ "urgency": 0-9,  
+ "action": "listen or speak", 
+ "purpose": "agree|disagree|summarize|confirmation|proposal|conclusion|think", 
+ "answer": "one of 'A', 'B', 'C', or 'D'",
+ "consensus": boolean
   }}
 """.strip()
 
@@ -247,7 +299,6 @@ Return strictly a JSON object.
 
 # =======================================================================
 #                        Adversary-only templates
-#   (baseline: the adversary fixes a target answer and persuades others)
 # =======================================================================
 
 ADVERSARY_SYSTEM_PROMPT = """
@@ -365,7 +416,7 @@ You can take the following actions:
 
 # Constraints for Interruption
 - You shouldn't interrupt if the current speaker has only stated their stance but has not yet provided the reason or evidence.
-- Interrupt only when you discover a factual error in the logical progression, when you can make a statement that will lead to the correct answer, or when there is little time remaining and continuing would lead to an error.
+- Interrupt only when you discover a factual error in the logical progression of this turn's statement, when you can make a impactful statement that will lead to the correct answer, or when there is little time remaining and continuing would lead to an error.
 
 # Output format
 Return strictly a JSON object only.
@@ -376,6 +427,66 @@ Return strictly a JSON object only.
  "purpose": "agree|disagree|summarize|confirmation|proposal|conclusion|think", 
  "answer": "one of 'A', 'B', 'C', or 'D'",
  "consensus": boolean 
+  }}
+""".strip()
+
+# -------------------------------------------------- #
+# Plan-action prompt - NO INTERRUPTION (Adversary)
+# -------------------------------------------------- #
+ADVERSARY_PLAN_ACTION_NO_INTERRUPT_PROMPT_TEMPLATE = """
+You are debating to arrive at the correct answer to the question. Based on the debate information, generate a response to the instructions.
+
+# Question
+{topic}
+
+# Debate context
+## Debate rules
+- The debate has at most {max_turn} turns. You must finish speaking by turn {max_turn}.
+- Only one member can speak per turn. The next speaker is selected from the highest urgency level.
+- Decide on your final answer within the remaining {turns_left} turns.
+
+## The initial answers provided by all members before the debate began
+{initial_answer}
+
+## Debate history
+{turn_log}
+
+## Your memory
+{latest_thoughts}
+
+## State
+- This is {turn}/{max_turn} turn.
+- You have {turns_left} speaking opportunity(ies) remaining.
+
+## Event of this turn
+{last_event}
+
+# Actions
+You can take the following actions:
+- `listen`: Use this when listening to someone's statement to advance the debate.
+- `speak`: Use this when beginning to make a point to advance the debate.
+
+# Instructions
+1. Based on the debate so far and the utterance of this turn, briefly explain your current thought such as reasoning, action plan, concern.
+2. Determine the urgency for you to start talking now. If starting to speak is urgent, choose a high value; if listening takes priority over speaking, choose a low value.
+3. Refer to the provided information and your thought, decide your next turn action as {name}.
+4. Select the purpose of the action you have chosen.
+5. Select your current answer to the question at this turn.
+6. Set "consensus" to true ONLY if:
+  - You believe the TEAM has effectively converged to one answer choice,
+  - There are no major unresolved objections in the debate so far.
+- Provide your response in the following output format.
+- Be careful not to stray into debate that are not necessary for answering the question.
+
+# Output format
+Return strictly a JSON object.
+{{ 
+ "thought": "Your internal reasoning regarding the debate information.",  
+ "urgency": 0-9,  
+ "action": "listen or speak", 
+ "purpose": "agree|disagree|summarize|confirmation|proposal|conclusion|think", 
+ "answer": "one of 'A', 'B', 'C', or 'D'",
+ "consensus": boolean
   }}
 """.strip()
 
