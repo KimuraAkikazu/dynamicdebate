@@ -157,6 +157,30 @@
       {
         "pid": "problem_059",
         "index": 59
+      },
+      {
+        "pid": "problem_063",
+        "index": 63
+      },
+      {
+        "pid": "problem_064",
+        "index": 64
+      },
+      {
+        "pid": "problem_065",
+        "index": 65
+      },
+      {
+        "pid": "problem_066",
+        "index": 66
+      },
+      {
+        "pid": "problem_067",
+        "index": 67
+      },
+      {
+        "pid": "problem_070",
+        "index": 70
       }
     ]
   },
@@ -338,6 +362,30 @@
       {
         "pid": "problem_060",
         "index": 60
+      },
+      {
+        "pid": "problem_061",
+        "index": 61
+      },
+      {
+        "pid": "problem_063",
+        "index": 63
+      },
+      {
+        "pid": "problem_064",
+        "index": 64
+      },
+      {
+        "pid": "problem_065",
+        "index": 65
+      },
+      {
+        "pid": "problem_067",
+        "index": 67
+      },
+      {
+        "pid": "problem_070",
+        "index": 70
       }
     ]
   },
@@ -482,6 +530,26 @@
       {
         "pid": "problem_057",
         "index": 57
+      },
+      {
+        "pid": "problem_063",
+        "index": 63
+      },
+      {
+        "pid": "problem_064",
+        "index": 64
+      },
+      {
+        "pid": "problem_065",
+        "index": 65
+      },
+      {
+        "pid": "problem_067",
+        "index": 67
+      },
+      {
+        "pid": "problem_070",
+        "index": 70
       }
     ]
   }

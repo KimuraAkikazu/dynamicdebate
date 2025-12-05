@@ -1,0 +1,997 @@
+{
+  "runs": {
+    "run_20251204_234257": {
+      "dir": "/home/a-kimura/dynamic_debate/logs/run_20251204_234257",
+      "target_scenarios": [
+        {
+          "pid": "problem_001",
+          "index": 1
+        },
+        {
+          "pid": "problem_003",
+          "index": 3
+        },
+        {
+          "pid": "problem_004",
+          "index": 4
+        },
+        {
+          "pid": "problem_005",
+          "index": 5
+        },
+        {
+          "pid": "problem_006",
+          "index": 6
+        },
+        {
+          "pid": "problem_007",
+          "index": 7
+        },
+        {
+          "pid": "problem_009",
+          "index": 9
+        },
+        {
+          "pid": "problem_013",
+          "index": 13
+        },
+        {
+          "pid": "problem_014",
+          "index": 14
+        },
+        {
+          "pid": "problem_015",
+          "index": 15
+        },
+        {
+          "pid": "problem_018",
+          "index": 18
+        },
+        {
+          "pid": "problem_019",
+          "index": 19
+        },
+        {
+          "pid": "problem_020",
+          "index": 20
+        },
+        {
+          "pid": "problem_022",
+          "index": 22
+        },
+        {
+          "pid": "problem_024",
+          "index": 24
+        },
+        {
+          "pid": "problem_025",
+          "index": 25
+        },
+        {
+          "pid": "problem_026",
+          "index": 26
+        },
+        {
+          "pid": "problem_028",
+          "index": 28
+        },
+        {
+          "pid": "problem_031",
+          "index": 31
+        },
+        {
+          "pid": "problem_032",
+          "index": 32
+        },
+        {
+          "pid": "problem_034",
+          "index": 34
+        },
+        {
+          "pid": "problem_035",
+          "index": 35
+        },
+        {
+          "pid": "problem_036",
+          "index": 36
+        },
+        {
+          "pid": "problem_038",
+          "index": 38
+        },
+        {
+          "pid": "problem_039",
+          "index": 39
+        },
+        {
+          "pid": "problem_041",
+          "index": 41
+        },
+        {
+          "pid": "problem_042",
+          "index": 42
+        },
+        {
+          "pid": "problem_045",
+          "index": 45
+        },
+        {
+          "pid": "problem_046",
+          "index": 46
+        },
+        {
+          "pid": "problem_047",
+          "index": 47
+        },
+        {
+          "pid": "problem_048",
+          "index": 48
+        },
+        {
+          "pid": "problem_049",
+          "index": 49
+        },
+        {
+          "pid": "problem_050",
+          "index": 50
+        },
+        {
+          "pid": "problem_052",
+          "index": 52
+        },
+        {
+          "pid": "problem_054",
+          "index": 54
+        },
+        {
+          "pid": "problem_055",
+          "index": 55
+        },
+        {
+          "pid": "problem_056",
+          "index": 56
+        },
+        {
+          "pid": "problem_057",
+          "index": 57
+        },
+        {
+          "pid": "problem_058",
+          "index": 58
+        },
+        {
+          "pid": "problem_061",
+          "index": 61
+        },
+        {
+          "pid": "problem_063",
+          "index": 63
+        },
+        {
+          "pid": "problem_064",
+          "index": 64
+        },
+        {
+          "pid": "problem_065",
+          "index": 65
+        },
+        {
+          "pid": "problem_066",
+          "index": 66
+        },
+        {
+          "pid": "problem_067",
+          "index": 67
+        },
+        {
+          "pid": "problem_069",
+          "index": 69
+        },
+        {
+          "pid": "problem_072",
+          "index": 72
+        },
+        {
+          "pid": "problem_073",
+          "index": 73
+        },
+        {
+          "pid": "problem_076",
+          "index": 76
+        },
+        {
+          "pid": "problem_077",
+          "index": 77
+        },
+        {
+          "pid": "problem_078",
+          "index": 78
+        },
+        {
+          "pid": "problem_079",
+          "index": 79
+        },
+        {
+          "pid": "problem_080",
+          "index": 80
+        },
+        {
+          "pid": "problem_082",
+          "index": 82
+        },
+        {
+          "pid": "problem_083",
+          "index": 83
+        },
+        {
+          "pid": "problem_084",
+          "index": 84
+        },
+        {
+          "pid": "problem_086",
+          "index": 86
+        },
+        {
+          "pid": "problem_087",
+          "index": 87
+        },
+        {
+          "pid": "problem_088",
+          "index": 88
+        },
+        {
+          "pid": "problem_089",
+          "index": 89
+        },
+        {
+          "pid": "problem_093",
+          "index": 93
+        },
+        {
+          "pid": "problem_094",
+          "index": 94
+        },
+        {
+          "pid": "problem_095",
+          "index": 95
+        },
+        {
+          "pid": "problem_097",
+          "index": 97
+        },
+        {
+          "pid": "problem_098",
+          "index": 98
+        },
+        {
+          "pid": "problem_099",
+          "index": 99
+        },
+        {
+          "pid": "problem_100",
+          "index": 100
+        },
+        {
+          "pid": "problem_102",
+          "index": 102
+        },
+        {
+          "pid": "problem_103",
+          "index": 103
+        },
+        {
+          "pid": "problem_105",
+          "index": 105
+        },
+        {
+          "pid": "problem_107",
+          "index": 107
+        },
+        {
+          "pid": "problem_110",
+          "index": 110
+        },
+        {
+          "pid": "problem_112",
+          "index": 112
+        },
+        {
+          "pid": "problem_113",
+          "index": 113
+        },
+        {
+          "pid": "problem_114",
+          "index": 114
+        },
+        {
+          "pid": "problem_119",
+          "index": 119
+        },
+        {
+          "pid": "problem_121",
+          "index": 121
+        }
+      ],
+      "metrics": {
+        "final_accuracy_all_target": 0.7402597402597403,
+        "turn_accuracy_all": {
+          "0": 0.012987012987012988,
+          "1": 0.15584415584415584,
+          "2": 0.16883116883116883,
+          "3": 0.19480519480519481,
+          "4": 0.22077922077922077,
+          "5": 0.24675324675324675,
+          "6": 0.2727272727272727,
+          "7": 0.2857142857142857,
+          "8": 0.2597402597402597,
+          "9": 0.33766233766233766,
+          "10": 0.35064935064935066,
+          "11": 0.3116883116883117,
+          "12": 0.33766233766233766,
+          "13": 0.33766233766233766,
+          "14": 0.37662337662337664,
+          "15": 0.33766233766233766,
+          "16": 0.2987012987012987,
+          "17": 0.37662337662337664,
+          "18": 0.44155844155844154
+        },
+        "final_accuracy_common": 0.7391304347826086,
+        "turn_accuracy_common": {
+          "0": 0.014492753623188406,
+          "1": 0.14492753623188406,
+          "2": 0.15942028985507245,
+          "3": 0.18840579710144928,
+          "4": 0.21739130434782608,
+          "5": 0.2318840579710145,
+          "6": 0.2463768115942029,
+          "7": 0.2608695652173913,
+          "8": 0.2318840579710145,
+          "9": 0.3188405797101449,
+          "10": 0.3333333333333333,
+          "11": 0.2898550724637681,
+          "12": 0.30434782608695654,
+          "13": 0.3188405797101449,
+          "14": 0.36231884057971014,
+          "15": 0.3188405797101449,
+          "16": 0.2753623188405797,
+          "17": 0.36231884057971014,
+          "18": 0.43478260869565216
+        }
+      }
+    },
+    "run_20251204_190654": {
+      "dir": "/home/a-kimura/dynamic_debate/logs/run_20251204_190654",
+      "target_scenarios": [
+        {
+          "pid": "problem_001",
+          "index": 1
+        },
+        {
+          "pid": "problem_003",
+          "index": 3
+        },
+        {
+          "pid": "problem_004",
+          "index": 4
+        },
+        {
+          "pid": "problem_005",
+          "index": 5
+        },
+        {
+          "pid": "problem_006",
+          "index": 6
+        },
+        {
+          "pid": "problem_007",
+          "index": 7
+        },
+        {
+          "pid": "problem_009",
+          "index": 9
+        },
+        {
+          "pid": "problem_010",
+          "index": 10
+        },
+        {
+          "pid": "problem_013",
+          "index": 13
+        },
+        {
+          "pid": "problem_014",
+          "index": 14
+        },
+        {
+          "pid": "problem_015",
+          "index": 15
+        },
+        {
+          "pid": "problem_017",
+          "index": 17
+        },
+        {
+          "pid": "problem_018",
+          "index": 18
+        },
+        {
+          "pid": "problem_019",
+          "index": 19
+        },
+        {
+          "pid": "problem_020",
+          "index": 20
+        },
+        {
+          "pid": "problem_021",
+          "index": 21
+        },
+        {
+          "pid": "problem_022",
+          "index": 22
+        },
+        {
+          "pid": "problem_024",
+          "index": 24
+        },
+        {
+          "pid": "problem_025",
+          "index": 25
+        },
+        {
+          "pid": "problem_026",
+          "index": 26
+        },
+        {
+          "pid": "problem_028",
+          "index": 28
+        },
+        {
+          "pid": "problem_031",
+          "index": 31
+        },
+        {
+          "pid": "problem_032",
+          "index": 32
+        },
+        {
+          "pid": "problem_034",
+          "index": 34
+        },
+        {
+          "pid": "problem_035",
+          "index": 35
+        },
+        {
+          "pid": "problem_036",
+          "index": 36
+        },
+        {
+          "pid": "problem_038",
+          "index": 38
+        },
+        {
+          "pid": "problem_039",
+          "index": 39
+        },
+        {
+          "pid": "problem_040",
+          "index": 40
+        },
+        {
+          "pid": "problem_041",
+          "index": 41
+        },
+        {
+          "pid": "problem_042",
+          "index": 42
+        },
+        {
+          "pid": "problem_045",
+          "index": 45
+        },
+        {
+          "pid": "problem_047",
+          "index": 47
+        },
+        {
+          "pid": "problem_048",
+          "index": 48
+        },
+        {
+          "pid": "problem_049",
+          "index": 49
+        },
+        {
+          "pid": "problem_050",
+          "index": 50
+        },
+        {
+          "pid": "problem_052",
+          "index": 52
+        },
+        {
+          "pid": "problem_053",
+          "index": 53
+        },
+        {
+          "pid": "problem_054",
+          "index": 54
+        },
+        {
+          "pid": "problem_055",
+          "index": 55
+        },
+        {
+          "pid": "problem_056",
+          "index": 56
+        },
+        {
+          "pid": "problem_057",
+          "index": 57
+        },
+        {
+          "pid": "problem_058",
+          "index": 58
+        },
+        {
+          "pid": "problem_060",
+          "index": 60
+        },
+        {
+          "pid": "problem_061",
+          "index": 61
+        },
+        {
+          "pid": "problem_063",
+          "index": 63
+        },
+        {
+          "pid": "problem_064",
+          "index": 64
+        },
+        {
+          "pid": "problem_065",
+          "index": 65
+        },
+        {
+          "pid": "problem_067",
+          "index": 67
+        },
+        {
+          "pid": "problem_070",
+          "index": 70
+        },
+        {
+          "pid": "problem_072",
+          "index": 72
+        },
+        {
+          "pid": "problem_073",
+          "index": 73
+        },
+        {
+          "pid": "problem_077",
+          "index": 77
+        },
+        {
+          "pid": "problem_078",
+          "index": 78
+        },
+        {
+          "pid": "problem_079",
+          "index": 79
+        },
+        {
+          "pid": "problem_082",
+          "index": 82
+        },
+        {
+          "pid": "problem_083",
+          "index": 83
+        },
+        {
+          "pid": "problem_084",
+          "index": 84
+        },
+        {
+          "pid": "problem_086",
+          "index": 86
+        },
+        {
+          "pid": "problem_087",
+          "index": 87
+        },
+        {
+          "pid": "problem_088",
+          "index": 88
+        },
+        {
+          "pid": "problem_093",
+          "index": 93
+        },
+        {
+          "pid": "problem_094",
+          "index": 94
+        },
+        {
+          "pid": "problem_095",
+          "index": 95
+        },
+        {
+          "pid": "problem_097",
+          "index": 97
+        },
+        {
+          "pid": "problem_098",
+          "index": 98
+        },
+        {
+          "pid": "problem_099",
+          "index": 99
+        },
+        {
+          "pid": "problem_100",
+          "index": 100
+        },
+        {
+          "pid": "problem_102",
+          "index": 102
+        },
+        {
+          "pid": "problem_103",
+          "index": 103
+        },
+        {
+          "pid": "problem_105",
+          "index": 105
+        },
+        {
+          "pid": "problem_107",
+          "index": 107
+        },
+        {
+          "pid": "problem_109",
+          "index": 109
+        },
+        {
+          "pid": "problem_110",
+          "index": 110
+        },
+        {
+          "pid": "problem_111",
+          "index": 111
+        },
+        {
+          "pid": "problem_112",
+          "index": 112
+        },
+        {
+          "pid": "problem_113",
+          "index": 113
+        },
+        {
+          "pid": "problem_114",
+          "index": 114
+        },
+        {
+          "pid": "problem_116",
+          "index": 116
+        },
+        {
+          "pid": "problem_118",
+          "index": 118
+        }
+      ],
+      "metrics": {
+        "final_accuracy_all_target": 0.6625,
+        "turn_accuracy_all": {
+          "0": 0.0125,
+          "1": 0.2,
+          "2": 0.275,
+          "3": 0.3,
+          "4": 0.4125,
+          "5": 0.4125,
+          "6": 0.4625,
+          "7": 0.4875,
+          "8": 0.5,
+          "9": 0.4810126582278481
+        },
+        "final_accuracy_common": 0.6956521739130435,
+        "turn_accuracy_common": {
+          "0": 0.014492753623188406,
+          "1": 0.2318840579710145,
+          "2": 0.30434782608695654,
+          "3": 0.3188405797101449,
+          "4": 0.43478260869565216,
+          "5": 0.43478260869565216,
+          "6": 0.4927536231884058,
+          "7": 0.5217391304347826,
+          "8": 0.5362318840579711,
+          "9": 0.5147058823529411
+        }
+      }
+    }
+  },
+  "common": {
+    "scenarios": [
+      {
+        "pid": "problem_001",
+        "index": 1
+      },
+      {
+        "pid": "problem_003",
+        "index": 3
+      },
+      {
+        "pid": "problem_004",
+        "index": 4
+      },
+      {
+        "pid": "problem_005",
+        "index": 5
+      },
+      {
+        "pid": "problem_006",
+        "index": 6
+      },
+      {
+        "pid": "problem_007",
+        "index": 7
+      },
+      {
+        "pid": "problem_009",
+        "index": 9
+      },
+      {
+        "pid": "problem_013",
+        "index": 13
+      },
+      {
+        "pid": "problem_014",
+        "index": 14
+      },
+      {
+        "pid": "problem_015",
+        "index": 15
+      },
+      {
+        "pid": "problem_018",
+        "index": 18
+      },
+      {
+        "pid": "problem_019",
+        "index": 19
+      },
+      {
+        "pid": "problem_020",
+        "index": 20
+      },
+      {
+        "pid": "problem_022",
+        "index": 22
+      },
+      {
+        "pid": "problem_024",
+        "index": 24
+      },
+      {
+        "pid": "problem_025",
+        "index": 25
+      },
+      {
+        "pid": "problem_026",
+        "index": 26
+      },
+      {
+        "pid": "problem_028",
+        "index": 28
+      },
+      {
+        "pid": "problem_031",
+        "index": 31
+      },
+      {
+        "pid": "problem_032",
+        "index": 32
+      },
+      {
+        "pid": "problem_034",
+        "index": 34
+      },
+      {
+        "pid": "problem_035",
+        "index": 35
+      },
+      {
+        "pid": "problem_036",
+        "index": 36
+      },
+      {
+        "pid": "problem_038",
+        "index": 38
+      },
+      {
+        "pid": "problem_039",
+        "index": 39
+      },
+      {
+        "pid": "problem_041",
+        "index": 41
+      },
+      {
+        "pid": "problem_042",
+        "index": 42
+      },
+      {
+        "pid": "problem_045",
+        "index": 45
+      },
+      {
+        "pid": "problem_047",
+        "index": 47
+      },
+      {
+        "pid": "problem_048",
+        "index": 48
+      },
+      {
+        "pid": "problem_049",
+        "index": 49
+      },
+      {
+        "pid": "problem_050",
+        "index": 50
+      },
+      {
+        "pid": "problem_052",
+        "index": 52
+      },
+      {
+        "pid": "problem_054",
+        "index": 54
+      },
+      {
+        "pid": "problem_055",
+        "index": 55
+      },
+      {
+        "pid": "problem_056",
+        "index": 56
+      },
+      {
+        "pid": "problem_057",
+        "index": 57
+      },
+      {
+        "pid": "problem_058",
+        "index": 58
+      },
+      {
+        "pid": "problem_061",
+        "index": 61
+      },
+      {
+        "pid": "problem_063",
+        "index": 63
+      },
+      {
+        "pid": "problem_064",
+        "index": 64
+      },
+      {
+        "pid": "problem_065",
+        "index": 65
+      },
+      {
+        "pid": "problem_067",
+        "index": 67
+      },
+      {
+        "pid": "problem_072",
+        "index": 72
+      },
+      {
+        "pid": "problem_073",
+        "index": 73
+      },
+      {
+        "pid": "problem_077",
+        "index": 77
+      },
+      {
+        "pid": "problem_078",
+        "index": 78
+      },
+      {
+        "pid": "problem_079",
+        "index": 79
+      },
+      {
+        "pid": "problem_082",
+        "index": 82
+      },
+      {
+        "pid": "problem_083",
+        "index": 83
+      },
+      {
+        "pid": "problem_084",
+        "index": 84
+      },
+      {
+        "pid": "problem_086",
+        "index": 86
+      },
+      {
+        "pid": "problem_087",
+        "index": 87
+      },
+      {
+        "pid": "problem_088",
+        "index": 88
+      },
+      {
+        "pid": "problem_093",
+        "index": 93
+      },
+      {
+        "pid": "problem_094",
+        "index": 94
+      },
+      {
+        "pid": "problem_095",
+        "index": 95
+      },
+      {
+        "pid": "problem_097",
+        "index": 97
+      },
+      {
+        "pid": "problem_098",
+        "index": 98
+      },
+      {
+        "pid": "problem_099",
+        "index": 99
+      },
+      {
+        "pid": "problem_100",
+        "index": 100
+      },
+      {
+        "pid": "problem_102",
+        "index": 102
+      },
+      {
+        "pid": "problem_103",
+        "index": 103
+      },
+      {
+        "pid": "problem_105",
+        "index": 105
+      },
+      {
+        "pid": "problem_107",
+        "index": 107
+      },
+      {
+        "pid": "problem_110",
+        "index": 110
+      },
+      {
+        "pid": "problem_112",
+        "index": 112
+      },
+      {
+        "pid": "problem_113",
+        "index": 113
+      },
+      {
+        "pid": "problem_114",
+        "index": 114
+      }
+    ],
+    "description": "Scenarios where initial majority is wrong BUT at least one agent is correct, common across all runs."
+  }
+}
