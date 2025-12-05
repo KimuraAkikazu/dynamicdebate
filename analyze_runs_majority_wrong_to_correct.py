@@ -4,20 +4,26 @@
 """
 複数の run ログ（2つ以上）を比較し、以下を計算・可視化するスクリプト。
 
-1. 各 run ごとに：
-   - initial_answer で「二人正解・一人不正解」のシナリオのみを抽出
-   - そのシナリオにおける最終解答の正解率を算出
+条件:
+  - 初回(Turn 0)に「多数派が誤答を選んでいる」
+  - かつ「少なくとも 1 人は正答を選んでいる」
+  
+  という「逆転可能性のある」難問シナリオを対象にする。
 
-2. 指定された「すべての run」で共通して「二人正解・一人不正解」となっている同一問題のみを対象に、
+1. 各 run ごとに：
+   - 上記条件を満たすシナリオのみを抽出
+   - そのシナリオ集合における最終解答の正解率を算出
+
+2. 指定された「すべての run」で共通して上記条件を満たしている同一問題のみを対象に、
    - それぞれの run における最終正解率を算出
 
-3. 上記 1, 2 のシナリオ集合について、
+3. 上記シナリオ集合について、
    - 各ターンでの各エージェントの answer から多数決を取り、
-   - ターンごとの正解率（多数決が gold と一致する割合）を算出してグラフで出力。
+   - ターンごとの多数決正解率を算出・可視化（PNG保存）
 
 使い方:
-    python analyze_runs_n_compare.py RUN_DIR1 RUN_DIR2 RUN_DIR3 ...
-    python analyze_runs_n_compare.py RUN_DIR1 RUN_DIR2 RUN_DIR3 --max-problem-index 200
+    python analyze_runs_majority_wrong_multi.py RUN_DIR1 RUN_DIR2 ...
+    python analyze_runs_majority_wrong_multi.py RUN_DIR1 RUN_DIR2 RUN_DIR3 --max-problem-index 200
 """
 
 import argparse
@@ -25,7 +31,7 @@ import json
 import os
 import re
 from glob import glob
-from collections import defaultdict, Counter
+from collections import Counter, defaultdict
 from typing import Dict, Any, List, Tuple, Optional
 
 import matplotlib.pyplot as plt
@@ -34,7 +40,6 @@ import matplotlib.pyplot as plt
 # ------------- ユーティリティ ------------- #
 
 def resolve_run_dir(run_arg: str) -> str:
-    """引数がそのままディレクトリならそれを、そうでなければ logs/<arg> を探す。"""
     if os.path.isdir(run_arg):
         return os.path.abspath(run_arg)
     candidate = os.path.join("logs", run_arg)
@@ -44,7 +49,6 @@ def resolve_run_dir(run_arg: str) -> str:
 
 
 def find_accuracy_file(run_dir: str) -> Optional[str]:
-    """run_dir 内の accuracy_log を探す。jsonl 優先、なければ json。"""
     candidates = [
         os.path.join(run_dir, "accuracy_log.jsonl"),
         os.path.join(run_dir, "accuracy_log.json"),
@@ -56,9 +60,6 @@ def find_accuracy_file(run_dir: str) -> Optional[str]:
 
 
 def load_accuracy(run_dir: str) -> Dict[str, Dict[str, Any]]:
-    """
-    accuracy_log を読み込み、problem_id -> 情報 の dict を返す。
-    """
     acc_path = find_accuracy_file(run_dir)
     if acc_path is None:
         raise FileNotFoundError(f"accuracy_log not found in {run_dir}")
@@ -108,7 +109,6 @@ def load_accuracy(run_dir: str) -> Dict[str, Dict[str, Any]]:
             else (final_answer == gold if gold is not None and final_answer is not None else None),
         }
 
-        # --- ID の正規化 ---
         keys_for_this: List[str] = []
         if isinstance(pid_raw, int):
             idx = pid_raw
@@ -134,10 +134,6 @@ def load_accuracy(run_dir: str) -> Dict[str, Dict[str, Any]]:
 
 
 def load_discussion(run_dir: str) -> Dict[str, Dict[str, Any]]:
-    """
-    problem_id -> { "initial_answers": ..., "turn_answers": ... } を返す。
-    turn キーは必ず int に変換する。
-    """
     problem_dirs = sorted(glob(os.path.join(run_dir, "problem_*")))
     result: Dict[str, Dict[str, Any]] = {}
     for pdir in problem_dirs:
@@ -158,7 +154,6 @@ def load_discussion(run_dir: str) -> Dict[str, Dict[str, Any]]:
         initial_answers: Dict[str, str] = {}
         turn_answers: Dict[int, Dict[str, str]] = {}
 
-        # ---------------- 初回回答 (turn == 0) ----------------
         for rec in records:
             turn_raw = rec.get("turn")
             if isinstance(turn_raw, str):
@@ -181,20 +176,19 @@ def load_discussion(run_dir: str) -> Dict[str, Dict[str, Any]]:
         if not initial_answers:
             continue
 
-        # ---------------- 各ターンの answer ----------------
         for rec in records:
-            turn = rec.get("turn")
-            if isinstance(turn, str):
-                try:
-                    turn = int(turn)
-                except ValueError:
-                    continue
+            raw_turn = rec.get("turn")
+            if raw_turn is None:
+                continue
+            try:
+                turn = int(raw_turn)
+            except ValueError:
+                continue
 
-            if turn is None or turn == 0:
+            if turn == 0:
                 continue
 
             answers_by_agent: Dict[str, str] = {}
-
             if "consensus_state" in rec and isinstance(rec["consensus_state"], dict):
                 for agent, info in rec["consensus_state"].items():
                     ans = info.get("answer")
@@ -216,19 +210,6 @@ def load_discussion(run_dir: str) -> Dict[str, Dict[str, Any]]:
         }
 
     return result
-
-
-def majority_vote(answers: List[str]) -> Optional[str]:
-    filtered = [a for a in answers if a]
-    if not filtered:
-        return None
-    counts = Counter(filtered)
-    most_common = counts.most_common()
-    if len(most_common) == 1:
-        return most_common[0][0]
-    if most_common[0][1] == most_common[1][1]:
-        return None
-    return most_common[0][0]
 
 
 def pid_to_index(pid: str) -> Optional[int]:
@@ -265,13 +246,37 @@ def filter_problems_by_max_index(
     return new_problems, new_acc
 
 
-# ------------- 集計ロジック ------------- #
+def make_comparison_out_dir(base_out_dir: str, run_dirs: List[str], max_idx: Optional[int]) -> str:
+    tags = [os.path.basename(r.rstrip(os.sep)) for r in run_dirs]
+    dir_name = "__vs__".join(tags)
+    if len(dir_name) > 150:
+        dir_name = dir_name[:140] + "_etc"
+    if max_idx is not None:
+        dir_name += f"_max{max_idx:03d}"
+    out_dir = os.path.join(base_out_dir, dir_name)
+    os.makedirs(out_dir, exist_ok=True)
+    return out_dir
 
-def select_two_correct_one_wrong(
+
+def scenario_list_with_index(pids: List[str]) -> List[Dict[str, Any]]:
+    items = []
+    for pid in pids:
+        idx = pid_to_index(pid)
+        items.append({"pid": pid, "index": idx})
+    items.sort(key=lambda x: (x["index"] is None, x["index"] if x["index"] is not None else 0))
+    return items
+
+
+# ------------- シナリオ選択 & 集計 ------------- #
+
+def select_initial_majority_wrong(
     problems: Dict[str, Dict[str, Any]],
     acc_by_pid: Dict[str, Dict[str, Any]],
 ) -> List[str]:
-    """「3人中ちょうど2人が正解・1人が不正解」の problem_id を返す。"""
+    """
+    「初回に多数派が誤答を選択しており、かつ少なくとも1人は正答を選択している」
+    problem_id を返す。
+    """
     selected: List[str] = []
     for pid, pdata in problems.items():
         acc = acc_by_pid.get(pid)
@@ -280,13 +285,36 @@ def select_two_correct_one_wrong(
         gold = acc.get("gold")
         if not isinstance(gold, str):
             continue
+
         initial = pdata.get("initial_answers", {})
         if not initial:
             continue
 
-        correct_cnt = sum(1 for ans in initial.values() if ans == gold)
-        if correct_cnt == 2 and len(initial) - correct_cnt == 1:
-            selected.append(pid)
+        answers = list(initial.values())
+        counts = Counter(answers)
+        if not counts:
+            continue
+
+        most_common = counts.most_common()
+        if len(most_common) > 1 and most_common[0][1] == most_common[1][1]:
+            continue
+
+        maj_answer, maj_count = most_common[0]
+        # 明確な多数派（2票以上）
+        if maj_count < 2:
+            continue
+
+        # 多数派が誤答
+        if maj_answer == gold:
+            continue
+
+        # 少なくとも1人は正答を選んでいる
+        has_at_least_one_correct = any(a == gold for a in answers)
+        if not has_at_least_one_correct:
+            continue
+
+        selected.append(pid)
+
     return selected
 
 
@@ -316,6 +344,19 @@ def compute_final_accuracy_for_set(
     if total == 0:
         return 0.0
     return correct / total
+
+
+def majority_vote(answers: List[str]) -> Optional[str]:
+    filtered = [a for a in answers if a]
+    if not filtered:
+        return None
+    counts = Counter(filtered)
+    most_common = counts.most_common()
+    if len(most_common) == 1:
+        return most_common[0][0]
+    if most_common[0][1] == most_common[1][1]:
+        return None
+    return most_common[0][0]
 
 
 def compute_turnwise_majority_accuracy(
@@ -364,7 +405,6 @@ def plot_turn_accuracy_multi(
     """
     plt.figure()
     
-    # スタイル循環用リスト
     markers = ["o", "s", "^", "D", "v", "x", "*"]
     linestyles = ["-", "--", "-.", ":", "-", "--", "-."]
     
@@ -379,7 +419,6 @@ def plot_turn_accuracy_multi(
         xs = sorted(turn_acc.keys())
         ys = [turn_acc[x] for x in xs]
         
-        # インデックスに基づいてスタイルを決定
         m = markers[i % len(markers)]
         ls = linestyles[i % len(linestyles)]
         
@@ -389,7 +428,7 @@ def plot_turn_accuracy_multi(
     plt.xlabel("Turn")
     plt.ylabel("Accuracy (majority vote)")
     plt.title(title)
-    plt.xticks(range(0, 21, 1))
+    plt.xticks(range(0, 21, 1)) # X軸を整数刻みに
     plt.ylim(0.0, 1.05)
     plt.grid(True, alpha=0.3)
     if has_plot:
@@ -400,48 +439,21 @@ def plot_turn_accuracy_multi(
     print(f"[INFO] Saved plot: {out_path}")
 
 
-def make_comparison_out_dir(base_out_dir: str, run_dirs: List[str], max_idx: Optional[int]) -> str:
-    """analysis_outputs/run1__vs__run2__vs__run3... を作成"""
-    tags = [os.path.basename(r.rstrip(os.sep)) for r in run_dirs]
-    # 長くなりすぎる場合はハッシュにするなどの工夫が必要だが、ここでは結合する
-    dir_name = "__vs__".join(tags)
-    
-    # OSのパス長制限対策：もし名前が長すぎたら短縮する（簡易的対応）
-    if len(dir_name) > 150:
-        dir_name = dir_name[:140] + "_etc"
-
-    if max_idx is not None:
-        dir_name += f"_max{max_idx:03d}"
-    
-    out_dir = os.path.join(base_out_dir, dir_name)
-    os.makedirs(out_dir, exist_ok=True)
-    return out_dir
-
-
-def scenario_list_with_index(pids: List[str]) -> List[Dict[str, Any]]:
-    items = []
-    for pid in pids:
-        idx = pid_to_index(pid)
-        items.append({"pid": pid, "index": idx})
-    items.sort(key=lambda x: (x["index"] is None, x["index"] if x["index"] is not None else 0))
-    return items
-
-
 # ------------- メイン ------------- #
 
 def main():
-    parser = argparse.ArgumentParser(description="Compare multiple runs (2 or more).")
-    parser.add_argument("runs", nargs="+", help="Run directories to compare (e.g. run1 run2 run3)")
+    parser = argparse.ArgumentParser(description="Compare majority-wrong scenarios across multiple runs.")
+    parser.add_argument("runs", nargs="+", help="Run directories to compare")
     parser.add_argument(
         "--out-dir",
         default="analysis_outputs",
-        help="グラフなどを出力するディレクトリ (default: analysis_outputs)",
+        help="出力ディレクトリ (default: analysis_outputs)",
     )
     parser.add_argument(
         "--max-problem-index",
         type=int,
         default=None,
-        help="problem_001〜problem_N までのみを対象にする場合の N (例: 200)",
+        help="対象とする問題番号の上限 (例: 200)",
     )
     args = parser.parse_args()
 
@@ -451,7 +463,6 @@ def main():
         print("[ERROR] Please provide at least 1 run directory.")
         return
 
-    # 出力先ディレクトリ作成
     base_out_dir = args.out_dir
     os.makedirs(base_out_dir, exist_ok=True)
     pair_out_dir = make_comparison_out_dir(base_out_dir, run_dirs, args.max_problem_index)
@@ -462,8 +473,6 @@ def main():
         print(f"[INFO] Using problems up to problem_{args.max_problem_index:03d}")
 
     # ---- データの読み込みと格納 ---- #
-    # 構造: List of dict
-    # [ { "tag": "run_name", "acc": {...}, "probs": {...}, "scenarios": [...] }, ... ]
     all_runs_data = []
 
     for r_dir in run_dirs:
@@ -473,17 +482,13 @@ def main():
         acc_full = load_accuracy(r_dir)
         probs_full = load_discussion(r_dir)
         
-        # フィルタリング
         probs, acc = filter_problems_by_max_index(probs_full, acc_full, args.max_problem_index)
         
-        # シナリオ抽出（二人正解・一人不正解）
-        scenarios = select_two_correct_one_wrong(probs, acc)
+        # 条件抽出: 初回多数派誤答 + 少なくとも1人正答
+        scenarios = select_initial_majority_wrong(probs, acc)
         print(f"  -> Found {len(scenarios)} target scenarios.")
 
-        # 最終正解率（このRun単体での対象シナリオ）
         final_acc = compute_final_accuracy_for_set(scenarios, acc)
-        
-        # ターンごとの正解率（このRun単体）
         turn_acc = compute_turnwise_majority_accuracy(scenarios, probs, acc)
 
         all_runs_data.append({
@@ -499,7 +504,6 @@ def main():
         })
 
     # ---- 共通シナリオ (Intersection) の抽出 ---- #
-    # 全てのRunに含まれる problem_id の積集合をとる
     if not all_runs_data:
         print("[WARN] No data loaded.")
         return
@@ -513,30 +517,27 @@ def main():
     
     if common_pids:
         print("[INFO] Common scenarios (problem index):")
-        # 表示が多いと見づらいので先頭10件と件数のみ表示など調整してもよいが、現状は全て出す
         for item in scenario_list_with_index(common_pids):
             print(f"  - {item['pid']} (index={item['index']})")
 
-    # ---- 共通シナリオにおけるメトリクス計算 ---- #
-    plot_data_all = []    # 個別のシナリオ集合でのプロット用
-    plot_data_common = [] # 共通シナリオ集合でのプロット用
+    # ---- 共通シナリオにおけるメトリクス計算 & プロット準備 ---- #
+    plot_data_all = []
+    plot_data_common = []
 
     json_output = {
         "runs": {},
         "common": {
             "scenarios": scenario_list_with_index(common_pids),
-            "metrics": {}
+            "description": "Scenarios where initial majority is wrong BUT at least one agent is correct, common across all runs."
         }
     }
 
     for r_data in all_runs_data:
         tag = r_data["tag"]
         
-        # Commonセットでの計算
         acc_final_common = compute_final_accuracy_for_set(common_pids, r_data["acc"])
         turn_acc_common = compute_turnwise_majority_accuracy(common_pids, r_data["probs"], r_data["acc"])
         
-        # JSON格納用のデータ構築
         r_data["metrics"]["final_accuracy_common"] = acc_final_common
         r_data["metrics"]["turn_accuracy_common"] = turn_acc_common
         
@@ -546,7 +547,6 @@ def main():
             "metrics": r_data["metrics"]
         }
         
-        # プロット用データの準備
         plot_data_all.append({
             "label": f"{tag}",
             "turn_acc": r_data["metrics"]["turn_accuracy_all"]
@@ -561,22 +561,22 @@ def main():
         print(f"[RESULT] {tag} | Final Acc (Common Only): {acc_final_common:.3f}")
 
     # ---- プロット作成 ---- #
-    out_path_all = os.path.join(pair_out_dir, "turn_accuracy_runwise.png")
+    out_path_all = os.path.join(pair_out_dir, "turn_accuracy_initial_majority_wrong_runwise.png")
     plot_turn_accuracy_multi(
         plot_data_all,
-        title="Turn-wise Accuracy (Two-correct-one-wrong, Individual sets)",
+        title="Turn-wise Accuracy (Initial Maj Wrong + 1 Correct, Individual sets)",
         out_path=out_path_all
     )
 
-    out_path_common = os.path.join(pair_out_dir, "turn_accuracy_common.png")
+    out_path_common = os.path.join(pair_out_dir, "turn_accuracy_initial_majority_wrong_common.png")
     plot_turn_accuracy_multi(
         plot_data_common,
-        title="Turn-wise Accuracy (Common problems only)",
+        title="Turn-wise Accuracy (Initial Maj Wrong + 1 Correct, Common problems)",
         out_path=out_path_common
     )
 
     # ---- JSON 保存 ---- #
-    out_json = os.path.join(pair_out_dir, "analysis_results.json")
+    out_json = os.path.join(pair_out_dir, "analysis_results_majority_wrong.json")
     with open(out_json, "w", encoding="utf-8") as f:
         json.dump(json_output, f, ensure_ascii=False, indent=2)
 
