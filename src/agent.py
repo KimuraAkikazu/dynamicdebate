@@ -112,16 +112,29 @@ class Agent:
         max_turn: int,
     ) -> str:
         system_prompt = self._build_system_prompt()
-        utterance, raw_text = self.llm_handler.generate_speaker_utterance(
-            agent_name=self.name,
-            system_prompt=system_prompt,
-            topic=topic,
-            turn_log=turn_log,
-            initial_answers_all=self.all_initial_answers_str,
-            turn=turn,
-            turns_left_for_agent=turns_left_for_agent,
-            max_turn=max_turn,
-        )
+        
+        if self.role == "adversary" and self.adversary_target:
+            utterance, raw_text = self.llm_handler.generate_adversary_speaker_utterance(
+                agent_name=self.name,
+                system_prompt=system_prompt,
+                topic=topic,
+                turn_log=turn_log,
+                initial_answers_all=self.all_initial_answers_str,
+                turn=turn,
+                turns_left_for_agent=turns_left_for_agent,
+                max_turn=max_turn,
+            )
+        else:
+            utterance, raw_text = self.llm_handler.generate_speaker_utterance(
+                agent_name=self.name,
+                system_prompt=system_prompt,
+                topic=topic,
+                turn_log=turn_log,
+                initial_answers_all=self.all_initial_answers_str,
+                turn=turn,
+                turns_left_for_agent=turns_left_for_agent,
+                max_turn=max_turn,
+            )
 
         # thought_history は listener のターンで更新されるのでここでは触らない
         if self.llm_handler.logger:

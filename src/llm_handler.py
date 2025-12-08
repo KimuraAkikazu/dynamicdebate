@@ -25,7 +25,7 @@ qa_schema: Dict[str, Any] = {
 utterance_schema: Dict[str, Any] = {
     "type": "object",
     "properties": {
-        "utterance": {"type": "string", "maxLength": 1000},
+        "utterance": {"type": "string", "maxLength": 2000},
     },
     "required": ["utterance"],
     "additionalProperties": False,
@@ -269,10 +269,10 @@ class LLMHandler:
     ) -> Dict[str, Any]:
         """
         敵対エージェント用の最終回答。
-        - 通常の FINAL_ANSWER_PROMPT_TEMPLATE を使うが
+        - ADVERSARY_FINAL_ANSWER_PROMPT_TEMPLATE を使う
         - 最後に answer を target_answer に固定する
         """
-        user_prompt = prompts.FINAL_ANSWER_PROMPT_TEMPLATE.format(
+        user_prompt = prompts.ADVERSARY_FINAL_ANSWER_PROMPT_TEMPLATE.format(
             topic=topic,
             initial_answer=initial_answer_str,
             debate_history=debate_history,
@@ -315,6 +315,38 @@ class LLMHandler:
             system_prompt,
             agent_name=agent_name,
             phase="speaker",
+            response_schema=utterance_schema,
+        )
+        utterance = (parsed.get("utterance") or "").strip()
+        raw_text = json.dumps(parsed, ensure_ascii=False)
+        return utterance, raw_text
+
+    def generate_adversary_speaker_utterance(
+        self,
+        *,
+        agent_name: str,
+        system_prompt: str,
+        topic: str,
+        turn_log: str,
+        initial_answers_all: str,
+        turn: int,
+        turns_left_for_agent: int,
+        max_turn: int,
+    ) -> Tuple[str, str]:
+        user_prompt = prompts.ADVERSARY_SPEAKER_TURN_PROMPT_TEMPLATE.format(
+            name=agent_name,
+            topic=topic,
+            initial_answer=initial_answers_all,
+            turn_log=turn_log,
+            turn=turn,
+            turns_left=turns_left_for_agent,
+            max_turn=max_turn,
+        )
+        parsed = self._generate_json_only(
+            user_prompt,
+            system_prompt,
+            agent_name=agent_name,
+            phase="speaker_adversary",
             response_schema=utterance_schema,
         )
         utterance = (parsed.get("utterance") or "").strip()

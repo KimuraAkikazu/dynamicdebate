@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import json
+import random
 from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
@@ -90,43 +91,47 @@ class DiscussionManager:
         return self.final_answers
 
     # ───────────────────────── 初期化 ───────────────────────── #
-        # ───────────────────────── 初期化 ───────────────────────── #
     def _initialize_discussion(self) -> None:
-        # 0) adversary 設定（まだ誰も adversary になっていない場合のみ）
+        # まず全員を normal にリセット
+        for ag in self.agents:
+            ag.role = "normal"
+            ag.adversary_target = None
+
+        # 0) adversary 設定
         adv_cfg = self.config.get("adversary", {})
-        if adv_cfg.get("enabled", False) and not any(
-            ag.role == "adversary" for ag in self.agents
-        ):
-            adv_name = adv_cfg.get("agent_name")
+        if adv_cfg.get("enabled", False):
+            # 名前リストの取得
+            target_names = adv_cfg.get("agent_names", [])
+            # 互換性: agent_names が空なら agent_name を確認
+            if not target_names and "agent_name" in adv_cfg:
+                val = adv_cfg["agent_name"]
+                if val:
+                    target_names = [val]
+            
             strategy = adv_cfg.get("target_strategy", "fixed")
-            fixed_label = (adv_cfg.get("fixed_label") or "A").strip().upper()
+            fixed_label = (adv_cfg.get("fixed_label") or "D").strip().upper()
 
+            # 全敵対者で共通の誤答ターゲットを決定
             # とりあえず 4 択想定で候補ラベルを作る
-            # （MMLU 実験では run_mmlu.py が正解ラベルを見て random_wrong を設定する）
-            import random
             valid_labels = ["A", "B", "C", "D"]
+            
+            final_target = fixed_label
+            if strategy == "random_wrong":
+                # 正解が不明なので便宜的にランダム選択
+                final_target = random.choice(valid_labels)
+            
+            if final_target not in valid_labels:
+                final_target = "D"
 
-            if strategy == "fixed":
-                target = fixed_label if fixed_label in valid_labels else "A"
-            else:
-                # random_wrong だが、ここでは正解がわからないので
-                # 便宜的にランダムなラベルを選ぶ
-                target = random.choice(valid_labels)
+            print(f"[System] Adversary Strategy: {strategy}, Target Answer: {final_target}")
+            print(f"[System] Targeted Agents: {target_names}")
 
-            # 対象エージェントを取得（名前が見つからなければ最後のエージェント）
-            adv_agent = next(
-                (ag for ag in self.agents if ag.name == adv_name),
-                None,
-            )
-            if adv_agent is None and self.agents:
-                adv_agent = self.agents[-1]
-
-            if adv_agent is not None:
-                adv_agent.set_adversary(target)
-                print(
-                    f"[Adversary/Manager] {adv_agent.name} set as adversary "
-                    f"with target_answer={target}"
-                )
+            for ag in self.agents:
+                if ag.name in target_names:
+                    ag.set_adversary(final_target)
+                    print(f"[System] Agent {ag.name} is set as ADVERSARY.")
+                else:
+                    print(f"[System] Agent {ag.name} is set as NORMAL.")
 
         # 1) Peer 情報の登録
         all_names = [a.name for a in self.agents]
@@ -161,7 +166,9 @@ class DiscussionManager:
                 "speaking_order": self.order,
                 "turns_per_agent": self.turns_per_agent,
                 "max_turns": self.max_turns,
+                "adversary": adv_cfg,
             },
+            "roles": {ag.name: ag.role for ag in self.agents},
         }
         self.log_data.append(init_record)
         self._write_log()

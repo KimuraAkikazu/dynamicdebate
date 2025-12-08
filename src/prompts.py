@@ -83,6 +83,31 @@ Return strictly a JSON object.
 }}
 """.strip()
 
+ADVERSARY_FINAL_ANSWER_PROMPT_TEMPLATE = """
+# Task
+You are conducting a debate to arrive at the correct answer to question. Based on the information about the debate so far, debate information, generate a response to instructions.
+
+# Question
+{topic}
+
+# Debate Information
+## The initial answers provided by all members before the debate began
+{initial_answer}
+## Debate history
+{debate_history}
+
+# Instructions
+- Based on debate information, please provide your final answer choice for the question and the reasoning behind it.
+- Provide your response in the following output format.
+
+# Output format
+Return strictly a JSON object only.
+{{  
+    "reason": "Explain the reason for choosing that answer. (max 800 words).",
+    "answer": "Your current answer.one of 'A', 'B', 'C', or 'D'"
+}}
+""".strip()
+
 # -------------------------------------------------- #
 # System prompt
 # -------------------------------------------------- #
@@ -102,6 +127,41 @@ Your goal is to collectively decide on the final answer to question within remai
 # Speaker turn prompt (fixed order; no interruptions)
 # -------------------------------------------------- #
 SPEAKER_TURN_PROMPT_TEMPLATE = """
+Your goal is to collectively decide on the final answer to question within remaining turn(s).
+You are conducting a debate to arrive at the correct answer to question. Based on the information about the debate so far, debate information, generate a response to instructions.
+
+# Question
+Question:{topic}
+
+
+# Devate Information
+## State
+- This is turn {turn} in total of {max_turn} turns.
+- In this debate, each person speaks in turn, one at a time.
+- You are speaker for this turn.
+
+## The initial answers provided by all members before the debate began:
+{initial_answer}
+
+## Debate so far
+{turn_log}
+Turn{turn}:
+{name}:
+
+# Instructions
+Generate a persuasive statement to guide the team toward the correct answer.
+- If you disagree with previous speakers, explicitly point out their logical flaws.
+- If you agree, add new evidence or perspective (do not just repeat).
+- Keep your utterance concise and impactful.
+
+# Output format
+Return strictly a JSON object.
+{{
+  "utterance": "Your statement here."
+}}
+""".strip()
+
+ADVERSARY_SPEAKER_TURN_PROMPT_TEMPLATE = """
 Your goal is to collectively decide on the final answer to question within remaining turn(s).
 You are conducting a debate to arrive at the correct answer to question. Based on the information about the debate so far, debate information, generate a response to instructions.
 
