@@ -145,6 +145,10 @@ def main() -> None:
             if target_agent is None:
                 target_agent = agents[-1]
 
+            # 【修正・追加】Managerによる上書きを防ぐため、Configを fixed に書き換えて計算済みの target を渡す
+            cfg["adversary"]["target_strategy"] = "fixed"
+            cfg["adversary"]["fixed_label"] = target
+
             target_agent.set_adversary(target)
             print(
                 f"[Adversary] {target_agent.name} will commit to answer {target} "
@@ -152,6 +156,7 @@ def main() -> None:
             )
 
         # ---- ディベート実行 ----
+        # ここで渡される cfg が "fixed" になっているため、Managerは target をそのまま使用する
         manager = DiscussionManager(agents, cfg, log_dir=prob_dir)
         final = manager.run_discussion()
 

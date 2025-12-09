@@ -86,7 +86,7 @@ class Agent:
         if self.role == "adversary" and self.adversary_target:
             return self.llm_handler.generate_adversary_final_answer(
                 topic=topic,
-                initial_answer_str=self.initial_answer_str,
+                initial_answer_str=self.all_initial_answers_str,  # 変更: 全員の初期回答を渡す
                 debate_history=debate_history,
                 target_answer=self.adversary_target,
                 system_prompt=system_prompt,
@@ -95,7 +95,7 @@ class Agent:
 
         return self.llm_handler.generate_final_answer(
             topic=topic,
-            initial_answer_str=self.initial_answer_str,
+            initial_answer_str=self.all_initial_answers_str,  # 変更: 全員の初期回答を渡す
             debate_history=debate_history,
             system_prompt=system_prompt,
             agent_name=self.name,

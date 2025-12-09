@@ -223,7 +223,11 @@ class DiscussionManager:
             if ag.thought_history:
                 last_turn, thought, current_answer, consensus = ag.thought_history[-1]
             else:
-                thought, current_answer, consensus = "", "", False
+                # 修正: thought_history が空の場合は初期回答を使用する
+                thought = ""  # 発言者の思考は表出しないので空でOK
+                current_answer = ag.initial_answer.get("answer", "")
+                consensus = False
+
             agent_states.append(
                 {
                     "agent_name": ag.name,
@@ -290,6 +294,12 @@ class DiscussionManager:
     def _collect_final_answers(self) -> None:
         print("=== Collecting final answers ===")
 
+        # トークン使用量の取得（Handlerはシングルトン的に共有されている想定）
+        token_usage = {}
+        if self.agents and self.agents[0].llm_handler:
+            token_usage = self.agents[0].llm_handler.total_token_usage
+            print(f"[Usage] Total Tokens: {token_usage}")
+
         if self.early_stop_answer is not None and self.early_stop_states is not None:
             self.final_answers = {}
             for ag in self.agents:
@@ -314,6 +324,7 @@ class DiscussionManager:
                     "early_stop": True,
                     "early_stop_turn": self.early_stop_turn,
                     "early_stop_answer": self.early_stop_answer,
+                    "token_usage": token_usage,  # ログに追加
                 }
             )
             self._write_log()
@@ -336,6 +347,7 @@ class DiscussionManager:
                 "event_type": "final_answers",
                 "answers": self.final_answers,
                 "early_stop": False,
+                "token_usage": token_usage, # ログに追加
             }
         )
         self._write_log()

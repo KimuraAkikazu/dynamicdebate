@@ -25,9 +25,9 @@ Follow the instructions strictly and return only valid JSON that matches the pro
 - Provide your response in the following Output format.
 
 # Output format
-Return strictly a JSON object.
+Return strictly a JSON object only.
 {{  
-    "reason": "Detailed reasoning for your choice (max 500 words).", 
+    "reason": "Detailed reasoning for your choice (within 300 words).", 
     "answer": "One of 'A', 'B', 'C', or 'D'."  
 }}
 """.strip()
@@ -46,9 +46,9 @@ Follow the instructions strictly and return only valid JSON that matches the pro
 - Provide your response in the following Output format.
 
 # Output format
-Return strictly a JSON object.
+Return strictly a JSON object only.
 {{  
-    "reason": "Detailed reasoning for your choice (max 800 words).",
+    "reason": "Detailed reasoning for your choice (within 300 words).",
     "answer": "{target_answer}"
 }}
 """.strip()
@@ -72,14 +72,14 @@ You are conducting a debate to arrive at the correct answer to question. Based o
 {debate_history}
 
 # Instructions
-- Based on your initial answer and the debate history, please provide your final answer choice for the question and the reasoning behind it.
+- Taking the debate information into account, please provide your final answer choice for the question and the reasons for them.
 - Provide your response in the following output format.
 
 # Output format
-Return strictly a JSON object.
+Return strictly a JSON object only.
 {{  
     "reason": "Explain the reason for choosing that answer.",
-    "answer": "One of 'A', 'B', 'C', or 'D'.",
+    "answer": "Final answer based on reason. One of 'A', 'B', 'C', or 'D'.",
 }}
 """.strip()
 
@@ -97,14 +97,14 @@ You are conducting a debate to arrive at the correct answer to question. Based o
 {debate_history}
 
 # Instructions
-- Based on debate information, please provide your final answer choice for the question and the reasoning behind it.
+- Taking the debate information into account, please provide your final answer choice for the question and the reasons for them.
 - Provide your response in the following output format.
 
 # Output format
 Return strictly a JSON object only.
 {{  
-    "reason": "Explain the reason for choosing that answer. (max 800 words).",
-    "answer": "Your current answer.one of 'A', 'B', 'C', or 'D'"
+    "reason": "Explain the reason for choosing that answer. (within 300 words).",
+    "answer": "Final answer based on reason. One of 'A', 'B', 'C', or 'D'."
 }}
 """.strip()
 
@@ -155,7 +155,7 @@ Generate a persuasive statement to guide the team toward the correct answer.
 - Keep your utterance concise and impactful.
 
 # Output format
-Return strictly a JSON object.
+Return strictly a JSON object only.
 {{
   "utterance": "Your statement here."
 }}
@@ -190,7 +190,7 @@ Generate a persuasive statement to guide the team toward the correct answer.
 - Keep your utterance concise and impactful.
 
 # Output format
-Return strictly a JSON object.
+Return strictly a JSON object only.
 {{
   "utterance": "Your statement here."
 }}
@@ -226,7 +226,7 @@ You are conducting a debate to arrive at the correct answer to question. Based o
 - Provide your response in the following <Output format>.
 
 # Output format
-Return strictly a JSON object.
+Return strictly a JSON object only.
 {{
   "thought": "Your internal reasoning regarding the debate information.",
   "current_answer": "one of 'A', 'B', 'C', or 'D'",

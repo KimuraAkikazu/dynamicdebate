@@ -77,6 +77,14 @@ class LLMHandler:
             max_tokens=config.get("max_tokens", 1024),
             verbose=False,
         )
+        
+        # トークン使用量の累積カウンターを初期化
+        self.total_token_usage = {
+            "prompt_tokens": 0,
+            "completion_tokens": 0,
+            "total_tokens": 0
+        }
+        
         print("[LLMHandler] Model loaded.")
 
     # ──────────────────── ユーティリティ ──────────────────── #
@@ -167,6 +175,13 @@ class LLMHandler:
             messages=messages,
             response_format={"type": "json_object", "schema": response_schema},
         )
+        
+        # トークン使用量を累積
+        usage = resp.get("usage", {})
+        if usage:
+            self.total_token_usage["prompt_tokens"] += usage.get("prompt_tokens", 0)
+            self.total_token_usage["completion_tokens"] += usage.get("completion_tokens", 0)
+            self.total_token_usage["total_tokens"] += usage.get("total_tokens", 0)
 
         content = resp["choices"][0]["message"]["content"]
         parsed = self._safe_load_json(str(content))
