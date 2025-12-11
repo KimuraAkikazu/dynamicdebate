@@ -420,6 +420,10 @@ class DiscussionManager:
             return
         max_u = max(p.get("urgency", 0) for _, p in candidates)
         top = [(n, p) for n, p in candidates if p.get("urgency", 0) == max_u]
+        
+        # 修正: 同点の urgency を持つ候補者のリストをシャッフルしてから選択する
+        # これにより、リストの先頭にあるエージェント（例: Alex）が優先されるバイアスを防ぐ
+        random.shuffle(top)
         next_name, next_plan = random.choice(top)
 
         if self.speaker and self.speaker.name == next_name:
