@@ -53,10 +53,10 @@ def idx_to_label(idx: int | str) -> str:
 def choose_adversary_target(gold_label: str | None) -> str:
     """A-D の範囲で gold と異なるラベルをランダムに選ぶ（gold が A-D 以外なら単純ランダム）"""
     pool = ["A", "B", "C", "D"]
-    rnd = random.Random(SEED)
+    # 修正: 以前の rnd = random.Random(SEED) を削除し、グローバルの random を使用
     if gold_label in pool:
         pool = [p for p in pool if p != gold_label]
-    return rnd.choice(pool)
+    return random.choice(pool)
 
 
 # ---------- メイン ---------- #
@@ -69,6 +69,9 @@ def main() -> None:
         help="Number of questions to sample (default: 50, use -1 for all)",
     )
     args = parser.parse_args()
+
+    # 修正: ここで乱数シードを固定し、以降はグローバルの random を使い回す
+    random.seed(SEED)
 
     base_cfg = load_config()
 
@@ -96,8 +99,8 @@ def main() -> None:
 
     # ランダムにシャッフルして total 問を抽出
     indices = list(range(total_available))
-    rnd = random.Random(SEED)
-    rnd.shuffle(indices)
+    # 修正: グローバルの random.shuffle を使用
+    random.shuffle(indices)
     selected = indices[:total]
 
     # ---- adversary 設定 (Base) ----

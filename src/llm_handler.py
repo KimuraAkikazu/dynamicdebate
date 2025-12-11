@@ -25,7 +25,7 @@ qa_schema: Dict[str, Any] = {
 plan_action_schema: Dict[str, Any] = {
     "type": "object",
     "properties": {
-        "thought": {"type": "string"},
+        "thought": {"type": "string", "maxLength": 1000},
         "action": {"type": "string", "enum": ["listen", "speak", "interrupt"]},
         "urgency": {"type": "integer", "minimum": 0, "maximum": 9},
         "purpose": {"type": "string", "maxLength": 50},
