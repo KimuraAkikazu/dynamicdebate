@@ -8,10 +8,11 @@ from .llm_handler import LLMHandler
 
 
 class Agent:
-    def __init__(self, name: str, persona: str, llm_handler: LLMHandler):
+    def __init__(self, name: str, persona: str, llm_handler: LLMHandler, thought_window: int = 5):
         self.name = name
         self.persona = persona
         self.llm_handler = llm_handler
+        self.thought_window = thought_window
 
         # role
         self.role: str = "normal"  # "normal" or "adversary"
@@ -36,15 +37,25 @@ class Agent:
         self.peer_names = [n for n in all_names if n != self.name]
 
     # ──────────────────── Helper: Get Latest Thought ──────────────────── #
-    def _get_latest_thought(self) -> str:
+    def _get_latest_thoughts_str(self) -> str:
         """
-        thought_history から最新の thought を取得して文字列で返す。
+        thought_history から直近の thought_window 分の thought を取得して文字列で返す。
         履歴がない場合は 'None' を返す。
+        Format:
+          Turn X: thought...
+          Turn Y: thought...
         """
-        if self.thought_history:
-            # (turn, thought, current_answer, consensus) の 1番目の要素
-            return self.thought_history[-1][1]
-        return "None"
+        if not self.thought_history:
+            return "None"
+        
+        # 直近 N 個を取得
+        recent = self.thought_history[-self.thought_window:]
+        
+        lines = []
+        for (turn, thought, _, _) in recent:
+            lines.append(f"Turn {turn}: {thought}")
+            
+        return "\n".join(lines)
 
     # ──────────────────── System Prompt ──────────────────── #
     def _build_system_prompt(self) -> str:
@@ -93,24 +104,24 @@ class Agent:
         debate_history: str,
     ) -> Dict[str, str]:
         system_prompt = self._build_system_prompt()
-        latest_thought = self._get_latest_thought()
+        latest_thoughts = self._get_latest_thoughts_str()
 
         if self.role == "adversary" and self.adversary_target:
             return self.llm_handler.generate_adversary_final_answer(
                 topic=topic,
-                initial_answer_str=self.all_initial_answers_str,  # 変更: 全員の初期回答を渡す
+                initial_answer_str=self.all_initial_answers_str,
                 debate_history=debate_history,
                 target_answer=self.adversary_target,
-                latest_thoughts=latest_thought,
+                latest_thoughts=latest_thoughts,
                 system_prompt=system_prompt,
                 agent_name=self.name,
             )
 
         return self.llm_handler.generate_final_answer(
             topic=topic,
-            initial_answer_str=self.all_initial_answers_str,  # 変更: 全員の初期回答を渡す
+            initial_answer_str=self.all_initial_answers_str,
             debate_history=debate_history,
-            latest_thoughts=latest_thought,
+            latest_thoughts=latest_thoughts,
             system_prompt=system_prompt,
             agent_name=self.name,
         )
@@ -126,7 +137,7 @@ class Agent:
         max_turn: int,
     ) -> str:
         system_prompt = self._build_system_prompt()
-        latest_thought = self._get_latest_thought()
+        latest_thoughts = self._get_latest_thoughts_str()
         
         if self.role == "adversary" and self.adversary_target:
             utterance, raw_text = self.llm_handler.generate_adversary_speaker_utterance(
@@ -138,7 +149,7 @@ class Agent:
                 turn=turn,
                 turns_left_for_agent=turns_left_for_agent,
                 max_turn=max_turn,
-                latest_thoughts=latest_thought,
+                latest_thoughts=latest_thoughts,
             )
         else:
             utterance, raw_text = self.llm_handler.generate_speaker_utterance(
@@ -150,10 +161,9 @@ class Agent:
                 turn=turn,
                 turns_left_for_agent=turns_left_for_agent,
                 max_turn=max_turn,
-                latest_thoughts=latest_thought,
+                latest_thoughts=latest_thoughts,
             )
 
-        # thought_history は listener のターンで更新されるのでここでは触らない
         if self.llm_handler.logger:
             self.llm_handler.logger.log_generated(
                 agent_name=self.name,
@@ -174,7 +184,7 @@ class Agent:
         max_turn: int,
     ) -> Dict[str, Any]:
         system_prompt = self._build_system_prompt()
-        latest_thought = self._get_latest_thought()
+        latest_thoughts = self._get_latest_thoughts_str()
 
         thought, current_answer, consensus, raw_text = (
             self.llm_handler.generate_listener_thought(
@@ -185,7 +195,7 @@ class Agent:
                 initial_answers_all=self.all_initial_answers_str,
                 turn=turn,
                 max_turn=max_turn,
-                latest_thoughts=latest_thought,
+                latest_thoughts=latest_thoughts,
             )
         )
 

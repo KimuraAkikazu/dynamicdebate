@@ -92,11 +92,6 @@ class LLMHandler:
     def _safe_load_json(raw_text: str) -> Dict[str, Any]:
         """
         壊れた JSON / JSON文字列 / 末尾ゴミ付き すべてを最大限復元する JSON パーサ
-        ---------------------------------------------------------
-        例：
-        "{ \"answer\":\"D\", \"reason\":\"...\"}}"    → OK
-        "\"{ \\\"answer\\\":\\\"D\\\" }\""          → 2段階で展開してOK
-        foo{ "answer":"B","reason":"x"}bar         → {...} のみ検出して復元
         """
 
         # -------- 事前クリーニング --------
@@ -224,11 +219,6 @@ class LLMHandler:
         system_prompt: str,
         agent_name: str,
     ) -> Dict[str, Any]:
-        """
-        敵対エージェント用の初回回答。
-        - ADVERSARY_INITIAL_ANSWER_PROMPT_TEMPLATE を使う
-        - モデル出力に関わらず answer は target_answer に強制
-        """
         user_prompt = prompts.ADVERSARY_INITIAL_ANSWER_PROMPT_TEMPLATE.format(
             topic=topic,
             target_answer=target_answer,
@@ -285,11 +275,6 @@ class LLMHandler:
         system_prompt: str,
         agent_name: str,
     ) -> Dict[str, Any]:
-        """
-        敵対エージェント用の最終回答。
-        - ADVERSARY_FINAL_ANSWER_PROMPT_TEMPLATE を使う
-        - 最後に answer を target_answer に固定する
-        """
         user_prompt = prompts.ADVERSARY_FINAL_ANSWER_PROMPT_TEMPLATE.format(
             topic=topic,
             initial_answer=initial_answer_str,
@@ -304,7 +289,7 @@ class LLMHandler:
             response_schema=qa_schema,
         )
 
-        parsed["answer"] = target_answer  # 強制
+        parsed["answer"] = target_answer
         parsed.setdefault("reason", "")
         return parsed
 
