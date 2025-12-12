@@ -254,6 +254,7 @@ class LLMHandler:
         topic: str,
         initial_answer_str: str,
         debate_history: str,
+        latest_thoughts: str,
         system_prompt: str,
         agent_name: str,
     ) -> Dict[str, Any]:
@@ -261,6 +262,7 @@ class LLMHandler:
             topic=topic,
             initial_answer=initial_answer_str,
             debate_history=debate_history,
+            latest_thoughts=latest_thoughts,
         )
         parsed = self._generate_json_only(
             user_prompt,
@@ -279,6 +281,7 @@ class LLMHandler:
         initial_answer_str: str,
         debate_history: str,
         target_answer: str,
+        latest_thoughts: str,
         system_prompt: str,
         agent_name: str,
     ) -> Dict[str, Any]:
@@ -291,6 +294,7 @@ class LLMHandler:
             topic=topic,
             initial_answer=initial_answer_str,
             debate_history=debate_history,
+            latest_thoughts=latest_thoughts,
         )
         parsed = self._generate_json_only(
             user_prompt,
@@ -315,6 +319,7 @@ class LLMHandler:
         turn: int,
         turns_left_for_agent: int,
         max_turn: int,
+        latest_thoughts: str,
     ) -> Tuple[str, str]:
         user_prompt = prompts.SPEAKER_TURN_PROMPT_TEMPLATE.format(
             name=agent_name,
@@ -324,6 +329,7 @@ class LLMHandler:
             turn=turn,
             turns_left=turns_left_for_agent,
             max_turn=max_turn,
+            latest_thoughts=latest_thoughts,
         )
         parsed = self._generate_json_only(
             user_prompt,
@@ -347,6 +353,7 @@ class LLMHandler:
         turn: int,
         turns_left_for_agent: int,
         max_turn: int,
+        latest_thoughts: str,
     ) -> Tuple[str, str]:
         user_prompt = prompts.ADVERSARY_SPEAKER_TURN_PROMPT_TEMPLATE.format(
             name=agent_name,
@@ -356,6 +363,7 @@ class LLMHandler:
             turn=turn,
             turns_left=turns_left_for_agent,
             max_turn=max_turn,
+            latest_thoughts=latest_thoughts,
         )
         parsed = self._generate_json_only(
             user_prompt,
@@ -378,6 +386,7 @@ class LLMHandler:
         initial_answers_all: str,
         turn: int,
         max_turn: int,
+        latest_thoughts: str,
     ) -> Tuple[str, str, bool, str]:
         user_prompt = prompts.LISTENER_THINK_PROMPT_TEMPLATE.format(
             topic=topic,
@@ -386,6 +395,7 @@ class LLMHandler:
             turn=turn,
             turns_left="N/A",
             max_turn=max_turn,
+            latest_thoughts=latest_thoughts,
         )
         parsed = self._generate_json_only(
             user_prompt,

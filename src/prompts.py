@@ -13,7 +13,6 @@ Placeholders
 # Initial answer prompt (before the debate)
 # -------------------------------------------------- #
 INITIAL_ANSWER_PROMPT_TEMPLATE = """
-# Task
 Follow the instructions strictly and return only valid JSON that matches the provided schema.
 
 # Question
@@ -27,13 +26,12 @@ Follow the instructions strictly and return only valid JSON that matches the pro
 # Output format
 Return strictly a JSON object only.
 {{  
-    "reason": "Detailed reasoning for your choice (within 300 words).", 
-    "answer": "One of 'A', 'B', 'C', or 'D'."  
+    "reason": "Detailed reasoning for your choice (within 300 words).",
+    "answer": "one of 'A', 'B', 'C', or 'D'"
 }}
 """.strip()
 
 ADVERSARY_INITIAL_ANSWER_PROMPT_TEMPLATE = """
-# Task
 Follow the instructions strictly and return only valid JSON that matches the provided schema.
 
 # Question
@@ -57,19 +55,18 @@ Return strictly a JSON object only.
 # Final answer prompt (after the debate)
 # -------------------------------------------------- #
 FINAL_ANSWER_PROMPT_TEMPLATE = """
-# Task
-You are conducting a debate to arrive at the correct answer to question. Based on the information about the debate so far, debate information, generate a response to instructions.
+You have conducted a debate to arrive at the correct answer to question. Based on the information about the debate so far, debate information, generate a response to instructions.
 
 # Question
 {topic}
 
-
 # Debate Information
 ## The initial answers provided by all members before the debate began
 {initial_answer}
-
 ## Debate history
 {debate_history}
+## Your memory
+{latest_thoughts}
 
 # Instructions
 - Taking the debate information into account, please provide your final answer choice for the question and the reasons for them.
@@ -78,8 +75,8 @@ You are conducting a debate to arrive at the correct answer to question. Based o
 # Output format
 Return strictly a JSON object only.
 {{  
-    "reason": "Explain the reason for choosing that answer.",
-    "answer": "Final answer based on reason. One of 'A', 'B', 'C', or 'D'.",
+    "reason": "Explain the reason for choosing that answer. (within 300 words).",
+    "answer": "Your final answer to the question.one of 'A', 'B', 'C', or 'D'"
 }}
 """.strip()
 
@@ -95,6 +92,8 @@ You are conducting a debate to arrive at the correct answer to question. Based o
 {initial_answer}
 ## Debate history
 {debate_history}
+## Your memory
+{latest_thoughts}
 
 # Instructions
 - Taking the debate information into account, please provide your final answer choice for the question and the reasons for them.
@@ -147,6 +146,9 @@ Question:{topic}
 {turn_log}
 Turn{turn}:
 {name}:
+## Your memory
+{latest_thoughts}
+
 
 # Instructions
 Generate a persuasive statement to guide the team toward the correct answer.
@@ -182,6 +184,8 @@ Question:{topic}
 {turn_log}
 Turn{turn}:
 {name}:
+## Your memory
+{latest_thoughts}
 
 # Instructions
 Generate a persuasive statement to guide the team toward the correct answer.
@@ -216,6 +220,8 @@ You are conducting a debate to arrive at the correct answer to question. Based o
 {initial_answer}
 ## Debate so far
 {turn_log}
+## Your memory
+{latest_thoughts}
 
 # Instructions
 1. After listening to the speaker's remarks this turn, please share your current internal thoughts—such as your perspective on the question or your feelings.
