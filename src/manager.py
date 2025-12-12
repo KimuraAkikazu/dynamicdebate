@@ -1,3 +1,4 @@
+# src/manager.py
 """議論全体を統括する DiscussionManager (per-agent turn-wise history & random tie-break + early stop + rich logging)"""
 from __future__ import annotations
 
@@ -47,6 +48,13 @@ class DiscussionManager:
 
         self._interrupt_once: bool = False
         self.log_data: List[Dict[str, Any]] = []
+        
+        # トークン使用量管理
+        self.total_token_usage: Dict[str, int] = {
+            "prompt_tokens": 0,
+            "completion_tokens": 0,
+            "total_tokens": 0
+        }
 
         # ---------- 早期終了用 ----------
         self.last_plan_by_agent: Dict[str, Dict[str, Any]] = {}
@@ -72,6 +80,14 @@ class DiscussionManager:
         print("=== Debate End ===")
         self._collect_final_answers()
         return self.final_answers
+
+    # ───────────────────────── 内部ユーティリティ ───────────────────────── #
+    def _accumulate_token_usage(self, usage: Optional[Dict[str, int]]) -> None:
+        if not usage:
+            return
+        self.total_token_usage["prompt_tokens"] += usage.get("prompt_tokens", 0)
+        self.total_token_usage["completion_tokens"] += usage.get("completion_tokens", 0)
+        self.total_token_usage["total_tokens"] += usage.get("total_tokens", 0)
 
     # ───────────────────────── 初期化 ───────────────────────── #
     def _initialize_discussion(self) -> None:
@@ -110,7 +126,8 @@ class DiscussionManager:
 
         # 1) 初回回答
         for ag in self.agents:
-            ag.generate_initial_answer(self.topic, self.max_turns, [p.name for p in self.agents if p is not ag])
+            usage = ag.generate_initial_answer(self.topic, self.max_turns, [p.name for p in self.agents if p is not ag])
+            self._accumulate_token_usage(usage)
             print(f"[Init] {ag.name} → {ag.initial_answer_str}")
 
         # 2) 全初回回答を共有
@@ -127,7 +144,7 @@ class DiscussionManager:
         for ag in self.agents:
             peers = [p.name for p in self.agents if p is not ag]
             # Turn 0 は全員計画に参加
-            self.current_actions[ag.name] = ag.plan_action(
+            action_plan, usage = ag.plan_action(
                 turn_log="The debate has not yet begun.",
                 last_event="Let's start the discussion now.",
                 topic=self.topic,
@@ -138,6 +155,8 @@ class DiscussionManager:
                 latest_thoughts=self.__format_recent_thoughts(ag.name, current_turn=0),
                 allow_interruption=self.enable_interruption
             )
+            self._accumulate_token_usage(usage)
+            self.current_actions[ag.name] = action_plan
             self.last_plan_by_agent[ag.name] = self.current_actions[ag.name]
             self.__trim_thoughts(ag)
 
@@ -245,7 +264,7 @@ class DiscussionManager:
             is_silence_mode = True if not self.enable_interruption else (event_type == "silence")
             allow_int = self.enable_interruption
 
-            self.current_actions[ag.name] = ag.plan_action(
+            action_plan, usage = ag.plan_action(
                 turn_log,
                 last_event,
                 self.topic,
@@ -256,6 +275,8 @@ class DiscussionManager:
                 latest_thoughts=self.__format_recent_thoughts(ag.name, current_turn=turn),
                 allow_interruption=allow_int
             )
+            self._accumulate_token_usage(usage)
+            self.current_actions[ag.name] = action_plan
             self.last_plan_by_agent[ag.name] = self.current_actions[ag.name]
             self.__trim_thoughts(ag)
 
@@ -283,6 +304,7 @@ class DiscussionManager:
                 "streak": self.consensus_streak,
                 "consensus_state": self._build_consensus_state_snapshot(),
                 "consensus_meta": self._build_consensus_meta_snapshot(),
+                "total_token_usage": self.total_token_usage,
             })
             self._write_log()
             return True
@@ -386,18 +408,20 @@ class DiscussionManager:
                     "answers": self.final_answers,
                     "consensus_state": self._build_consensus_state_snapshot(),
                     "consensus_meta": self._build_consensus_meta_snapshot(),
+                    "total_token_usage": self.total_token_usage,
                 }
             )
             self._write_log()
         else:
             for ag in self.agents:
-                ans = ag.generate_final_answer(
+                ans, usage = ag.generate_final_answer(
                     self.topic,
                     debate_history,
                     latest_thoughts=self.__format_recent_thoughts(ag.name, current_turn=self.max_turns + 1),
                     max_turn=self.max_turns,
                     peer_names=[p.name for p in self.agents if p is not ag],
                 )
+                self._accumulate_token_usage(usage)
                 self.final_answers[ag.name] = ans
                 print(f"[FINAL] {ag.name} -> {ans}")
             self.log_data.append(
@@ -405,6 +429,7 @@ class DiscussionManager:
                     "turn": "final",
                     "event_type": "final_answers",
                     "answers": self.final_answers,
+                    "total_token_usage": self.total_token_usage,
                 }
             )
             self._write_log()
@@ -435,7 +460,7 @@ class DiscussionManager:
         self.speaker = next(a for a in self.agents if a.name == next_name)
         peers = [a.name for a in self.agents if a is not self.speaker]
         turn_log = self._build_turn_log(self.speaker.name, HISTORY_WINDOW)
-        self.speaker.decide_to_speak(
+        usage = self.speaker.decide_to_speak(
             event_type,
             turn_log,
             self.topic,
@@ -446,6 +471,7 @@ class DiscussionManager:
             peer_names=peers,
             latest_thoughts=self.__format_recent_thoughts(self.speaker.name, current_turn=current_turn + 1),
         )
+        self._accumulate_token_usage(usage)
         mode = "interrupt" if self._interrupt_once else "speak"
         print(f"[Manager] 👉 Next speaker: {self.speaker.name} ({mode})")
 

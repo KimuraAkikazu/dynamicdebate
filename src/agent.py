@@ -1,9 +1,10 @@
+# src/agent.py
 """Agent class (turn-wise history & purpose aware)"""
 from __future__ import annotations
 
 import re
 from collections import deque
-from typing import Any, Deque, List, Optional, Sequence
+from typing import Any, Deque, List, Optional, Sequence, Tuple, Dict
 
 from . import prompts
 from .llm_handler import LLMHandler
@@ -36,22 +37,26 @@ class Agent:
         self.adversary_target = None
 
     # ──────────────────── 初回回答 ──────────────────── #
-    def generate_initial_answer(self, topic: str, max_turn: int, peer_names: Sequence[str]) -> None:
+    def generate_initial_answer(self, topic: str, max_turn: int, peer_names: Sequence[str]) -> Dict[str, int]:
+        """
+        戻り値: usage dict
+        """
         if self.role == "adversary" and self.adversary_target:
-            self.initial_answer = self.llm_handler.generate_adversary_initial_answer(
+            self.initial_answer, usage = self.llm_handler.generate_adversary_initial_answer(
                 topic, target_answer=self.adversary_target, agent_name=self.name, persona=self.persona, max_turn=max_turn, peer_names=peer_names
             )
         else:
-            self.initial_answer = self.llm_handler.generate_initial_answer(
+            self.initial_answer, usage = self.llm_handler.generate_initial_answer(
                 topic, agent_name=self.name, persona=self.persona, max_turn=max_turn, peer_names=peer_names
             )
         self.initial_answer_str = (
             f"answer: {self.initial_answer.get('answer','')}, "
             f"reason: {self.initial_answer.get('reason','')}"
         )
+        return usage
 
     # ──────────────────── 最終回答 ──────────────────── #
-    def generate_final_answer(self, topic: str, debate_history: str, latest_thoughts: str, max_turn: int, peer_names: Sequence[str]) -> dict[str, str]:
+    def generate_final_answer(self, topic: str, debate_history: str, latest_thoughts: str, max_turn: int, peer_names: Sequence[str]) -> Tuple[dict[str, str], Dict[str, int]]:
         if self.role == "adversary" and self.adversary_target:
             return self.llm_handler.generate_adversary_final_answer(
                 topic,
@@ -88,7 +93,7 @@ class Agent:
         peer_names: Sequence[str],
         latest_thoughts: str,
         allow_interruption: bool = True
-    ) -> dict[str, Any]:
+    ) -> Tuple[dict[str, Any], Dict[str, int]]:
         
         # 敵対者ロジック
         if self.role == "adversary" and self.adversary_target:
@@ -116,7 +121,7 @@ class Agent:
                 latest_thoughts=latest_thoughts,
                 target_answer=self.adversary_target,
             )
-            action_plan = self.llm_handler.generate_action_adversary(
+            action_plan, usage = self.llm_handler.generate_action_adversary(
                 prompt,
                 turn=turn,
                 max_turn=max_turn,
@@ -152,7 +157,7 @@ class Agent:
                 topic=topic,
                 latest_thoughts=latest_thoughts,
             )
-            action_plan = self.llm_handler.generate_action(
+            action_plan, usage = self.llm_handler.generate_action(
                 prompt,
                 turn=turn,
                 max_turn=max_turn,
@@ -164,7 +169,7 @@ class Agent:
 
         if isinstance(action_plan, dict) and "thought" in action_plan:
             self.thought_history.append((turn, action_plan["thought"]))
-        return action_plan
+        return action_plan, usage
 
     # ───────────────────── Prepare utterance ─────────────────── #
     def decide_to_speak(
@@ -179,7 +184,10 @@ class Agent:
         *,
         peer_names: Sequence[str],
         latest_thoughts: str,
-    ) -> None:
+    ) -> Dict[str, int]:
+        """
+        戻り値: usage dict
+        """
         self.utterance_queue.clear()
 
         if self.role == "adversary" and self.adversary_target:
@@ -231,17 +239,16 @@ class Agent:
                 peer_names=peer_names,
             )
 
-        if isinstance(result, tuple):
-            utterance_text, raw_text = result
-        else:
-            utterance_text = raw_text = result  # type: ignore
+        # result is always (utterance_text, raw_text, usage)
+        utterance_text, raw_text, usage = result
 
         if self.llm_handler.logger:
             self.llm_handler.logger.log_generated(
-                agent_name=self.name, turn=turn, full_text=raw_text
+                agent_name=self.name, turn=turn, full_text=raw_text, token_stats=usage
             )
 
         self.utterance_queue.extend(self._chunk_utterance(utterance_text))
+        return usage
 
     # ───────────────────── Chunk utilities ───────────────────── #
     def _chunk_utterance(self, text: str) -> list[str]:
