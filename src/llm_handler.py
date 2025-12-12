@@ -115,7 +115,11 @@ class LLMHandler:
         max_tokens: int = 512,
         system_prompt: Optional[str] = None,
         schema: Optional[Dict[str, Any]] = None,
-    ) -> Dict[str, Any]:
+    ) -> Tuple[Dict[str, Any], Dict[str, int]]:
+        """
+        戻り値: (パース済みJSON, usage辞書)
+        usage辞書例: {'prompt_tokens': 100, 'completion_tokens': 50, 'total_tokens': 150}
+        """
         messages = []
         if system_prompt:
             messages.append({"role": "system", "content": system_prompt})
@@ -127,6 +131,8 @@ class LLMHandler:
             max_tokens=max_tokens,
         )
         content = resp["choices"][0]["message"]["content"]
+        usage = resp.get("usage", {})  # トークン使用量の取得
+
         parsed: Dict[str, Any] = content if isinstance(content, dict) else self._safe_load_json(str(content))
         parsed.setdefault("answer", "")
         parsed.setdefault("reason", "")
@@ -137,13 +143,14 @@ class LLMHandler:
                 turn=0 if phase == "Initial" else 30,
                 full_text=str(content),
                 phase="initial_generated" if phase == "Initial" else "final_generated",
+                token_stats=usage,
             )
-        return parsed
+        return parsed, usage
 
     # ====================== 通常: 初回/最終 ====================== #
     def generate_initial_answer(
         self, topic: str, *, agent_name: str, persona: str, max_turn: int, peer_names: Sequence[str]
-    ) -> Dict[str, Any]:
+    ) -> Tuple[Dict[str, Any], Dict[str, int]]:
         
         system_prompt = self._build_system_prompt(
         name=agent_name,
@@ -175,7 +182,7 @@ class LLMHandler:
         persona: str,
         max_turn: int,
         peer_names: Sequence[str],
-    ) -> Dict[str, Any]:
+    ) -> Tuple[Dict[str, Any], Dict[str, int]]:
         system_prompt = self._build_system_prompt(
         name=agent_name,
         peer_names=peer_names,
@@ -205,7 +212,7 @@ class LLMHandler:
     # ====================== adversary: 初回/最終 ====================== #
     def generate_adversary_initial_answer(
         self, topic: str, *, target_answer: str, agent_name: str, persona: str, max_turn: int, peer_names: Sequence[str]
-    ) -> Dict[str, Any]:
+    ) -> Tuple[Dict[str, Any], Dict[str, int]]:
         prompt = prompts.ADVERSARY_INITIAL_ANSWER_PROMPT_TEMPLATE.format(
             topic=topic, name=agent_name, target_answer=target_answer
         )
@@ -231,7 +238,7 @@ class LLMHandler:
         persona: str,
         max_turn: int,
         peer_names: Sequence[str],
-    ) -> Dict[str, Any]:
+    ) -> Tuple[Dict[str, Any], Dict[str, int]]:
         prompt = prompts.ADVERSARY_FINAL_ANSWER_PROMPT_TEMPLATE.format(
             topic=topic,
             initial_answer=initial_answer_str,
@@ -298,7 +305,7 @@ class LLMHandler:
         persona: str,
         topic: str,
         peer_names: Sequence[str],
-    ) -> Dict[str, Any]:
+    ) -> Tuple[Dict[str, Any], Dict[str, int]]:
         system_prompt = self._build_system_prompt(
             name=agent_name,
             peer_names=peer_names,
@@ -318,6 +325,7 @@ class LLMHandler:
             max_tokens=1024,
         )
         content = resp["choices"][0]["message"]["content"]
+        usage = resp.get("usage", {})
         parsed = self._safe_load_json(content)
 
         if self.logger:
@@ -326,8 +334,9 @@ class LLMHandler:
                 turn=turn,
                 full_text=str(content),
                 phase="plan_generated",
+                token_stats=usage,
             )
-        return parsed
+        return parsed, usage
 
     def generate_action_adversary(
         self,
@@ -340,7 +349,7 @@ class LLMHandler:
         topic: str,
         peer_names: Sequence[str],
         target_answer: str,
-    ) -> Dict[str, Any]:
+    ) -> Tuple[Dict[str, Any], Dict[str, int]]:
         system_prompt = self._build_adversary_system_prompt(
             peer_names=peer_names, target_answer=target_answer, agent_name=agent_name, max_turn=max_turn
         )
@@ -357,6 +366,7 @@ class LLMHandler:
             max_tokens=1024,
         )
         content = resp["choices"][0]["message"]["content"]
+        usage = resp.get("usage", {})
         parsed = self._safe_load_json(content)
 
         if self.logger:
@@ -365,8 +375,9 @@ class LLMHandler:
                 turn=turn,
                 full_text=str(content),
                 phase="plan_generated",
+                token_stats=usage,
             )
-        return parsed
+        return parsed, usage
 
     def generate_utterance(
         self,
@@ -378,7 +389,7 @@ class LLMHandler:
         persona: str,
         topic: str,
         peer_names: Sequence[str],
-    ) -> Tuple[str, str]:
+    ) -> Tuple[str, str, Dict[str, int]]:
         system_prompt = self._build_system_prompt(
             name=agent_name,
             peer_names=peer_names,
@@ -396,6 +407,7 @@ class LLMHandler:
             messages=messages, response_format={"type": "json_object"}, max_tokens=1024
         )
         raw_text = resp["choices"][0]["message"]["content"].strip()
+        usage = resp.get("usage", {})
         parsed = self._safe_load_json(raw_text)
         utterance = parsed.get("utterance")
         utterance_text = utterance.strip() if isinstance(utterance, str) and utterance.strip() else raw_text
@@ -406,8 +418,9 @@ class LLMHandler:
                 turn=turn,
                 full_text=raw_text,
                 phase="utterance_generated",
+                token_stats=usage,
             )
-        return utterance_text, raw_text
+        return utterance_text, raw_text, usage
 
     def generate_utterance_adversary(
         self,
@@ -420,7 +433,7 @@ class LLMHandler:
         topic: str,
         peer_names: Sequence[str],
         target_answer: str,
-    ) -> Tuple[str, str]:
+    ) -> Tuple[str, str, Dict[str, int]]:
         system_prompt = self._build_adversary_system_prompt(
             peer_names=peer_names, target_answer=target_answer, agent_name=agent_name, max_turn=max_turn
         )
@@ -435,6 +448,7 @@ class LLMHandler:
             messages=messages, response_format={"type": "json_object"}
         )
         raw_text = resp["choices"][0]["message"]["content"].strip()
+        usage = resp.get("usage", {})
         parsed = self._safe_load_json(raw_text)
         utterance = parsed.get("utterance")
         utterance_text = utterance.strip() if isinstance(utterance, str) and utterance.strip() else raw_text
@@ -445,5 +459,6 @@ class LLMHandler:
                 turn=turn,
                 full_text=raw_text,
                 phase="utterance_generated",
+                token_stats=usage,
             )
-        return utterance_text, raw_text
+        return utterance_text, raw_text, usage
