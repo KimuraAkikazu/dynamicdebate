@@ -211,6 +211,6 @@ class Agent:
 
         return {
             "thought": thought,
-            "current_answer": current_answer,
+            "answer": current_answer,
             "consensus": consensus,
         }

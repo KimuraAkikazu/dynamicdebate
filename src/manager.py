@@ -149,8 +149,8 @@ class DiscussionManager:
 
         # 3) 全初回回答を共有
         all_initial = "\n".join(
-            f"{ag.name}: Answer={ag.initial_answer.get('answer','')}, "
-            f"Reason={ag.initial_answer.get('reason','')}"
+            f"Name: {ag.name},\nAnswer: {ag.initial_answer.get('answer','')},\nreason: {ag.initial_answer.get('reason','') }"
+            "\n"
             for ag in self.agents
         )
         for ag in self.agents:
@@ -212,7 +212,7 @@ class DiscussionManager:
                 {
                     "agent_name": ag.name,
                     "thought": thought_info.get("thought", ""),
-                    "current_answer": thought_info.get("current_answer", ""),
+                    "answer": thought_info.get("answer", ""),
                     "consensus": bool(thought_info.get("consensus", False)),
                 }
             )
@@ -232,7 +232,7 @@ class DiscussionManager:
                 {
                     "agent_name": ag.name,
                     # "thought": thought,  # 必要なら有効化
-                    "current_answer": current_answer,
+                    "answer": current_answer,
                     "consensus": consensus,
                 }
             )
@@ -243,7 +243,7 @@ class DiscussionManager:
         )
         consensus_answer: Optional[str] = None
         if consensus_all_true:
-            answers = {st["current_answer"] for st in agent_states if st["current_answer"]}
+            answers = {st["answer"] for st in agent_states if st["answer"]}
             if len(answers) == 1:
                 only_ans = next(iter(answers))
                 if only_ans in {"A", "B", "C", "D"}:

@@ -81,8 +81,7 @@ Return strictly a JSON object only.
 """.strip()
 
 ADVERSARY_FINAL_ANSWER_PROMPT_TEMPLATE = """
-# Task
-You are conducting a debate to arrive at the correct answer to question. Based on the information about the debate so far, debate information, generate a response to instructions.
+You have conducted a debate to arrive at the correct answer to question. Based on the information about the debate so far, debate information, generate a response to instructions.
 
 # Question
 {topic}
@@ -103,7 +102,7 @@ You are conducting a debate to arrive at the correct answer to question. Based o
 Return strictly a JSON object only.
 {{  
     "reason": "Explain the reason for choosing that answer. (within 300 words).",
-    "answer": "Final answer based on reason. One of 'A', 'B', 'C', or 'D'."
+    "answer": "Your final answer to the question. One of 'A', 'B', 'C', or 'D'."
 }}
 """.strip()
 
@@ -113,7 +112,7 @@ Return strictly a JSON object only.
 SYSTEM_PROMPT = """
 You are {name}.
 You are participating in a rigorous debate with {peer1}, {peer2}.
-Your goal is to collectively decide on the final answer to question within remaining max turns.
+Your goal is to collaborate as a team, exchange opinions, and collectively determine the final answer to the question within 9 turns.
 
 # Constraint
 - You must always respond in valid JSON format. Do not output any conversational text outside the JSON block.
@@ -126,12 +125,10 @@ Your goal is to collectively decide on the final answer to question within remai
 # Speaker turn prompt (fixed order; no interruptions)
 # -------------------------------------------------- #
 SPEAKER_TURN_PROMPT_TEMPLATE = """
-Your goal is to collectively decide on the final answer to question within remaining turn(s).
-You are conducting a debate to arrive at the correct answer to question. Based on the information about the debate so far, debate information, generate a response to instructions.
+You are debating to arrive at the correct answer to the question. Based on the debate information, generate a response to the instructions.
 
 # Question
 Question:{topic}
-
 
 # Devate Information
 ## State
@@ -146,36 +143,36 @@ Question:{topic}
 {turn_log}
 Turn{turn}:
 {name}:
+
 ## Your memory
 {latest_thoughts}
 
 
 # Instructions
-Generate a persuasive statement to guide the team toward the correct answer.
-- If you disagree with previous speakers, explicitly point out their logical flaws.
-- If you agree, add new evidence or perspective (do not just repeat).
-- Keep your utterance concise and impactful.
+- You are speaker for this turn.
+- Generate a persuasive statement to guide the team toward the correct answer within the remaining turns.
+  - If you disagree with previous speakers, explicitly point out their logical flaws.
+  - If you agree, make constructive statements toward reaching an agreement.
+  - Keep your utterance concise and impactful.
+- Provide your response in the following output format.
 
 # Output format
 Return strictly a JSON object only.
 {{
-  "utterance": "Your statement here."
+  "utterance": "Your public statement in the debate. Be concise and persuasive. Respond directly to what the other players have said.  Avoid simply repeating what others have said or reguritating the instructions above."
 }}
 """.strip()
 
 ADVERSARY_SPEAKER_TURN_PROMPT_TEMPLATE = """
-Your goal is to collectively decide on the final answer to question within remaining turn(s).
-You are conducting a debate to arrive at the correct answer to question. Based on the information about the debate so far, debate information, generate a response to instructions.
+You are debating to arrive at the correct answer to the question. Based on the debate information, generate a response to the instructions.
 
 # Question
 Question:{topic}
-
 
 # Devate Information
 ## State
 - This is turn {turn} in total of {max_turn} turns.
 - In this debate, each person speaks in turn, one at a time.
-- You are speaker for this turn.
 
 ## The initial answers provided by all members before the debate began:
 {initial_answer}
@@ -184,19 +181,22 @@ Question:{topic}
 {turn_log}
 Turn{turn}:
 {name}:
+
 ## Your memory
 {latest_thoughts}
 
 # Instructions
-Generate a persuasive statement to guide the team toward the correct answer.
-- If you disagree with previous speakers, explicitly point out their logical flaws.
-- If you agree, add new evidence or perspective (do not just repeat).
-- Keep your utterance concise and impactful.
+- You are speaker for this turn.
+- Generate a persuasive statement to guide the team toward the correct answer within the remaining turns.
+  - If you disagree with previous speakers, explicitly point out their logical flaws.
+  - If you agree, make constructive statements toward reaching an agreement.
+  - Keep your utterance concise and impactful.
+- Provide your response in the following output format.
 
 # Output format
 Return strictly a JSON object only.
 {{
-  "utterance": "Your statement here."
+  "utterance": "Your public statement in the debate. Be concise and persuasive. Respond directly to what the other players have said.  Avoid simply repeating what others have said or reguritating the instructions above."
 }}
 """.strip()
 
@@ -204,8 +204,7 @@ Return strictly a JSON object only.
 # Non-speaker (listener) prompt → thought only
 # -------------------------------------------------- #
 LISTENER_THINK_PROMPT_TEMPLATE = """
-Your goal is to collectively decide on the correct answer to question within remaining turn(s).
-You are conducting a debate to arrive at the correct answer to question. Based on the debate Information, generate a response to instructions.
+You are debating to arrive at the correct answer to the question. Based on the debate information, generate a response to the instructions.
 
 # Question
 - Question:{topic}
@@ -224,18 +223,18 @@ You are conducting a debate to arrive at the correct answer to question. Based o
 {latest_thoughts}
 
 # Instructions
-1. After listening to the speaker's remarks this turn, please share your current internal thoughts—such as your perspective on the question or your feelings.
-2. Select your current answer to <Question> at this turn.
+1. Based on the debate information, briefly explain your current internal thoughts such as your perspective on the responses to the questions, your action plan for the remaining turns, your reaction.
+2. Based on the debate information, output the currently most supported answer to the question.
 3. Set "belief_team_consensus" to true ONLY if:
   - You believe the TEAM has effectively converged to one answer,
-  - There are no major unresolved objections in the debate so far.
-- Provide your response in the following <Output format>.
+  - There are no major unresolved objections in the debate.
+- Provide your response in the following output format.
 
 # Output format
 Return strictly a JSON object only.
 {{
-  "thought": "Your internal reasoning regarding the debate information.",
-  "current_answer": "one of 'A', 'B', 'C', or 'D'",
+  "thought": "Your brief internal thought regarding the debate information.",
+  "answer": "Your current answer to the question.one of 'A', 'B', 'C', or 'D'",
   "belief_team_consensus": boolean
 }}
 """.strip()

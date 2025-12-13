@@ -15,7 +15,7 @@ from .prompt_logger import PromptLogger
 qa_schema: Dict[str, Any] = {
     "type": "object",
     "properties": {
-        "reason": {"type": "string", "maxLength": 2000},
+        "reason": {"type": "string"},
         "answer": {"type": "string", "enum": ["A", "B", "C", "D"]},
     },
     "required": ["reason", "answer"],
@@ -25,7 +25,7 @@ qa_schema: Dict[str, Any] = {
 utterance_schema: Dict[str, Any] = {
     "type": "object",
     "properties": {
-        "utterance": {"type": "string", "maxLength": 2000},
+        "utterance": {"type": "string", "maxLength": 1000},
     },
     "required": ["utterance"],
     "additionalProperties": False,
@@ -35,10 +35,10 @@ thought_schema: Dict[str, Any] = {
     "type": "object",
     "properties": {
         "thought": {"type": "string"},
-        "current_answer": {"type": "string", "enum": ["A", "B", "C", "D"]},
+        "answer": {"type": "string", "enum": ["A", "B", "C", "D"]},
         "belief_team_consensus": {"type": "boolean"},
     },
-    "required": ["thought", "current_answer", "belief_team_consensus"],
+    "required": ["thought", "answer", "belief_team_consensus"],
     "additionalProperties": False,
 }
 
@@ -391,7 +391,7 @@ class LLMHandler:
         )
 
         thought = (parsed.get("thought") or "").strip()
-        current_answer = (parsed.get("current_answer") or "").strip()
+        current_answer = (parsed.get("answer") or "").strip()
         c_val = parsed.get("belief_team_consensus")
         if isinstance(c_val, str):
             consensus = c_val.lower() == "true"
