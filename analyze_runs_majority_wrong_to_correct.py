@@ -226,6 +226,8 @@ def load_discussion(run_dir: str) -> Dict[str, Dict[str, Any]]:
                 for st in rec["agent_states"]:
                     agent = st.get("agent_name")
                     ans = st.get("current_answer")
+                    if ans is None:
+                        ans = st.get("answer")
                     if agent and isinstance(ans, str):
                         answers_by_agent[agent] = ans.strip()
 
