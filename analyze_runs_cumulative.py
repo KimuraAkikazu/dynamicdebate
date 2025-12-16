@@ -302,8 +302,6 @@ def filter_scenarios(problems: Dict, acc_data: Dict) -> List[str]:
         
         if total == 3 and correct_count == 2:
             targets.append(pid)
-        elif total > 0 and correct_count == total - 1:
-             targets.append(pid)
     return targets
 
 def compute_binned_accuracy(
