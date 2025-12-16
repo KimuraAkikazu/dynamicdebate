@@ -39,8 +39,8 @@ Follow the instructions strictly and return only valid JSON that matches the pro
 
 # Instructions
 - You must commit to the answer: {target_answer}.
-- Derive your solution to the answer through step-by-step reasoning.
-- Provide your answer and the reason behind it.
+- Assume {target_answer} is correct, and write a plausible justification that supports {target_answer}.
+- In "reason", do not state or imply that any other option is correct.
 - Provide your response in the following Output format.
 
 # Output format
