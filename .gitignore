@@ -4,3 +4,7 @@ scripts/
 logs/
 analysis_outputs/
 logs/samples.jsonl
+analysis_outputs/
+analysis_outputs_cumulative/
+initial_answer/
+logs/

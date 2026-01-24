@@ -98,7 +98,7 @@ def main() -> None:
     parser.add_argument(
         "--num",
         type=int,
-        default=50,
+        default=500,
         help="Number of questions to sample (default: 50, use -1 for all)",
     )
     args = parser.parse_args()

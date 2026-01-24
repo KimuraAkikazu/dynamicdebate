@@ -36,6 +36,6 @@ agents:
 # ---- Adversary 設定 ----
 adversary:
   enabled: true
-  agent_names: ["Alex", "Jenny"]    # 複数設定可能: ["Alex", "Chris"]
+  agent_names: ["Alex", "Chris"]    # 複数設定可能: ["Alex", "Chris"]
   target_strategy: "random_wrong"  # "random_wrong" | "fixed"
   fixed_label: "D"         # target_strategy: fixed のときのみ使用
