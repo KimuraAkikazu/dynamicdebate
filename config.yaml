@@ -3,7 +3,7 @@ llm:
   # Hugging FaceのリポジトリID
   repo_id: "bartowski/Meta-Llama-3.1-8B-Instruct-GGUF"
   # ダウンロードするモデルファイル名
-  filename: "Meta-Llama-3.1-8B-Instruct-Q8_0.gguf"
+  filename: "Qwen2.5-7B-Instruct-Q8_0.gguf"
   # llama-cpp-python用の設定
   n_gpu_layers: -1  # GPUにオフロードするレイヤー数 (-1で全て)
   n_ctx: 35000       # コンテキストウィンドウサイズ

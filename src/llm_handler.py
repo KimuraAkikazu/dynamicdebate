@@ -76,6 +76,7 @@ class LLMHandler:
             temperature=config.get("temperature", 0.3),
             max_tokens=config.get("max_tokens", 1024),
             verbose=False,
+            chat_format="qwen"
         )
         
         # トークン使用量の累積カウンターを初期化
