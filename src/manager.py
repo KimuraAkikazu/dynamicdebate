@@ -10,6 +10,12 @@ from typing import Any, Dict, List, Optional, Tuple
 from .agent import Agent
 
 HISTORY_WINDOW = 1000  # 発話履歴として渡す行数（十分大きく）
+DEFAULT_INITIAL_POOL_PATH = (
+    Path(__file__).resolve().parents[1]
+    / "Initial_answer"
+    / "initial_pool_20251219_152013"
+    / "initial_pool.jsonl"
+)
 
 
 class DiscussionManager:
@@ -139,13 +145,65 @@ class DiscussionManager:
             ag.set_peers(all_names)
 
         # 2) 初回回答
-        for ag in self.agents:
-            peer_names = [n for n in all_names if n != ag.name]
-            ag.generate_initial_answer(self.topic, self.max_turns, peer_names)
-            print(
-                f"[Init] {ag.name} → Answer={ag.initial_answer.get('answer','')}, "
-                f"Reason={ag.initial_answer.get('reason','')}"
-            )
+        pool_entry = self.config.get("initial_pool_entry")
+        if not pool_entry:
+            pool_entry = self._find_initial_pool_entry_from_file(self.topic)
+
+        if pool_entry:
+            picked = pool_entry.get("picked") or []
+            correct_pool = [p for p in picked if p.get("label") == "correct"]
+            wrong_pool = [p for p in picked if p.get("label") == "wrong"]
+            correct_idx = 0
+            wrong_idx = 0
+            for ag in self.agents:
+                selected: Dict[str, Any] | None = None
+                if ag.role == "adversary":
+                    if wrong_idx < len(wrong_pool):
+                        selected = wrong_pool[wrong_idx]
+                        wrong_idx += 1
+                    elif correct_idx < len(correct_pool):
+                        print(
+                            f"[Warn] No wrong answers left for adversary {ag.name}; "
+                            "falling back to correct pool."
+                        )
+                        selected = correct_pool[correct_idx]
+                        correct_idx += 1
+                else:
+                    if correct_idx < len(correct_pool):
+                        selected = correct_pool[correct_idx]
+                        correct_idx += 1
+                    elif wrong_idx < len(wrong_pool):
+                        print(
+                            f"[Warn] No correct answers left for agent {ag.name}; "
+                            "falling back to wrong pool."
+                        )
+                        selected = wrong_pool[wrong_idx]
+                        wrong_idx += 1
+
+                if not selected:
+                    print(
+                        f"[Warn] No initial answers available for agent {ag.name}; "
+                        "falling back to empty answer."
+                    )
+                    selected = {"answer": "", "reason": ""}
+
+                ag.set_initial_answer(
+                    answer=str(selected.get("answer", "")),
+                    reason=str(selected.get("reason", "")),
+                )
+                print(
+                    f"[Init] {ag.name} → Answer={ag.initial_answer.get('answer','')}, "
+                    f"Reason={ag.initial_answer.get('reason','')}"
+                )
+        else:
+            print("[System] No initial pool entry found; generating initial answers.")
+            for ag in self.agents:
+                peer_names = [n for n in all_names if n != ag.name]
+                ag.generate_initial_answer(self.topic, self.max_turns, peer_names)
+                print(
+                    f"[Init] {ag.name} → Answer={ag.initial_answer.get('answer','')}, "
+                    f"Reason={ag.initial_answer.get('reason','')}"
+                )
 
         # 3) 全初回回答を共有
         all_initial = "\n".join(
@@ -172,6 +230,55 @@ class DiscussionManager:
         }
         self.log_data.append(init_record)
         self._write_log()
+
+    def _find_initial_pool_entry_from_file(self, topic: str) -> Optional[Dict[str, Any]]:
+        pool_path = Path(
+            self.config.get("initial_pool_path", DEFAULT_INITIAL_POOL_PATH)
+        )
+        if not pool_path.exists():
+            print(f"[Warn] initial_pool.jsonl not found: {pool_path}")
+            return None
+
+        topic_q = self._normalize_question(self._extract_question(topic))
+        if not topic_q:
+            print("[Warn] Topic question is empty; cannot match initial pool.")
+            return None
+
+        try:
+            with pool_path.open("r", encoding="utf-8") as f:
+                for line in f:
+                    line = line.strip()
+                    if not line:
+                        continue
+                    try:
+                        entry = json.loads(line)
+                    except json.JSONDecodeError:
+                        continue
+                    q = self._normalize_question(str(entry.get("question", "")))
+                    if not q:
+                        continue
+                    if q in topic_q or topic_q in q:
+                        return entry
+        except OSError as exc:
+            print(f"[Warn] Failed to read initial_pool.jsonl: {exc}")
+            return None
+
+        print("[Warn] No matching entry found in initial_pool.jsonl for this topic.")
+        return None
+
+    @staticmethod
+    def _extract_question(topic: str) -> str:
+        text = (topic or "").strip()
+        if "Question:" in text:
+            text = text.split("Question:", 1)[1].strip()
+        for marker in ["Choice:", "Choices:"]:
+            if marker in text:
+                text = text.split(marker, 1)[0].strip()
+        return text
+
+    @staticmethod
+    def _normalize_question(text: str) -> str:
+        return " ".join((text or "").strip().lower().split())
 
 
     # ───────────────────── 固定順序の1ターン処理 ───────────────────── #

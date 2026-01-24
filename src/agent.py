@@ -97,6 +97,10 @@ class Agent:
             f"reason: {self.initial_answer.get('reason', '')}"
         )
 
+    def set_initial_answer(self, *, answer: str, reason: str) -> None:
+        self.initial_answer = {"answer": answer, "reason": reason}
+        self.initial_answer_str = f"answer: {answer}, reason: {reason}"
+
     # ──────────────────── 最終回答 ──────────────────── #
     def generate_final_answer(
         self,
