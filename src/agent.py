@@ -55,6 +55,10 @@ class Agent:
         )
         return usage
 
+    def set_initial_answer(self, *, answer: str, reason: str) -> None:
+        self.initial_answer = {"answer": answer, "reason": reason}
+        self.initial_answer_str = f"answer: {answer}, reason: {reason}"
+
     # ──────────────────── 最終回答 ──────────────────── #
     def generate_final_answer(self, topic: str, debate_history: str, latest_thoughts: str, max_turn: int, peer_names: Sequence[str]) -> Tuple[dict[str, str], Dict[str, int]]:
         if self.role == "adversary" and self.adversary_target:

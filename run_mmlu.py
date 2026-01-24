@@ -11,7 +11,7 @@ import random
 import argparse
 from datetime import datetime
 from pathlib import Path
-from typing import List, Tuple
+from typing import List, Tuple, Dict, Any
 
 import yaml
 from datasets import load_dataset
@@ -23,6 +23,12 @@ from src.prompt_logger import PromptLogger
 
 LABELS: List[str] = ["A", "B", "C", "D", "E", "F"]  # 最大 6 択
 SEED = 42  # 再現性のための乱数シード
+INITIAL_POOL_PATH = (
+    Path(__file__).resolve().parent
+    / "Initial_answer"
+    / "initial_pool_20251219_152013"
+    / "initial_pool.jsonl"
+)
 
 
 # ---------- ユーティリティ ---------- #
@@ -59,6 +65,33 @@ def choose_adversary_target(gold_label: str | None) -> str:
     return random.choice(pool)
 
 
+def load_initial_pool(pool_path: Path) -> Tuple[Dict[int, Dict[str, Any]], Dict[str, Dict[str, Any]]]:
+    pool_by_index: Dict[int, Dict[str, Any]] = {}
+    pool_by_question: Dict[str, Dict[str, Any]] = {}
+    if not pool_path.exists():
+        print(f"[Warn] initial pool file not found: {pool_path}")
+        return pool_by_index, pool_by_question
+
+    with open(pool_path, "r", encoding="utf-8") as f:
+        for line_no, line in enumerate(f, start=1):
+            if not line.strip():
+                continue
+            entry = json.loads(line)
+            index_in_split = entry.get("index_in_split")
+            question = entry.get("question")
+            if isinstance(index_in_split, int):
+                if index_in_split not in pool_by_index:
+                    pool_by_index[index_in_split] = entry
+                else:
+                    print(f"[Warn] Duplicate index_in_split at line {line_no}: {index_in_split}")
+            if isinstance(question, str) and question:
+                if question not in pool_by_question:
+                    pool_by_question[question] = entry
+                else:
+                    print(f"[Warn] Duplicate question at line {line_no}")
+    return pool_by_index, pool_by_question
+
+
 # ---------- メイン ---------- #
 def main() -> None:
     parser = argparse.ArgumentParser(description="Run MMLU debate evaluation")
@@ -74,6 +107,7 @@ def main() -> None:
     random.seed(SEED)
 
     base_cfg = load_config()
+    pool_by_index, pool_by_question = load_initial_pool(INITIAL_POOL_PATH)
 
     # 実行フォルダ作成
     run_ts = datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -133,10 +167,14 @@ def main() -> None:
         # ---- トピック & 正解 ----
         topic = format_topic(ex["question"], ex["choices"])
         gold_label = idx_to_label(ex["answer"])
+        pool_entry = pool_by_index.get(ds_idx) or pool_by_question.get(ex["question"])
+        if not pool_entry:
+            print(f"[Warn] No initial pool entry found for idx={ds_idx}")
 
         # ---- config の複製と動的設定 ----
         cfg = copy.deepcopy(base_cfg)
         cfg["discussion"]["topic"] = topic
+        cfg["initial_pool_entry"] = pool_entry
 
         # Adversary のターゲット決定
         current_adv_target = None
