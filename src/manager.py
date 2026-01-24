@@ -125,10 +125,59 @@ class DiscussionManager:
                     print(f"[System] Agent {ag.name} is set as NORMAL.")
 
         # 1) 初回回答
-        for ag in self.agents:
-            usage = ag.generate_initial_answer(self.topic, self.max_turns, [p.name for p in self.agents if p is not ag])
-            self._accumulate_token_usage(usage)
-            print(f"[Init] {ag.name} → {ag.initial_answer_str}")
+        pool_entry = self.config.get("initial_pool_entry")
+        if pool_entry:
+            picked = pool_entry.get("picked") or []
+            correct_pool = [p for p in picked if p.get("label") == "correct"]
+            wrong_pool = [p for p in picked if p.get("label") == "wrong"]
+            correct_idx = 0
+            wrong_idx = 0
+            for ag in self.agents:
+                selected: Dict[str, Any] | None = None
+                if ag.role == "adversary":
+                    if wrong_idx < len(wrong_pool):
+                        selected = wrong_pool[wrong_idx]
+                        wrong_idx += 1
+                    elif correct_idx < len(correct_pool):
+                        print(
+                            f"[Warn] No wrong answers left for adversary {ag.name}; "
+                            "falling back to correct pool."
+                        )
+                        selected = correct_pool[correct_idx]
+                        correct_idx += 1
+                else:
+                    if correct_idx < len(correct_pool):
+                        selected = correct_pool[correct_idx]
+                        correct_idx += 1
+                    elif wrong_idx < len(wrong_pool):
+                        print(
+                            f"[Warn] No correct answers left for agent {ag.name}; "
+                            "falling back to wrong pool."
+                        )
+                        selected = wrong_pool[wrong_idx]
+                        wrong_idx += 1
+
+                if not selected:
+                    print(
+                        f"[Warn] No initial answers available for agent {ag.name}; "
+                        "falling back to empty answer."
+                    )
+                    selected = {"answer": "", "reason": ""}
+
+                ag.set_initial_answer(
+                    answer=str(selected.get("answer", "")),
+                    reason=str(selected.get("reason", "")),
+                )
+                print(f"[Init] {ag.name} → {ag.initial_answer_str}")
+        else:
+            for ag in self.agents:
+                usage = ag.generate_initial_answer(
+                    self.topic,
+                    self.max_turns,
+                    [p.name for p in self.agents if p is not ag],
+                )
+                self._accumulate_token_usage(usage)
+                print(f"[Init] {ag.name} → {ag.initial_answer_str}")
 
         # 2) 全初回回答を共有
         all_initial = "\n".join(
