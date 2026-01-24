@@ -107,13 +107,13 @@ You can take the following actions:
 4. Select the purpose of the action you have chosen.
 5. Based on the debate so far, output your answer to the question at this turn.
 6. Set "consensus" to true ONLY if:
-  - You believe the TEAM has effectively converged to one answer,
+  - You believe all members has effectively converged to one answer,
 - Provide your response in the following output format.
 - If the anticipated continuation of statement may resolve your concern, choose listen. 
 
 # Constraints for Interruption
 - You shouldn't interrupt if the current speaker has only stated their stance but has not yet provided the reason or evidence.
-- You should interrupt if you discover a factual error in the logical progression of this turn's statement, when you can make a impactful statement that will lead to the correct answer, or when there is little time remaining and continuing would lead to an error.
+- But you should interrupt if you discover a factual error in the logical progression of this turn's statement, when you can make a impactful statement that will lead to the correct answer, or when there is little time remaining and continuing would lead to an error.
 
 # Output format
 Return strictly a JSON object only.
@@ -227,7 +227,7 @@ You can take the following actions:
 3. Refer to the provided information and your thought, decide your next turn action as {name}.
   - Please bear in mind that prolonged silence hinders progress in debate.
 4. Select the purpose of the action you have chosen.
-5. Based on the debate so far, output your answer to the question at this turn.
+5. Based on the debate information, output the currently most supported answer to the question.
 6. Set "consensus" to true ONLY if:
   - You believe the TEAM has effectively converged to one answer choice,
 - Provide your response in the following output format.
@@ -321,9 +321,9 @@ Follow the instructions strictly and return only valid JSON that matches the pro
 - Provide your response in the following Output format.
 
 # Output format
-Return strictly a JSON object only.
+Return strictly a Jlogs/run_20251216_122554/problem_559SON object only.
 {{  
-    "reason": "Detailed reasoning for your choice (within 300 words).",
+    "reason": "Detailed reasoning for {target_answer} (within 300 words).",
     "answer": "{target_answer}"
 }}
 """.strip()
