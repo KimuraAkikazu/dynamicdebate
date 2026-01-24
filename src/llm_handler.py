@@ -70,7 +70,7 @@ class LLMHandler:
             n_ctx=config.get("n_ctx", 4096),
             temperature=config.get("temperature", 0.0),
             max_tokens=config.get("max_tokens", 512),
-            chat_format="gemma",
+            chat_format="qwen",
         )
         print("[LLMHandler] ✅ モデル読み込み完了")
 
