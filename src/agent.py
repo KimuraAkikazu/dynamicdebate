@@ -96,7 +96,9 @@ class Agent:
         silence: bool,
         peer_names: Sequence[str],
         latest_thoughts: str,
-        allow_interruption: bool = True
+        allow_interruption: bool = True,
+        token_budget: int | None = None,
+        tokens_left: int | None = None,
     ) -> Tuple[dict[str, Any], Dict[str, int]]:
         
         # 敵対者ロジック
@@ -117,12 +119,12 @@ class Agent:
                 name=self.name,
                 turn_log=turn_log,
                 last_event=last_event,
-                turns_left=max_turn - turn,
-                max_turn=max_turn,
                 turn=turn,
                 initial_answer=self.all_initial_answers_str,
                 topic=topic,
                 latest_thoughts=latest_thoughts,
+                token_budget=token_budget,
+                tokens_left=tokens_left,
                 target_answer=self.adversary_target,
             )
             action_plan, usage = self.llm_handler.generate_action_adversary(
@@ -154,12 +156,12 @@ class Agent:
                 name=self.name,
                 turn_log=turn_log,
                 last_event=last_event,
-                turns_left=max_turn - turn,
-                max_turn=max_turn,
                 turn=turn,
                 initial_answer=self.all_initial_answers_str,
                 topic=topic,
                 latest_thoughts=latest_thoughts,
+                token_budget=token_budget,
+                tokens_left=tokens_left,
             )
             action_plan, usage = self.llm_handler.generate_action(
                 prompt,
@@ -188,6 +190,8 @@ class Agent:
         *,
         peer_names: Sequence[str],
         latest_thoughts: str,
+        token_budget: int | None = None,
+        tokens_left: int | None = None,
     ) -> Dict[str, int]:
         """
         戻り値: usage dict
@@ -201,13 +205,13 @@ class Agent:
                 turn_log=turn_log,
                 thought=thought,
                 purpose=purpose,
-                turns_left=max_turn - turn,
                 name=self.name,
                 turn=turn,
                 initial_answer=self.all_initial_answers_str,
-                max_turn=max_turn,
                 latest_thoughts=latest_thoughts,
                 target_answer=self.adversary_target,
+                token_budget=token_budget,
+                tokens_left=tokens_left,
             ).strip()
             result = self.llm_handler.generate_utterance_adversary(
                 utterance_prompt,
@@ -226,12 +230,12 @@ class Agent:
                 turn_log=turn_log,
                 thought=thought,
                 purpose=purpose,
-                turns_left=max_turn - turn,
                 name=self.name,
                 turn=turn,
                 initial_answer=self.all_initial_answers_str,
-                max_turn=max_turn,
                 latest_thoughts=latest_thoughts,
+                token_budget=token_budget,
+                tokens_left=tokens_left,
             ).strip()
             result = self.llm_handler.generate_utterance(
                 utterance_prompt,

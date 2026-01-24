@@ -32,10 +32,9 @@ plan_action_schema: Dict[str, Any] = {
         "action": {"type": "string", "enum": ["listen", "speak", "interrupt"]},
         "urgency": {"type": "integer", "minimum": 0, "maximum": 9},
         "purpose": {"type": "string", "maxLength": 50},
-        "answer": {"type": "string", "enum": ["A", "B", "C", "D","none"]},
-        "consensus": {"type": "boolean"},
+        "answer": {"type": "string", "enum": ["A", "B", "C", "D", "none"]},
     },
-    "required": ["thought", "action", "urgency", "purpose", "answer", "consensus"],
+    "required": ["thought", "action", "urgency", "purpose", "answer"],
     "additionalProperties": False,
 }
 
@@ -73,7 +72,7 @@ class LLMHandler:
             n_ctx=config.get("n_ctx", 4096),
             temperature=config.get("temperature", 0.0),
             max_tokens=config.get("max_tokens", 512),
-            chat_format="qwen",
+            chat_format="llama-3",
         )
         print("[LLMHandler] ✅ モデル読み込み完了")
 

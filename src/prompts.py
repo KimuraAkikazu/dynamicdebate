@@ -274,7 +274,6 @@ Turn{turn}({event_type})
 - You are {name}.
 - This is {turn}/{max_turn} turn.
 
-
 ## Your purpose
   - your action:{event_type},
   - your thought:{thought},

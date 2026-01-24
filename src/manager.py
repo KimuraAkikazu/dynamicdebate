@@ -29,6 +29,7 @@ class DiscussionManager:
         
         # 割り込み設定
         self.enable_interruption: bool = config.get("discussion", {}).get("enable_interruption", True)
+        self.min_consecutive_chunks: int = max(1, int(config.get("discussion", {}).get("min_consecutive_chunks", 1)))
 
         # ---------- ログ用ディレクトリ ----------
         if log_dir is None:
@@ -47,6 +48,10 @@ class DiscussionManager:
         self.final_answers: Dict[str, Dict[str, str]] = {}
 
         self._interrupt_once: bool = False
+        self._protected_chunks_remaining: int = 0
+        self.llm_handler = self.agents[0].llm_handler if self.agents else None
+        self.public_token_budget: int = int(config.get("discussion", {}).get("public_token_budget", 8000))
+        self.public_tokens_used: int = 0
         self.log_data: List[Dict[str, Any]] = []
         
         # トークン使用量管理
@@ -56,14 +61,8 @@ class DiscussionManager:
             "total_tokens": 0
         }
 
-        # ---------- 早期終了用 ----------
+        # ---------- 早期終了（無効化） ----------
         self.last_plan_by_agent: Dict[str, Dict[str, Any]] = {}
-        self.consensus_streak: int = 0
-        self._early_stop_answer: Optional[str] = None
-        self.early_cfg: Dict[str, Any] = config.get("discussion", {}).get("early_stop", {})
-        self._early_enabled: bool = bool(self.early_cfg.get("enabled", False))
-        self._req_consec: int = int(self.early_cfg.get("require_consecutive", 1))
-        self._min_turns: int = int(self.early_cfg.get("min_turns", 1))
 
         self._write_log()
 
@@ -74,8 +73,10 @@ class DiscussionManager:
         self._initialize_discussion()
         
         for turn in range(1, self.max_turns + 1):
+            if self.tokens_left() <= 0:
+                print("=== Debate End: public token budget exhausted ===")
+                break
             if self._run_turn(turn):
-                print("=== Early stop: consensus reached ===")
                 break
         print("=== Debate End ===")
         self._collect_final_answers()
@@ -88,6 +89,20 @@ class DiscussionManager:
         self.total_token_usage["prompt_tokens"] += usage.get("prompt_tokens", 0)
         self.total_token_usage["completion_tokens"] += usage.get("completion_tokens", 0)
         self.total_token_usage["total_tokens"] += usage.get("total_tokens", 0)
+
+    def tokens_left(self) -> int:
+        return max(0, self.public_token_budget - self.public_tokens_used)
+
+    def _count_tokens(self, text: str) -> int:
+        if not text:
+            return 0
+        try:
+            if self.llm_handler and getattr(self.llm_handler, "model", None):
+                return len(self.llm_handler.model.tokenize(text.encode("utf-8")))
+        except Exception:
+            pass
+        # fallback: whitespace tokens
+        return max(1, len(text.split()))
 
     # ───────────────────────── 初期化 ───────────────────────── #
     def _initialize_discussion(self) -> None:
@@ -203,7 +218,9 @@ class DiscussionManager:
                 silence=True,
                 peer_names=peers,
                 latest_thoughts=self.__format_recent_thoughts(ag.name, current_turn=0),
-                allow_interruption=self.enable_interruption
+                allow_interruption=self.enable_interruption,
+                token_budget=self.public_token_budget,
+                tokens_left=self.tokens_left(),
             )
             self._accumulate_token_usage(usage)
             self.current_actions[ag.name] = action_plan
@@ -221,17 +238,15 @@ class DiscussionManager:
                 {"agent_name": n, "action_plan": p}
                 for n, p in self.current_actions.items()
             ],
-            "early_stop_config": {
-                "enabled": self._early_enabled,
-                "require_consecutive": self._req_consec,
-                "min_turns": self._min_turns,
-            },
             "roles": {
                 ag.name: ag.role
                 for ag in self.agents
             },
             "consensus_state": self._build_consensus_state_snapshot(),
             "consensus_meta": self._build_consensus_meta_snapshot(),
+            "public_token_budget": self.public_token_budget,
+            "public_tokens_used": self.public_tokens_used,
+            "public_tokens_left": self.tokens_left(),
         }
         self.log_data.append(init_record)
         self._write_log()
@@ -258,6 +273,7 @@ class DiscussionManager:
                     event_type = "utterance"
                     print(f"[Turn {turn}] {speaker_name}: {content}")
                     self.history.append((speaker_name, content))
+                    self.public_tokens_used += self._count_tokens(content)
                 self.speaker = None
             else:
                 print(f"[Turn {turn}] --- Silence ---")
@@ -267,8 +283,13 @@ class DiscussionManager:
             if self.speaker:
                 chunk = self.speaker.get_next_chunk()
                 if chunk:
-                    event_type = "interrupt" if self._interrupt_once else "utterance"
-                    self._interrupt_once = False
+                    if self._protected_chunks_remaining > 0:
+                        event_type = "utterance"
+                        self._interrupt_once = False
+                        self._protected_chunks_remaining -= 1
+                    else:
+                        event_type = "interrupt" if self._interrupt_once else "utterance"
+                        self._interrupt_once = False
                     speaker_name = self.speaker.name
                     content = chunk
                     if self.history and self.history[-1][0] == speaker_name:
@@ -276,8 +297,10 @@ class DiscussionManager:
                     else:
                         print(f"[Turn {turn}] {speaker_name}: {chunk}")
                     self.history.append((speaker_name, chunk))
+                    self.public_tokens_used += self._count_tokens(chunk)
                 else:
                     self.speaker = None
+                    self._protected_chunks_remaining = 0
             
             if event_type == "silence" and not self.speaker:
                 print(f"[Turn {turn}] --- Silence ---")
@@ -290,7 +313,10 @@ class DiscussionManager:
             "content": content,
             "agent_actions": [], 
             "consensus_state": {}, 
-            "consensus_meta": {}
+            "consensus_meta": {},
+            "public_tokens_used": self.public_tokens_used,
+            "public_tokens_left": self.tokens_left(),
+            "public_token_budget": self.public_token_budget,
         }
 
         # --- 行動計画フェーズ ---
@@ -323,7 +349,9 @@ class DiscussionManager:
                 silence=is_silence_mode,
                 peer_names=peers,
                 latest_thoughts=self.__format_recent_thoughts(ag.name, current_turn=turn),
-                allow_interruption=allow_int
+                allow_interruption=allow_int,
+                token_budget=self.public_token_budget,
+                tokens_left=self.tokens_left(),
             )
             self._accumulate_token_usage(usage)
             self.current_actions[ag.name] = action_plan
@@ -345,16 +373,12 @@ class DiscussionManager:
         
         self._write_log()
 
-        if self._early_stop_check(turn):
+        if self.tokens_left() <= 0:
             self.log_data.append({
                 "turn": turn,
-                "event_type": "early_stop",
-                "reason": "consensus",
-                "answer": self._early_stop_answer,
-                "streak": self.consensus_streak,
-                "consensus_state": self._build_consensus_state_snapshot(),
-                "consensus_meta": self._build_consensus_meta_snapshot(),
-                "total_token_usage": self.total_token_usage,
+                "event_type": "budget_exhausted",
+                "public_tokens_used": self.public_tokens_used,
+                "public_token_budget": self.public_token_budget,
             })
             self._write_log()
             return True
@@ -375,22 +399,11 @@ class DiscussionManager:
 
     # ──────────────────── consensus スナップショット ──────────────────── #
     def _build_consensus_state_snapshot(self) -> Dict[str, Dict[str, Any]]:
-        snap: Dict[str, Dict[str, Any]] = {}
-        for ag in self.agents:
-            plan = self.last_plan_by_agent.get(ag.name, {}) or {}
-            consensus, answer = self._extract_agreement(plan)
-            snap[ag.name] = {"consensus": consensus, "answer": answer}
-        return snap
+        # consensus 機能は無効化
+        return {}
 
     def _build_consensus_meta_snapshot(self) -> Dict[str, Any]:
-        snap = self._build_consensus_state_snapshot()
-        answers = [v["answer"] for v in snap.values() if v["consensus"] and v["answer"]]
-        all_consensus = len(answers) == len(self.agents) and len(set(answers)) == 1
-        return {
-            "all_consensus": all_consensus,
-            "answer_if_all": answers[0] if all_consensus else None,
-            "streak": self.consensus_streak,
-        }
+        return {"all_consensus": False, "answer_if_all": None, "streak": 0}
 
     def _extract_agreement(self, plan: Dict[str, Any]) -> Tuple[bool, Optional[str]]:
         consensus = False
@@ -411,32 +424,6 @@ class DiscussionManager:
 
     # ──────────────────── 早期終了判定 ──────────────────── #
     def _early_stop_check(self, turn: int) -> bool:
-        if not self._early_enabled:
-            return False
-        if turn < self._min_turns:
-            self.consensus_streak = 0
-            return False
-
-        plans = [self.last_plan_by_agent.get(a.name, {}) for a in self.agents]
-        if any(not p for p in plans):
-            self.consensus_streak = 0
-            return False
-
-        answers: List[str] = []
-        for p in plans:
-            consensus, ans = self._extract_agreement(p if isinstance(p, dict) else {})
-            if not consensus or ans is None:
-                self.consensus_streak = 0
-                return False
-            answers.append(ans)
-
-        if len(set(answers)) == 1:
-            self.consensus_streak += 1
-            if self.consensus_streak >= self._req_consec:
-                self._early_stop_answer = answers[0]
-                return True
-        else:
-            self.consensus_streak = 0
         return False
 
     # ──────────────────── 最終回答収集 ──────────────────── #
@@ -444,48 +431,41 @@ class DiscussionManager:
         print("=== Collecting final answers ===")
         debate_history = self._build_turn_log("", HISTORY_WINDOW * 10)
         self.final_answers = {}
-        if self._early_stop_answer:
-            for ag in self.agents:
-                self.final_answers[ag.name] = {
-                    "answer": self._early_stop_answer,
-                    "reason": "Group consensus reached before max turns.",
-                }
-                print(f"[FINAL] {ag.name} -> {self.final_answers[ag.name]}")
-            self.log_data.append(
-                {
-                    "turn": "final",
-                    "event_type": "final_answers",
-                    "answers": self.final_answers,
-                    "consensus_state": self._build_consensus_state_snapshot(),
-                    "consensus_meta": self._build_consensus_meta_snapshot(),
-                    "total_token_usage": self.total_token_usage,
-                }
+        for ag in self.agents:
+            ans, usage = ag.generate_final_answer(
+                self.topic,
+                debate_history,
+                latest_thoughts=self.__format_recent_thoughts(ag.name, current_turn=self.max_turns + 1),
+                max_turn=self.max_turns,
+                peer_names=[p.name for p in self.agents if p is not ag],
             )
-            self._write_log()
-        else:
-            for ag in self.agents:
-                ans, usage = ag.generate_final_answer(
-                    self.topic,
-                    debate_history,
-                    latest_thoughts=self.__format_recent_thoughts(ag.name, current_turn=self.max_turns + 1),
-                    max_turn=self.max_turns,
-                    peer_names=[p.name for p in self.agents if p is not ag],
-                )
-                self._accumulate_token_usage(usage)
-                self.final_answers[ag.name] = ans
-                print(f"[FINAL] {ag.name} -> {ans}")
-            self.log_data.append(
-                {
-                    "turn": "final",
-                    "event_type": "final_answers",
-                    "answers": self.final_answers,
-                    "total_token_usage": self.total_token_usage,
-                }
-            )
-            self._write_log()
+            self._accumulate_token_usage(usage)
+            self.final_answers[ag.name] = ans
+            print(f"[FINAL] {ag.name} -> {ans}")
+        self.log_data.append(
+            {
+                "turn": "final",
+                "event_type": "final_answers",
+                "answers": self.final_answers,
+                "total_token_usage": self.total_token_usage,
+                "public_tokens_used": self.public_tokens_used,
+                "public_token_budget": self.public_token_budget,
+            }
+        )
+        self._write_log()
 
     # ──────────────────── 次スピーカー選定 ──────────────────── #
     def _determine_next_speaker(self, current_turn: int) -> None:
+        if (
+            self.enable_interruption
+            and self.speaker
+            and self.speaker.utterance_queue
+            and self._protected_chunks_remaining > 0
+        ):
+            # 連続発話保護中は話者を変更しない
+            self._interrupt_once = False
+            return
+
         candidates = [
             (n, p)
             for n, p in self.current_actions.items()
@@ -505,9 +485,12 @@ class DiscussionManager:
             self._interrupt_once = False
             return
 
-        self._interrupt_once = bool(self.speaker and self.speaker.utterance_queue)
+        self._interrupt_once = bool(self.enable_interruption and self.speaker and self.speaker.utterance_queue)
         event_type = "interrupt" if self._interrupt_once else "utterance"
         self.speaker = next(a for a in self.agents if a.name == next_name)
+        self._protected_chunks_remaining = (
+            max(0, self.min_consecutive_chunks - 1) if self.enable_interruption else 0
+        )
         peers = [a.name for a in self.agents if a is not self.speaker]
         turn_log = self._build_turn_log(self.speaker.name, HISTORY_WINDOW)
         usage = self.speaker.decide_to_speak(
@@ -520,6 +503,8 @@ class DiscussionManager:
             self.max_turns,
             peer_names=peers,
             latest_thoughts=self.__format_recent_thoughts(self.speaker.name, current_turn=current_turn + 1),
+            token_budget=self.public_token_budget,
+            tokens_left=self.tokens_left(),
         )
         self._accumulate_token_usage(usage)
         mode = "interrupt" if self._interrupt_once else "speak"
