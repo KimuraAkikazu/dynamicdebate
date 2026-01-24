@@ -36,19 +36,37 @@ llm = Llama(
 # メッセージ整形
 # -------------------------------
 
-def format_messages(task: str) -> List[Dict[str, str]]:
-    """OpenAI 互換の chat completion 用メッセージを組み立てる。"""
+LETTERS = ["A", "B", "C", "D"]
+
+def format_messages(question: str, choices: list[str]) -> list[dict[str, str]]:
+    """ユーザー指定のプロンプト形式でメッセージを組み立てる。"""
+    choice_lines = [f"{LETTERS[i]}. {ch}" for i, ch in enumerate(choices[:4])]
+    topic = "\n".join([question, "", *choice_lines])
+
     system = {
         "role": "system",
-        "content": (
-            "You are a polite and logical assistant. Please think step by step as needed and respond concisely."
-        ),
+        "content": "Follow the instructions strictly and return only valid JSON that matches the provided schema.",
     }
+
     user = {
         "role": "user",
-        "content": task,
+        "content": f"""
+# Question
+{topic}
+# Instructions
+- Derive your solution to the given question through step-by-step reasoning.
+- Provide your answer and the reason behind it.
+- Provide your response in the following Output format.
+# Output format
+Return strictly a JSON object only.
+{{
+    "reason": "Detailed reasoning for your choice (within 300 words).",
+    "answer": "one of 'A', 'B', 'C', or 'D'"
+}}"""
     }
+
     return [system, user]
+
 
 # -------------------------------
 # ストリームからテキストを取り出すヘルパ
