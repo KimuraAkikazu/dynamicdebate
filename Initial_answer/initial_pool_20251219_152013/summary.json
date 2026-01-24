@@ -1,0 +1,38 @@
+{
+  "run_dir": "/home/a-kimura/dynamic_debate/logs/initial_pool_20251219_152013",
+  "dataset": {
+    "name": "cais/mmlu",
+    "config": "all",
+    "split": "test"
+  },
+  "model_path": "models/Meta-Llama-3.1-8B-Instruct-Q8_0.gguf",
+  "params": {
+    "k": 5,
+    "temperature": 0.3,
+    "max_tokens": 256,
+    "easy_threshold": 0.8,
+    "hard_threshold": 0.2,
+    "min_correct": 2,
+    "max_correct": 3,
+    "keep_correct": 2,
+    "keep_wrong": 2,
+    "shuffle": true,
+    "data_seed": 42,
+    "gen_seed0": 1000,
+    "gen_seed_step": 1,
+    "selection_seed": 0
+  },
+  "total_questions_processed": 14042,
+  "kept_questions": 2628,
+  "excluded_counts": {
+    "easy": 7239,
+    "hard": 4163,
+    "correct_count_out_of_range": 0,
+    "not_enough_correct_or_wrong": 12,
+    "parse_fail_or_empty": 208
+  },
+  "outputs": {
+    "samples_jsonl": "/home/a-kimura/dynamic_debate/logs/initial_pool_20251219_152013/samples.jsonl",
+    "initial_pool_jsonl": "/home/a-kimura/dynamic_debate/logs/initial_pool_20251219_152013/initial_pool.jsonl"
+  }
+}

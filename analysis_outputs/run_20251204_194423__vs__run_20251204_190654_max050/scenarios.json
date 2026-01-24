@@ -1,0 +1,18 @@
+{
+  "run1": {
+    "dir": "/home/a-kimura/dynamic_debate/logs/run_20251204_194423",
+    "two_correct_scenarios": [
+      {
+        "pid": "problem_027",
+        "index": 27
+      }
+    ]
+  },
+  "run2": {
+    "dir": "/home/a-kimura/dynamic_debate/logs/run_20251204_190654",
+    "two_correct_scenarios": []
+  },
+  "common": {
+    "scenarios": []
+  }
+}

@@ -1,9 +1,11 @@
+# src/prompt_logger.py
 """プロンプト／生成テキストを JSON Lines で保存するユーティリティ"""
 from __future__ import annotations
 
 import json
 from datetime import datetime
 from pathlib import Path
+from typing import Dict, Optional, Any
 
 
 class PromptLogger:
@@ -62,14 +64,18 @@ class PromptLogger:
         full_text: str,
         *,
         phase: str = "generated_text",  # 例: "plan_generated" / "utterance_generated" / "initial_generated" / "final_generated"
+        token_stats: Optional[Dict[str, int]] = None,
     ) -> None:
-        rec = {
+        rec: Dict[str, Any] = {
             "timestamp": datetime.now().isoformat(timespec="seconds"),
             "turn": turn,
             "agent": agent_name,
             "phase": phase,
             "content": full_text,
         }
+        if token_stats:
+            rec["token_stats"] = token_stats
+            
         self._fp.write(json.dumps(rec, ensure_ascii=False) + "\n")
         self._fp.flush()
 

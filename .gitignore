@@ -1,4 +1,4 @@
 __pycache__/
 models/
 scripts/
-logs/
+logs/samples.jsonl
