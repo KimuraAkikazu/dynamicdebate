@@ -3,3 +3,4 @@ models/
 scripts/
 logs/
 analysis_outputs/
+logs/samples.jsonl
