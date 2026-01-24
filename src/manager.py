@@ -170,6 +170,7 @@ class DiscussionManager:
                 )
                 print(f"[Init] {ag.name} → {ag.initial_answer_str}")
         else:
+            print("[System] No initial pool entry found; generating initial answers.")
             for ag in self.agents:
                 usage = ag.generate_initial_answer(
                     self.topic,

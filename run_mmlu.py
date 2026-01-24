@@ -121,22 +121,6 @@ def main() -> None:
     # LLM は 1 度だけロード
     llm_handler = LLMHandler(base_cfg["llm"], prompt_logger=None)
 
-    # データセット読み込み
-    ds = load_dataset("cais/mmlu", "all", split="test")
-    total_available = len(ds)
-
-    # 使用する問題数を決定
-    if args.num < 0:
-        total = total_available
-    else:
-        total = min(args.num, total_available)
-
-    # ランダムにシャッフルして total 問を抽出
-    indices = list(range(total_available))
-    # 修正: グローバルの random.shuffle を使用
-    random.shuffle(indices)
-    selected = indices[:total]
-
     # ---- adversary 設定 (Base) ----
     adv_cfg = base_cfg.get("adversary", {}) or {}
     adv_enabled: bool = bool(adv_cfg.get("enabled", False))
@@ -151,6 +135,33 @@ def main() -> None:
             
     adv_strategy: str = str(adv_cfg.get("target_strategy", "random_wrong"))
     adv_fixed_label: str | None = adv_cfg.get("fixed_label")
+
+    # データセット読み込み
+    ds = load_dataset("cais/mmlu", "all", split="test")
+    total_available = len(ds)
+
+    # 使用する問題数を決定
+    if adv_enabled and pool_by_index:
+        candidate_indices = list(pool_by_index.keys())
+        if args.num < 0:
+            total = len(candidate_indices)
+        else:
+            total = min(args.num, len(candidate_indices))
+        random.shuffle(candidate_indices)
+        selected = candidate_indices[:total]
+    else:
+        if adv_enabled and not pool_by_index:
+            print("[Warn] Adversary is enabled but initial pool is empty. Falling back to full dataset.")
+        if args.num < 0:
+            total = total_available
+        else:
+            total = min(args.num, total_available)
+
+        # ランダムにシャッフルして total 問を抽出
+        indices = list(range(total_available))
+        # 修正: グローバルの random.shuffle を使用
+        random.shuffle(indices)
+        selected = indices[:total]
 
     correct = 0
     for run_id, ds_idx in enumerate(selected, start=1):
@@ -170,11 +181,18 @@ def main() -> None:
         pool_entry = pool_by_index.get(ds_idx) or pool_by_question.get(ex["question"])
         if not pool_entry:
             print(f"[Warn] No initial pool entry found for idx={ds_idx}")
+            if adv_enabled:
+                # adversary 有効時は initial_pool を必須とする
+                raise ValueError(
+                    f"initial_pool_entry not found for idx={ds_idx}. "
+                    "Use a pool that covers this question or restrict sampling to pool entries."
+                )
 
         # ---- config の複製と動的設定 ----
         cfg = copy.deepcopy(base_cfg)
         cfg["discussion"]["topic"] = topic
-        cfg["initial_pool_entry"] = pool_entry
+        if adv_enabled:
+            cfg["initial_pool_entry"] = pool_entry
 
         # Adversary のターゲット決定
         current_adv_target = None
