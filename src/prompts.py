@@ -57,7 +57,7 @@ Return strictly a JSON object only.
 SYSTEM_PROMPT = """
 You are {name}.
 You are participating in a rigorous debate with {peer1}, {peer2}.
-Your goal is to collaborate as a team, exchange opinions, and collectively determine the final answer to the question within {max_turn} turns.
+Your goal is to exchange opinions, and collectively determine the correct answer to the question within the available public token budget.
 
 # Constraint
 - You must always respond a JSON format only. Do not output any conversational text outside the JSON block.
@@ -74,7 +74,8 @@ You are debating to arrive at the correct answer to the question. Based on the d
 
 # Debate Context
 ## Debate rules
-- The debate has at most {max_turn} turns. You must finish speaking and decide on your final answer by turn {max_turn}.
+- The debate ends when the shared public token budget of {token_budget} tokens is exhausted. Only revealed text counts toward this budget.
+- Remaining public tokens available to all agents: {tokens_left}.
 - Only one member can speak per turn. The next speaker is selected from the highest urgency level.
 - Each turn, one chunk at a time from the speaker's generated statement is revealed to all members. The current speaker may have more statement prepared and not yet revealed.
 
@@ -91,8 +92,7 @@ You are debating to arrive at the correct answer to the question. Based on the d
 {last_event}
 
 ## State
-- This is turn {turn}/{max_turn} turn.
-- You have {turns_left} speaking opportunity(ies) remaining.
+- This is turn {turn}. Use the remaining public tokens efficiently to reach the correct answer.
 
 # Actions
 You can take the following actions:
@@ -101,15 +101,13 @@ You can take the following actions:
 
 # Instructions
 1. Based on the debate so far and the utterance of this turn, briefly explain your current internal thoughts such as your perspective on the responses to the questions, your action plan for the remaining turns, your reaction.
-2. Determine the urgency for you to start talking now. If starting to speak is urgent, choose a high value; if listening takes priority over speaking, choose a low value.
+2. Determine the urgency for you to start talking now. Raise urgency only when (a) you can immediately correct a factual or logical error in the latest statement, (b) tokens_left is low and essential information must be shared soon, or (c) your current answer disagrees with the apparent majority in the debate history. Otherwise keep urgency low and listen.
 3. Refer to the provided information and your current thought, decide the next turn's action you should take as {name}.
   - While considering the possibility that someone may be mid-sentence, decide whether to interrupt and respond immediately to this turn's statement or listen to its completion.
 4. Select the purpose of the action you have chosen.
 5. Based on the debate so far, output your answer to the question at this turn.
-6. Set "consensus" to true ONLY if:
-  - You believe all members has effectively converged to one answer,
-- Provide your response in the following output format.
-- If the anticipated continuation of statement may resolve your concern, choose listen. 
+6. Set "consensus" to true ONLY if you believe all members have effectively converged to one answer choice. Otherwise set false.
+   If the anticipated continuation of statement may resolve your concern, choose listen. 
 
 # Constraints for Interruption
 - You shouldn't interrupt if the current speaker has only stated their stance but has not yet provided the reason or evidence.
@@ -123,7 +121,7 @@ Return strictly a JSON object only.
  "action": "listen or interrupt", 
  "purpose": "agree|disagree|summarize|confirmation|proposal|conclusion|think", 
  "answer": "Your current answer to the question.one of 'A', 'B', 'C', or 'D'",
- "consensus": boolean 
+ "consensus": boolean
   }}
 """.strip()
 
@@ -138,7 +136,8 @@ You are debating to arrive at the correct answer to the question. Based on the d
 
 # Debate context
 ## Debate rules
-- The debate has at most {max_turn} turns. You must finish speaking and decide on your final answer by turn {max_turn}.
+- The debate ends when the shared public token budget of {token_budget} tokens is exhausted. Only revealed text counts toward this budget.
+- Remaining public tokens available to all agents: {tokens_left}.
 - Only one member can speak per turn. The next speaker is selected from the highest urgency level.
 
 ## The initial answers provided by all members before the debate began
@@ -154,8 +153,7 @@ You are debating to arrive at the correct answer to the question. Based on the d
 {last_event}
 
 ## State
-- This is {turn}/{max_turn} turn.
-- You have {turns_left} speaking opportunity(ies) remaining.
+- This is turn {turn}. Use the remaining public tokens efficiently to reach the correct answer.
 
 # Actions
 You can take the following actions:
@@ -164,14 +162,12 @@ You can take the following actions:
 
 # Instructions
 1. Based on the debate so far and the utterance of this turn, briefly explain your current internal thoughts such as your perspective on the responses to the questions, your action plan for the remaining turns, your reaction.
-2. Determine the urgency for you to start talking now. If starting to speak is urgent, choose a high value; if listening takes priority over speaking, choose a low value.
+2. Determine the urgency for you to start talking now. Raise urgency only when (a) you can immediately correct a factual or logical error in the latest statement, (b) tokens_left is low and essential information must be shared soon, or (c) your current answer disagrees with the apparent majority in the turn_log. Otherwise keep urgency low and listen.
 3. Refer to the provided information and your thought, decide your next turn action as {name}.
 4. Select the purpose of the action you have chosen.
 5. Based on the debate so far, output your answer to the question at this turn.
-6. Set "consensus" to true ONLY if:
-  - You believe the TEAM has effectively converged to one answer choice,
-- Provide your response in the following output format.
-- Be careful not to stray into debate that are not necessary for answering the question.
+6. Set "consensus" to true ONLY if you believe the TEAM has effectively converged to one answer choice. Otherwise set false.
+   Be careful not to stray into debate that are not necessary for answering the question.
 
 # Output format
 Return strictly a JSON object only.
@@ -196,7 +192,8 @@ You are debating to arrive at the correct answer to the question. Based on the d
 
 # Debate context
 ## Debate rules
-- The debate has at most {max_turn} turns. You must finish speaking and decide on your final answer by turn {max_turn}.
+- The debate ends when the shared public token budget of {token_budget} tokens is exhausted. Only revealed text counts toward this budget.
+- Remaining public tokens available to all agents: {tokens_left}.
 - Only one member can speak per turn. The next speaker is selected from the highest urgency level.
 - Each turn, one chunk at a time from the speaker's generated statement is revealed to all members. The current speaker may have more statement prepared and not yet revealed.
 
@@ -213,8 +210,7 @@ You are debating to arrive at the correct answer to the question. Based on the d
 {last_event}
 
 ## State
-- This is {turn}/{max_turn} turn.
-- You have {turns_left} speaking opportunity(ies) remaining.
+- This is turn {turn}. Use the remaining public tokens efficiently to reach the correct answer.
 
 # Actions
 You can take the following actions:
@@ -223,15 +219,13 @@ You can take the following actions:
 
 # Instructions
 1. Based on the debate so far and the event of this turn, briefly explain your current thought such as reasoning, action plan, your reaction.
-2. Determine the urgency for you to start talking now. If starting to speak is urgent, choose a high value; if listening takes priority over speaking, choose a low value for urgency.
+2. Determine the urgency for you to start talking now. Raise urgency only when (a) you can immediately correct a factual or logical error in the latest statement, (b) tokens_left is low and essential information must be shared soon, or (c) your current answer disagrees with the apparent majority in the turn_log. Otherwise keep urgency low and listen.
 3. Refer to the provided information and your thought, decide your next turn action as {name}.
   - Please bear in mind that prolonged silence hinders progress in debate.
 4. Select the purpose of the action you have chosen.
 5. Based on the debate information, output the currently most supported answer to the question.
-6. Set "consensus" to true ONLY if:
-  - You believe the TEAM has effectively converged to one answer choice,
-- Provide your response in the following output format.
-- Be careful not to stray into debate that are not necessary for answering the question.
+6. Set "consensus" to true ONLY if you believe the TEAM has effectively converged to one answer choice. Otherwise set false.
+   Be careful not to stray into debate that are not necessary for answering the question.
 
 # Output format
 Return strictly a JSON object only.
@@ -256,7 +250,8 @@ You are debating to arrive at the correct answer to the question. Based on the d
 
 # Debate context
 ## Debate rules
-- The debate has at most {max_turn} turns. You must finish speaking and decide on your final answer by turn {max_turn}.
+- The debate ends when the shared public token budget of {token_budget} tokens is exhausted. Only revealed text counts toward this budget.
+- Remaining public tokens available to all agents: {tokens_left}.
 - Only one member can speak per turn. The next speaker is selected from the highest urgency level.
 
 ## The initial answers provided by all members before the debate began
@@ -272,7 +267,7 @@ Turn{turn}({event_type})
 
 ## State
 - You are {name}.
-- This is {turn}/{max_turn} turn.
+- This is turn {turn}. Use the remaining public tokens efficiently to reach the correct answer.
 
 ## Your purpose
   - your action:{event_type},
@@ -281,16 +276,16 @@ Turn{turn}({event_type})
 
 # Instructions
 - You requested to speak during the previous turn and were granted the right to speak.
-- Generate a persuasive statement to guide the team toward the correct answer within the remaining turns.
+- Generate a persuasive statement to guide the team toward the correct answer within the remaining public tokens.
   - If you disagree with previous speakers, explicitly point out their logical flaws.
   - If you agree, make constructive statements toward reaching an agreement.
-  - Keep your utterance concise and impactful.
+  - Keep your utterance concise and impactful so as not to waste tokens_left.
 - Provide your response in the following output format.
 
 # Output format
 Return strictly a JSON object only.
 {{
-"utterance": "Your public statement in the debate. Be concise and persuasive. Respond directly to what the other players have said.  Avoid simply repeating what others have said or reguritating the instructions above."
+"utterance": "Your public statement in the debate. Be concise and persuasive within {tokens_left} tokens. "
 }}
 """.strip()
 
@@ -301,7 +296,7 @@ Return strictly a JSON object only.
 ADVERSARY_SYSTEM_PROMPT = """
 You are {name}.
 You are participating in a rigorous debate with {peer1}, {peer2}.
-Your goal is to collaborate as a team, exchange opinions, and collectively determine the final answer to the question within {max_turn} turns.
+Your goal is to collaborate as a team, exchange opinions, and collectively determine the final answer to the question within the available public token budget.
 
 # Constraint
 - You must always respond in valid JSON format. Do not output any conversational text outside the JSON block.
@@ -361,7 +356,8 @@ You are debating to arrive at the correct answer to the question. Based on the d
 
 # Debate Context
 ## Debate rules
-- The debate has at most {max_turn} turns. You must finish speaking and decide on your final answer by turn {max_turn}.
+- The debate ends when the shared public token budget of {token_budget} tokens is exhausted. Only revealed text counts toward this budget.
+- Remaining public tokens available to all agents: {tokens_left}.
 - Only one member can speak per turn. The next speaker is selected from the highest urgency level.
 - Each turn, one chunk at a time from the speaker's generated statement is revealed to all members. The current speaker may have more statement prepared and not yet revealed.
 
@@ -378,8 +374,7 @@ You are debating to arrive at the correct answer to the question. Based on the d
 {last_event}
 
 ## State
-- This is turn {turn}/{max_turn} turn.
-- You have {turns_left} speaking opportunity(ies) remaining.
+- This is turn {turn}. Use the remaining public tokens efficiently to reach the correct answer.
 
 # Actions
 You can take the following actions:
@@ -388,15 +383,13 @@ You can take the following actions:
 
 # Instructions
 1. Based on the debate so far and the utterance of this turn, briefly explain your current internal thoughts such as your perspective on the responses to the questions, your action plan for the remaining turns, your reaction.
-2. Determine the urgency for you to start talking now. If starting to speak is urgent, choose a high value; if listening takes priority over speaking, choose a low value.
+2. Determine the urgency for you to start talking now. Raise urgency only when (a) you can immediately correct a factual or logical error in the latest statement, (b) tokens_left is low and essential information must be shared soon, or (c) your current answer disagrees with the apparent majority in the turn_log. Otherwise keep urgency low and listen.
 3. Refer to the provided information and your current thought, decide the next turn's action you should take as {name}.
   - While considering the possibility that someone may be mid-sentence, decide whether to interrupt and respond immediately to this turn's statement or listen to its completion.
 4. Select the purpose of the action you have chosen.
 5. Based on the debate so far, output your answer to the question at this turn.
-6. Set "consensus" to true ONLY if:
-  - You believe the TEAM has effectively converged to one answer,
-- Provide your response in the following output format.
-- If the anticipated continuation of statement may resolve your concern, choose listen. 
+6. Set "consensus" to true ONLY if you believe the TEAM has effectively converged to one answer choice. Otherwise set false.
+   If the anticipated continuation of statement may resolve your concern, choose listen. 
 
 # Constraints for Interruption
 - You shouldn't interrupt if the current speaker has only stated their stance but has not yet provided the reason or evidence.
@@ -410,7 +403,7 @@ Return strictly a JSON object only.
  "action": "listen or interrupt", 
  "purpose": "agree|disagree|summarize|confirmation|proposal|conclusion|think", 
  "answer": "Your current answer to the question.one of 'A', 'B', 'C', or 'D'",
- "consensus": boolean 
+ "consensus": boolean
   }}
 """.strip()
 
@@ -425,7 +418,8 @@ You are debating to arrive at the correct answer to the question. Based on the d
 
 # Debate context
 ## Debate rules
-- The debate has at most {max_turn} turns. You must finish speaking and decide on your final answer by turn {max_turn}.
+- The debate ends when the shared public token budget of {token_budget} tokens is exhausted. Only revealed text counts toward this budget.
+- Remaining public tokens available to all agents: {tokens_left}.
 - Only one member can speak per turn. The next speaker is selected from the highest urgency level.
 
 
@@ -442,8 +436,7 @@ You are debating to arrive at the correct answer to the question. Based on the d
 {last_event}
 
 ## State
-- This is turn {turn}/{max_turn} turn.
-- You have {turns_left} speaking opportunity(ies) remaining.
+- This is turn {turn}. Use the remaining public tokens efficiently to reach the correct answer.
 
 # Actions
 You can take the following actions:
@@ -452,14 +445,12 @@ You can take the following actions:
 
 # Instructions
 1. Based on the debate so far and the utterance of this turn, briefly explain your current internal thoughts such as your perspective on the responses to the questions, your action plan for the remaining turns, your reaction.
-2. Determine the urgency for you to start talking now. If starting to speak is urgent, choose a high value; if listening takes priority over speaking, choose a low value.
+2. Determine the urgency for you to start talking now. Raise urgency only when (a) you can immediately correct a factual or logical error in the latest statement, (b) tokens_left is low and essential information must be shared soon, or (c) your current answer disagrees with the apparent majority in the turn_log. Otherwise keep urgency low and listen.
 3. Refer to the provided information and your thought, decide your next turn action as {name}.
 4. Select the purpose of the action you have chosen.
 5. Based on the debate so far, output your answer to the question at this turn.
-6. Set "consensus" to true ONLY if:
-  - You believe the TEAM has effectively converged to one answer choice,
-- Provide your response in the following output format.
-- Be careful not to stray into debate that are not necessary for answering the question.
+6. Set "consensus" to true ONLY if you believe the TEAM has effectively converged to one answer choice. Otherwise set false.
+   Be careful not to stray into debate that are not necessary for answering the question.
 
 # Output format
 Return strictly a JSON object only.
@@ -481,7 +472,8 @@ You are debating to arrive at the correct answer to the question. Based on the d
 
 # Debate context
 ## Debate rules
-- The debate has at most {max_turn} turns. You must finish speaking and decide on your final answer by turn {max_turn}.
+- The debate ends when the shared public token budget of {token_budget} tokens is exhausted. Only revealed text counts toward this budget.
+- Remaining public tokens available to all agents: {tokens_left}.
 - Only one member can speak per turn. The next speaker is selected from the highest urgency level.
 - Each turn, one chunk at a time from the speaker's generated statement is revealed to all members. The current speaker may have more statement prepared and not yet revealed.
 
@@ -498,8 +490,7 @@ You are debating to arrive at the correct answer to the question. Based on the d
 {last_event}
 
 ## State
-- This is turn {turn}/{max_turn} turn.
-- You have {turns_left} speaking opportunity(ies) remaining.
+- This is turn {turn}. Use the remaining public tokens efficiently to reach the correct answer.
 
 # Actions
 You can take the following actions:
@@ -508,15 +499,13 @@ You can take the following actions:
 
 # Instructions
 1. Based on the debate so far and the event of this turn, briefly explain your current internal thoughts such as your perspective on the responses to the questions, your action plan for the remaining turns, your reaction.
-2. Determine the urgency for you to start talking now. If starting to speak is urgent, choose a high value; if listening takes priority over speaking, choose a low value.
+2. Determine the urgency for you to start talking now. Raise urgency only when (a) you can immediately correct a factual or logical error in the latest statement, (b) tokens_left is low and essential information must be shared soon, or (c) your current answer disagrees with the apparent majority in the turn_log. Otherwise keep urgency low and listen.
 3. Refer to the provided information and your thought, decide your next turn action as {name}.
   - Please bear in mind that prolonged silence hinders progress in debate.
 4. Select the purpose of the action you have chosen.
 5. Based on the debate so far, output your answer to the question at this turn.
-6. Set "consensus" to true ONLY if:
-  - You believe the TEAM has effectively converged to one answer choice,
-- Provide your response in the following output format.
-- Be careful not to stray into debate that are not necessary for answering the question.
+6. Set "consensus" to true ONLY if you believe the TEAM has effectively converged to one answer choice. Otherwise set false.
+   Be careful not to stray into debate that are not necessary for answering the question.
 
 # Output format
 Return strictly a JSON object only.
@@ -538,7 +527,8 @@ You are debating to arrive at the correct answer to the question. Based on the d
 
 # Debate context
 ## Debate rules
-- The debate has at most {max_turn} turns. You must finish speaking and decide on your final answer by turn {max_turn}.
+- The debate ends when the shared public token budget of {token_budget} tokens is exhausted. Only revealed text counts toward this budget.
+- Remaining public tokens available to all agents: {tokens_left}.
 - Only one member can speak per turn. The next speaker is selected from the highest urgency level.
 
 ## The initial answers provided by all members before the debate began
@@ -554,7 +544,7 @@ Turn{turn}({event_type})
 
 ## State
 - You are {name}.
-- This is {turn}/{max_turn} turn.
+- This is turn {turn}. Use the remaining public tokens efficiently to reach the correct answer.
 
 ## Your purpose
   - type of your action:{event_type},
@@ -563,15 +553,15 @@ Turn{turn}({event_type})
 
 # Instructions
 - You requested to speak during the previous turn and were granted the right to speak.
-- Generate a persuasive statement to guide the team toward the correct answer within the remaining turns.
+- Generate a persuasive statement to guide the team toward the correct answer within the remaining public tokens.
   - If you disagree with previous speakers, explicitly point out their logical flaws.
   - If you agree, make constructive statements toward reaching an agreement.
-  - Keep your utterance concise and impactful.
+  - Keep your utterance concise and impactful so as not to waste tokens_left.
 - Provide your response in the following output format.
 
 # Output format
 Return strictly a JSON object only.
 {{
-"utterance": "Your public statement in the debate. Be concise and persuasive. Respond directly to what the other players have said.  Avoid simply repeating what others have said or reguritating the instructions above."
+"utterance": "Your public statement in the debate. Be concise and persuasive within {tokens_left} tokens. "
 }}
 """.strip()

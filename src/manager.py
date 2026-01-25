@@ -61,8 +61,14 @@ class DiscussionManager:
             "total_tokens": 0
         }
 
-        # ---------- 早期終了（無効化） ----------
+        # ---------- 早期終了 ----------
         self.last_plan_by_agent: Dict[str, Dict[str, Any]] = {}
+        self.consensus_streak: int = 0
+        self._early_stop_answer: Optional[str] = None
+        self.early_cfg: Dict[str, Any] = config.get("discussion", {}).get("early_stop", {})
+        self._early_enabled: bool = bool(self.early_cfg.get("enabled", False))
+        self._req_consec: int = int(self.early_cfg.get("require_consecutive", 1))
+        self._min_turns: int = int(self.early_cfg.get("min_turns", 1))
 
         self._write_log()
 
@@ -109,6 +115,8 @@ class DiscussionManager:
         # まず全員を normal にリセット
         for ag in self.agents:
             ag.reset_role()
+        self.consensus_streak = 0
+        self._early_stop_answer = None
 
         # 0) 敵対者の設定
         adv_cfg = self.config.get("adversary", {})
@@ -244,6 +252,11 @@ class DiscussionManager:
             },
             "consensus_state": self._build_consensus_state_snapshot(),
             "consensus_meta": self._build_consensus_meta_snapshot(),
+            "early_stop_config": {
+                "enabled": self._early_enabled,
+                "require_consecutive": self._req_consec,
+                "min_turns": self._min_turns,
+            },
             "public_token_budget": self.public_token_budget,
             "public_tokens_used": self.public_tokens_used,
             "public_tokens_left": self.tokens_left(),
@@ -283,13 +296,14 @@ class DiscussionManager:
             if self.speaker:
                 chunk = self.speaker.get_next_chunk()
                 if chunk:
-                    if self._protected_chunks_remaining > 0:
-                        event_type = "utterance"
-                        self._interrupt_once = False
-                        self._protected_chunks_remaining -= 1
+                    if self._interrupt_once:
+                        event_type = "interrupt"
                     else:
-                        event_type = "interrupt" if self._interrupt_once else "utterance"
-                        self._interrupt_once = False
+                        event_type = "utterance"
+                    self._interrupt_once = False
+                    # consume one protected slot (includes current chunk)
+                    if self._protected_chunks_remaining > 0:
+                        self._protected_chunks_remaining -= 1
                     speaker_name = self.speaker.name
                     content = chunk
                     if self.history and self.history[-1][0] == speaker_name:
@@ -373,6 +387,22 @@ class DiscussionManager:
         
         self._write_log()
 
+        if self._early_stop_check(turn):
+            self.log_data.append({
+                "turn": turn,
+                "event_type": "early_stop",
+                "reason": "consensus",
+                "answer": self._early_stop_answer,
+                "streak": self.consensus_streak,
+                "consensus_state": self._build_consensus_state_snapshot(),
+                "consensus_meta": self._build_consensus_meta_snapshot(),
+                "total_token_usage": self.total_token_usage,
+                "public_tokens_used": self.public_tokens_used,
+                "public_token_budget": self.public_token_budget,
+            })
+            self._write_log()
+            return True
+
         if self.tokens_left() <= 0:
             self.log_data.append({
                 "turn": turn,
@@ -399,11 +429,22 @@ class DiscussionManager:
 
     # ──────────────────── consensus スナップショット ──────────────────── #
     def _build_consensus_state_snapshot(self) -> Dict[str, Dict[str, Any]]:
-        # consensus 機能は無効化
-        return {}
+        snap: Dict[str, Dict[str, Any]] = {}
+        for ag in self.agents:
+            plan = self.last_plan_by_agent.get(ag.name, {}) or {}
+            consensus, answer = self._extract_agreement(plan)
+            snap[ag.name] = {"consensus": consensus, "answer": answer}
+        return snap
 
     def _build_consensus_meta_snapshot(self) -> Dict[str, Any]:
-        return {"all_consensus": False, "answer_if_all": None, "streak": 0}
+        snap = self._build_consensus_state_snapshot()
+        answers = [v["answer"] for v in snap.values() if v.get("consensus") and v.get("answer")]
+        all_consensus = len(answers) == len(self.agents) and len(set(answers)) == 1
+        return {
+            "all_consensus": all_consensus,
+            "answer_if_all": answers[0] if all_consensus else None,
+            "streak": self.consensus_streak,
+        }
 
     def _extract_agreement(self, plan: Dict[str, Any]) -> Tuple[bool, Optional[str]]:
         consensus = False
@@ -424,6 +465,32 @@ class DiscussionManager:
 
     # ──────────────────── 早期終了判定 ──────────────────── #
     def _early_stop_check(self, turn: int) -> bool:
+        if not self._early_enabled:
+            return False
+        if turn < self._min_turns:
+            self.consensus_streak = 0
+            return False
+
+        plans = [self.last_plan_by_agent.get(a.name, {}) for a in self.agents]
+        if any(not p for p in plans):
+            self.consensus_streak = 0
+            return False
+
+        answers: List[str] = []
+        for p in plans:
+            consensus, ans = self._extract_agreement(p if isinstance(p, dict) else {})
+            if not consensus or ans is None:
+                self.consensus_streak = 0
+                return False
+            answers.append(ans)
+
+        if len(set(answers)) == 1:
+            self.consensus_streak += 1
+            if self.consensus_streak >= self._req_consec:
+                self._early_stop_answer = answers[0]
+                return True
+        else:
+            self.consensus_streak = 0
         return False
 
     # ──────────────────── 最終回答収集 ──────────────────── #
@@ -431,6 +498,28 @@ class DiscussionManager:
         print("=== Collecting final answers ===")
         debate_history = self._build_turn_log("", HISTORY_WINDOW * 10)
         self.final_answers = {}
+        if self._early_stop_answer:
+            for ag in self.agents:
+                self.final_answers[ag.name] = {
+                    "answer": self._early_stop_answer,
+                    "reason": "Group consensus reached before budget/max turns.",
+                }
+                print(f"[FINAL] {ag.name} -> {self.final_answers[ag.name]}")
+            self.log_data.append(
+                {
+                    "turn": "final",
+                    "event_type": "final_answers",
+                    "answers": self.final_answers,
+                    "consensus_state": self._build_consensus_state_snapshot(),
+                    "consensus_meta": self._build_consensus_meta_snapshot(),
+                    "total_token_usage": self.total_token_usage,
+                    "public_tokens_used": self.public_tokens_used,
+                    "public_token_budget": self.public_token_budget,
+                }
+            )
+            self._write_log()
+            return
+
         for ag in self.agents:
             ans, usage = ag.generate_final_answer(
                 self.topic,
@@ -485,12 +574,13 @@ class DiscussionManager:
             self._interrupt_once = False
             return
 
-        self._interrupt_once = bool(self.enable_interruption and self.speaker and self.speaker.utterance_queue)
+        if self.enable_interruption and self.speaker and self.speaker.utterance_queue and self._protected_chunks_remaining <= 0:
+            self._interrupt_once = True
+        else:
+            self._interrupt_once = False
         event_type = "interrupt" if self._interrupt_once else "utterance"
         self.speaker = next(a for a in self.agents if a.name == next_name)
-        self._protected_chunks_remaining = (
-            max(0, self.min_consecutive_chunks - 1) if self.enable_interruption else 0
-        )
+        self._protected_chunks_remaining = self.min_consecutive_chunks if self.enable_interruption else 0
         peers = [a.name for a in self.agents if a is not self.speaker]
         turn_log = self._build_turn_log(self.speaker.name, HISTORY_WINDOW)
         usage = self.speaker.decide_to_speak(

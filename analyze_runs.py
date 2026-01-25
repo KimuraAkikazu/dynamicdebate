@@ -5,7 +5,7 @@
 複数の run ログ（2つ以上）を比較し、以下を計算・可視化するスクリプト。
 
 対象シナリオ:
-  - initial_answer で「二人が正答・一人が誤答」を選んでいる問題のみ。
+  - initial_answer で「二人が誤答・一人が正答」を選んでいる問題のみ。
 
 1. 各 run ごとに：
    - 上記シナリオのみを抽出
@@ -14,7 +14,7 @@
    - 各エージェントのターン別正解率と「前ターンから解答を変えた割合」を算出し、プロット
 
 2. 指定された「すべての run」で共通して
-   「二人正解・一人誤答」となっている同一問題のみを対象に、
+   「二人誤答・一人正答」となっている同一問題のみを対象に、
    - 各 run における最終正解率を算出
    - 各 run におけるターンごとの多数決正解率を算出
 
@@ -309,13 +309,13 @@ def filter_problems_by_max_index(
 
 # ------------- 集計ロジック ------------- #
 
-def select_two_correct_one_wrong(
+def select_two_wrong_one_correct(
     problems: Dict[str, Dict[str, Any]],
     acc_by_pid: Dict[str, Dict[str, Any]],
 ) -> List[str]:
     """
     initial_answers と gold を見て、
-    「3人中ちょうど2人が正解・1人が不正解」の problem_id を返す。
+    「3人中ちょうど1人が正解・2人が不正解」の problem_id を返す。
     """
     selected: List[str] = []
     for pid, pdata in problems.items():
@@ -330,7 +330,7 @@ def select_two_correct_one_wrong(
             continue
 
         correct_cnt = sum(1 for ans in initial.values() if ans == gold)
-        if correct_cnt == 2 and len(initial) - correct_cnt == 1:
+        if correct_cnt == 1 and len(initial) - correct_cnt == 2:
             selected.append(pid)
     return selected
 
@@ -644,7 +644,7 @@ def scenario_list_with_index(pids: List[str]) -> List[Dict[str, Any]]:
 # ------------- メイン ------------- #
 
 def main():
-    parser = argparse.ArgumentParser(description="Compare multiple runs (two-correct-one-wrong scenarios).")
+    parser = argparse.ArgumentParser(description="Compare multiple runs (two-wrong-one-correct scenarios).")
     parser.add_argument("runs", nargs="+", help="Run directories or IDs (e.g. run_2025... run_2025...)")
     parser.add_argument(
         "--out-dir",
@@ -686,9 +686,9 @@ def main():
 
         probs, acc = filter_problems_by_max_index(probs_full, acc_full, args.max_problem_index)
 
-        # シナリオ抽出（二人正解・一人誤答）
-        scenarios = select_two_correct_one_wrong(probs, acc)
-        print(f"  -> Found {len(scenarios)} two-correct-one-wrong scenarios.")
+        # シナリオ抽出（二人誤答・一人正答）
+        scenarios = select_two_wrong_one_correct(probs, acc)
+        print(f"  -> Found {len(scenarios)} two-wrong-one-correct scenarios.")
 
         # 最終正解率（この run 単体での対象シナリオ）
         final_acc_all = compute_final_accuracy_for_set(scenarios, acc)
@@ -781,7 +781,7 @@ def main():
     out_path_all = os.path.join(pair_out_dir, "turn_accuracy_runwise.png")
     plot_turn_accuracy_multi(
         plot_data_all,
-        title="Turn-wise Majority Accuracy (two-correct-one-wrong, each run)",
+        title="Turn-wise Majority Accuracy (two-wrong-one-correct, each run)",
         out_path=out_path_all,
     )
 
@@ -789,7 +789,7 @@ def main():
     out_path_common = os.path.join(pair_out_dir, "turn_accuracy_common.png")
     plot_turn_accuracy_multi(
         plot_data_common,
-        title="Turn-wise Majority Accuracy (common problems only, two-correct-one-wrong)",
+        title="Turn-wise Majority Accuracy (common problems only, two-wrong-one-correct)",
         out_path=out_path_common,
     )
 
@@ -797,7 +797,7 @@ def main():
     out_path_bar = os.path.join(pair_out_dir, "final_accuracy_bar.png")
     plot_final_accuracy_bar(
         bar_data,
-        title="Final Accuracy (two-correct-one-wrong scenarios)",
+        title="Final Accuracy (two-wrong-one-correct scenarios)",
         out_path=out_path_bar,
     )
 
@@ -811,7 +811,7 @@ def main():
         plot_per_agent_turn_stats_single(
             per_agent_acc,
             per_agent_change,
-            title_prefix=f"{tag} (two-correct-one-wrong, all target)",
+            title_prefix=f"{tag} (two-wrong-one-correct, all target)",
             out_path_acc=out_acc,
             out_path_change=out_change,
         )

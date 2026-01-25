@@ -222,6 +222,7 @@ class Agent:
                 topic=topic,
                 peer_names=peer_names,
                 target_answer=self.adversary_target,
+                tokens_left=tokens_left,
             )
         else:
             utterance_prompt = prompts.GENERATE_UTTERANCE_PROMPT_TEMPLATE.format(
@@ -245,6 +246,7 @@ class Agent:
                 persona=self.persona,
                 topic=topic,
                 peer_names=peer_names,
+                tokens_left=tokens_left,
             )
 
         # result is always (utterance_text, raw_text, usage)

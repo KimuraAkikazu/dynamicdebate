@@ -8,18 +8,18 @@ llm:
   max_tokens: 1026
 
 #Qwen2.5-7B-Instruct-Q8_0.gguf
-  # Llama-3.1-8B-Instruct-Q8_0.gguf
+  # Meta-Llama-3.1-8B-Instruct-Q8_0.gguf
   # Qwen2.5-7B-Instruct-Q8_0.gguf
 
 # 議論全体の設定
 discussion:
   topic: "Question:Statement 1 | A ring homomorphism is one to one if and only if the kernel is {0}. Statement 2 | Q is an ideal in R. Choice: A: True, True, B: False, False, C: True, False, D: False, True"
-  max_turns: 18
-  public_token_budget: 5000   # 公開発言トークン上限
+  max_turns: 50
+  public_token_budget: 1000   # 公開発言トークン上限
   min_consecutive_chunks: 2    # 割り込み前に保証する連続文数
-  enable_interruption: true # true: 割り込みあり(既存), false: 割り込みなし(動的順序だが発話完了を待つ)
+  enable_interruption: false # true: 割り込みあり(既存), false: 割り込みなし(動的順序だが発話完了を待つ)
   early_stop:
-    enabled: false
+    enabled: true
     require_consecutive: 1
     min_turns: 5
   thought_window: 5

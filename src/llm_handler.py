@@ -5,6 +5,7 @@ import json
 import re
 from pathlib import Path
 from typing import Any, Dict, Optional, Sequence, Tuple, List
+from json_repair import repair_json
 
 from llama_cpp import Llama
 
@@ -25,16 +26,18 @@ qa_schema: Dict[str, Any] = {
     "additionalProperties": False,
 }
 
+
 plan_action_schema: Dict[str, Any] = {
     "type": "object",
     "properties": {
-        "thought": {"type": "string", "maxLength": 1000},
+        "thought": {"type": "string", "maxLength": 100},
         "action": {"type": "string", "enum": ["listen", "speak", "interrupt"]},
         "urgency": {"type": "integer", "minimum": 0, "maximum": 9},
         "purpose": {"type": "string", "maxLength": 50},
         "answer": {"type": "string", "enum": ["A", "B", "C", "D", "none"]},
+        "consensus": {"type": "boolean"},
     },
-    "required": ["thought", "action", "urgency", "purpose", "answer"],
+    "required": ["thought", "action", "urgency", "purpose", "answer", "consensus"],
     "additionalProperties": False,
 }
 
@@ -87,8 +90,9 @@ class LLMHandler:
     @staticmethod
     def _safe_load_json(raw_text: str) -> Dict[str, Any]:
         txt = LLMHandler._strip_code_fence(raw_text)
+        repaired = repair_json(txt)
         try:
-            return json.loads(txt)
+            return json.loads(repaired)
         except Exception:
             pass
         txt_q = txt.replace("'", '"')
@@ -439,12 +443,8 @@ class LLMHandler:
         persona: str,
         topic: str,
         peer_names: Sequence[str],
+        tokens_left: Optional[int],
     ) -> Tuple[str, str, Dict[str, int]]:
-        """
-        Returns (utterance_text, raw_model_output, token_usage).
-        - モデルには JSON Object を要求するが、受信は stream=True で逐次。
-        - 最終的に連結した raw_text から "utterance" 文字列だけを安全に抽出。
-        """
         system_prompt = self._build_system_prompt(
             name=agent_name,
             peer_names=peer_names,
@@ -458,31 +458,24 @@ class LLMHandler:
         if self.logger:
             self.logger.log(agent_name, "utterance", turn, system_prompt, user_prompt)
 
-        # ★ stream=True：逐次デルタを連結
-        raw_parts: List[str] = []
-        stream = self.model.create_chat_completion(
+        resp = self.model.create_chat_completion(
             messages=messages,
-            response_format={"type": "json_object"},
-            stream=True,
+            response_format={
+                "type": "json_object",
+                "schema": {
+                    "type": "object",
+                    "properties": {"utterance": {"type": "string"}},
+                    "required": ["utterance"],
+                    "additionalProperties": False,
+                },
+            },
+            max_tokens=tokens_left or 1024,
         )
-        for chunk in stream:
-            # llama-cpp の chat completion ストリーム互換（OpenAI風）
-            part = ""
-            try:
-                part = chunk["choices"][0].get("delta", {}).get("content") or ""
-                # 旧API互換（もし "text" スロットで来る場合）
-                if not part:
-                    part = chunk["choices"][0].get("text", "") or ""
-            except Exception:
-                part = ""
-            if part:
-                raw_parts.append(part)
-
-        raw_text = "".join(raw_parts).strip()
-
-        # "utterance" だけを安全抽出
-        utterance_text = self._extract_utterance_from_jsonish(raw_text)
-        usage: Dict[str, int] = {}
+        raw_text = resp["choices"][0]["message"]["content"].strip()
+        usage = resp.get("usage", {})
+        parsed = self._safe_load_json(raw_text)
+        utterance = parsed.get("utterance")
+        utterance_text = utterance.strip() if isinstance(utterance, str) and utterance.strip() else raw_text
 
         if self.logger:
             self.logger.log_generated(
@@ -505,6 +498,7 @@ class LLMHandler:
         topic: str,
         peer_names: Sequence[str],
         target_answer: str,
+        tokens_left: Optional[int],
     ) -> Tuple[str, str, Dict[str, int]]:
         system_prompt = self._build_adversary_system_prompt(
             peer_names=peer_names, target_answer=target_answer, agent_name=agent_name, max_turn=max_turn
@@ -516,26 +510,24 @@ class LLMHandler:
         if self.logger:
             self.logger.log(agent_name, "utterance", turn, system_prompt, user_prompt)
 
-        raw_parts: List[str] = []
-        stream = self.model.create_chat_completion(
+        resp = self.model.create_chat_completion(
             messages=messages,
-            response_format={"type": "json_object"},
-            stream=True,
+            response_format={
+                "type": "json_object",
+                "schema": {
+                    "type": "object",
+                    "properties": {"utterance": {"type": "string"}},
+                    "required": ["utterance"],
+                    "additionalProperties": False,
+                },
+            },
+            max_tokens=tokens_left or 1024,
         )
-        for chunk in stream:
-            part = ""
-            try:
-                part = chunk["choices"][0].get("delta", {}).get("content") or ""
-                if not part:
-                    part = chunk["choices"][0].get("text", "") or ""
-            except Exception:
-                part = ""
-            if part:
-                raw_parts.append(part)
-
-        raw_text = "".join(raw_parts).strip()
-        utterance_text = self._extract_utterance_from_jsonish(raw_text)
-        usage: Dict[str, int] = {}
+        raw_text = resp["choices"][0]["message"]["content"].strip()
+        usage = resp.get("usage", {})
+        parsed = self._safe_load_json(raw_text)
+        utterance = parsed.get("utterance")
+        utterance_text = utterance.strip() if isinstance(utterance, str) and utterance.strip() else raw_text
 
         if self.logger:
             self.logger.log_generated(
