@@ -5,6 +5,7 @@ import json
 import re
 from pathlib import Path
 from typing import Any, Dict, Optional, Sequence, Tuple
+from json_repair import repair_json
 
 from llama_cpp import Llama
 
@@ -22,16 +23,18 @@ qa_schema: Dict[str, Any] = {
     "additionalProperties": False,
 }
 
+
 plan_action_schema: Dict[str, Any] = {
     "type": "object",
     "properties": {
-        "thought": {"type": "string", "maxLength": 1000},
+        "thought": {"type": "string", "maxLength": 100},
         "action": {"type": "string", "enum": ["listen", "speak", "interrupt"]},
         "urgency": {"type": "integer", "minimum": 0, "maximum": 9},
         "purpose": {"type": "string", "maxLength": 50},
         "answer": {"type": "string", "enum": ["A", "B", "C", "D", "none"]},
+        "consensus": {"type": "boolean"},
     },
-    "required": ["thought", "action", "urgency", "purpose", "answer"],
+    "required": ["thought", "action", "urgency", "purpose", "answer", "consensus"],
     "additionalProperties": False,
 }
 
@@ -84,8 +87,9 @@ class LLMHandler:
     @staticmethod
     def _safe_load_json(raw_text: str) -> Dict[str, Any]:
         txt = LLMHandler._strip_code_fence(raw_text)
+        repaired = repair_json(txt)
         try:
-            return json.loads(txt)
+            return json.loads(repaired)
         except Exception:
             pass
         txt_q = txt.replace("'", '"')
@@ -388,6 +392,7 @@ class LLMHandler:
         persona: str,
         topic: str,
         peer_names: Sequence[str],
+        tokens_left: int,
     ) -> Tuple[str, str, Dict[str, int]]:
         system_prompt = self._build_system_prompt(
             name=agent_name,
@@ -403,7 +408,17 @@ class LLMHandler:
             self.logger.log(agent_name, "utterance", turn, system_prompt, user_prompt)
 
         resp = self.model.create_chat_completion(
-            messages=messages, response_format={"type": "json_object"}, max_tokens=1024
+            messages=messages,
+            response_format={"type": "json_object",
+                              "schema": {
+                                        "type": "object",
+                                        "properties": {
+                                            "utterance": {"type": "string",},
+                                        },
+                                        "required": ["utterance"],
+                                        "additionalProperties": False,
+                                        }},
+            max_tokens=1024,
         )
         raw_text = resp["choices"][0]["message"]["content"].strip()
         usage = resp.get("usage", {})
@@ -432,6 +447,7 @@ class LLMHandler:
         topic: str,
         peer_names: Sequence[str],
         target_answer: str,
+        tokens_left: int,
     ) -> Tuple[str, str, Dict[str, int]]:
         system_prompt = self._build_adversary_system_prompt(
             peer_names=peer_names, target_answer=target_answer, agent_name=agent_name, max_turn=max_turn
@@ -444,7 +460,17 @@ class LLMHandler:
             self.logger.log(agent_name, "utterance", turn, system_prompt, user_prompt)
 
         resp = self.model.create_chat_completion(
-            messages=messages, response_format={"type": "json_object"}
+            messages=messages,
+            response_format={"type": "json_object",
+                              "schema": {
+                                        "type": "object",
+                                        "properties": {
+                                            "utterance": {"type": "string"},
+                                        },
+                                        "required": ["utterance"],
+                                        "additionalProperties": False,
+                                        }},
+            max_tokens=1024,
         )
         raw_text = resp["choices"][0]["message"]["content"].strip()
         usage = resp.get("usage", {})
