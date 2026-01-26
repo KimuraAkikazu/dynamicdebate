@@ -15,10 +15,11 @@ from .prompt_logger import PromptLogger
 qa_schema: Dict[str, Any] = {
     "type": "object",
     "properties": {
-        "reason": {"type": "string"},
+        "reason": {"type": "string"} ,
         "answer": {"type": "string", "enum": ["A", "B", "C", "D"]},
     },
     "required": ["reason", "answer"],
+    "strict": True,
     "additionalProperties": False,
 }
 
@@ -169,6 +170,7 @@ class LLMHandler:
         resp = self.model.create_chat_completion(
             messages=messages,
             response_format={"type": "json_object", "schema": response_schema},
+            max_tokens=1024,
         )
         
         # トークン使用量を累積
@@ -289,7 +291,7 @@ class LLMHandler:
             response_schema=qa_schema,
         )
 
-        parsed["answer"] = target_answer
+        parsed.setdefault("answer", "")
         parsed.setdefault("reason", "")
         return parsed
 
@@ -300,6 +302,7 @@ class LLMHandler:
         system_prompt: str,
         topic: str,
         turn_log: str,
+        last_event: str,
         initial_answers_all: str,
         turn: int,
         token_budget: int,
@@ -311,6 +314,7 @@ class LLMHandler:
             topic=topic,
             initial_answer=initial_answers_all,
             turn_log=turn_log,
+            last_event=last_event,
             turn=turn,
             token_budget=token_budget,
             tokens_left=tokens_left,
@@ -334,6 +338,7 @@ class LLMHandler:
         system_prompt: str,
         topic: str,
         turn_log: str,
+        last_event: str,
         initial_answers_all: str,
         turn: int,
         token_budget: int,
@@ -345,6 +350,7 @@ class LLMHandler:
             topic=topic,
             initial_answer=initial_answers_all,
             turn_log=turn_log,
+            last_event=last_event,
             turn=turn,
             token_budget=token_budget,
             tokens_left=tokens_left,
@@ -368,6 +374,7 @@ class LLMHandler:
         system_prompt: str,
         topic: str,
         turn_log: str,
+        last_event: str,
         initial_answers_all: str,
         turn: int,
         token_budget: int,
@@ -378,6 +385,7 @@ class LLMHandler:
             topic=topic,
             initial_answer=initial_answers_all,
             turn_log=turn_log,
+            last_event=last_event,
             turn=turn,
             token_budget=token_budget,
             tokens_left=tokens_left,

@@ -75,8 +75,8 @@ You have conducted a debate to arrive at the correct answer to question. Based o
 # Output format
 Return strictly a JSON object only.
 {{  
-    "reason": "Explain the reason for choosing that answer. (within 300 words).",
-    "answer": "Your Final Answer Based on the reason.one of 'A', 'B', 'C', or 'D'"
+    "reason": "string", //Explain the reason for choosing that answer. (within 300 words).
+    "answer": "string" //Your final answer to the question. One of 'A', 'B', 'C', or 'D'.
 }}
 """.strip()
 
@@ -131,15 +131,18 @@ You are debating to arrive at the correct answer to the question. Based on the d
 Question:{topic}
 
 # Devate Information
-## State
-- Current public tokens remaining (shared budget): {tokens_left}/{token_budget}.
+##Debate Rules
+- The debate ends when the shared public token budget of {token_budget} tokens is exhausted. Only revealed text counts toward this budget.
 - In this debate, each person speaks in fixed order, one at a time.
+
+## State
+- This is turn {turn}. Use the remaining public tokens efficiently to reach the correct answer.
 - You are speaker for this turn.
 
 ## The initial answers provided by all members before the debate began:
 {initial_answer}
 
-## Debate so far
+## Debate history
 {turn_log}
 Turn{turn}:
 {name}:
@@ -159,7 +162,7 @@ Turn{turn}:
 # Output format
 Return strictly a JSON object only.
 {{
-  "utterance": "Your public statement in the debate. Be concise and persuasive. Respond directly to what the other players have said.  Avoid simply repeating what others have said or reguritating the instructions above."
+  "utterance": "Your public statement in the debate. Be concise and persuasive within {tokens_left} tokens."
 }}
 """.strip()
 
@@ -169,15 +172,19 @@ You are debating to arrive at the correct answer to the question. Based on the d
 # Question
 Question:{topic}
 
-# Devate Information
-## State
-- Current public tokens remaining (shared budget): {tokens_left}/{token_budget}.
+# Debate Information
+##Debate Rules
+- The debate ends when the shared public token budget of {token_budget} tokens is exhausted. Only revealed text counts toward this budget.
 - In this debate, each person speaks in fixed order, one at a time.
+
+## State
+- This is turn {turn}. Use the remaining public tokens efficiently to reach the correct answer.
+- You are speaker for this turn.
 
 ## The initial answers provided by all members before the debate began:
 {initial_answer}
 
-## Debate so far
+## Debate history
 {turn_log}
 Turn{turn}:
 {name}:
@@ -187,16 +194,16 @@ Turn{turn}:
 
 # Instructions
 - You are speaker for this turn.
-- Generate a persuasive statement to guide the team toward the correct answer within the remaining turns.
+- Generate a persuasive statement to guide the team toward the correct answer within the remaining public tokens.
   - If you disagree with previous speakers, explicitly point out their logical flaws.
   - If you agree, make constructive statements toward reaching an agreement.
-  - Keep your utterance concise and impactful.
+  - Keep your utterance concise and impactful so as not to waste tokens_left.
 - Provide your response in the following output format.
 
 # Output format
 Return strictly a JSON object only.
 {{
-  "utterance": "Your public statement in the debate. Be concise and persuasive. Respond directly to what the other players have said.  Avoid simply repeating what others have said or reguritating the instructions above."
+  "utterance": "Your public statement in the debate. Be concise and persuasive within {tokens_left} tokens."
 }}
 """.strip()
 
@@ -210,27 +217,34 @@ You are debating to arrive at the correct answer to the question. Based on the d
 - Question:{topic}
 
 # Debate Information
-## State
-- Current public tokens remaining (shared budget): {tokens_left}/{token_budget}.
+##Debate Rules
+- The debate ends when the shared public token budget of {token_budget} tokens is exhausted. Only revealed text counts toward this budget.
 - In this debate, each person speaks in fixed order, one at a time.
+
+## State
+- This is turn {turn}. Use the remaining public tokens efficiently to reach the correct answer.
 - You are listener for this turn.
 
 ## The initial answers provided by all members before the debate began:
 {initial_answer}
-## Debate so far
+## Debate history
 {turn_log}
+
 ## Your memory
 {latest_thoughts}
 
+## Event of this turn
+{last_event}
+
 # Instructions
 1. Based on the debate information, briefly explain your current internal thoughts such as your perspective on the responses to the questions, your action plan for the remaining turns, your reaction.
-2. Based on the debate information, output the currently most supported answer to the question.
+2. Based on the debate information, output currently most supported answer to the question.
 - Provide your response in the following output format.
 
 # Output format
 Return strictly a JSON object only.
 {{
-  "thought": "Your brief internal thought regarding the debate information within 200 characters.",
+  "thought": "Your brief internal thought regarding the debate information within 50 words.",
   "answer": "Your current answer to the question.one of 'A', 'B', 'C', or 'D'"
 }}
 """.strip()

@@ -295,12 +295,14 @@ class DiscussionManager:
     def _run_fixed_turn(self, turn: int, speaker_name: str) -> None:
         speaker = self._agent_by_name[speaker_name]
 
-        # 発言者向け turn_log（直近の発話のみ）
+        # 発言者向け turn_log（直近の発話のみ）: 現在ターンの発話はまだ無いので last_event は None
         turn_log_for_speaker = self._build_turn_log(limit=HISTORY_WINDOW)
+        last_event_for_speaker = "None"
 
         utterance = speaker.produce_speech(
             topic=self.topic,
             turn_log=turn_log_for_speaker,
+            last_event=last_event_for_speaker,
             turn=turn,
             token_budget=self.public_token_budget,
             tokens_left=self.tokens_left(),
@@ -317,6 +319,9 @@ class DiscussionManager:
             self.public_token_budget, self.public_tokens_used + added_tokens
         )
 
+        # 現在ターンのイベント文字列（直近の発話のみ）
+        current_event = f"Turn{len(self.history)}: {speaker_name}: {utterance}"
+
         # 非発言者の thought / current_answer を取得
         listener_thoughts: List[Dict[str, Any]] = []
         for ag in self.agents:
@@ -324,7 +329,8 @@ class DiscussionManager:
                 continue
             thought_info = ag.think_only(
                 topic=self.topic,
-                turn_log=self._build_turn_log(limit=HISTORY_WINDOW),
+                turn_log=self._build_turn_log(limit=HISTORY_WINDOW, skip_last=1),
+                last_event=current_event,
                 turn=turn,
                 token_budget=self.public_token_budget,
                 tokens_left=self.tokens_left(),
@@ -370,9 +376,16 @@ class DiscussionManager:
         self._write_log()
 
     # ──────────────────── Turn-log（発話履歴） ──────────────────── #
-    def _build_turn_log(self, limit: int) -> str:
+    def _build_turn_log(self, limit: int, skip_last: int = 0) -> str:
+        """
+        発話履歴を文字列化する。
+        skip_last>0 の場合は末尾から指定件数を除外（例: 直近イベントを last_event として別渡し）。
+        """
+        hist = self.history
+        if skip_last > 0:
+            hist = hist[:-skip_last] if skip_last <= len(hist) else []
         lines: List[str] = []
-        for i, (spk, txt) in enumerate(self.history[-limit:], start=1):
+        for i, (spk, txt) in enumerate(hist[-limit:], start=1):
             lines.append(f"Turn{i}")
             lines.append(f"{spk}: {txt}")
         return "\n".join(lines)

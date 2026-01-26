@@ -13,7 +13,7 @@ llm:
 # 議論全体の設定
 discussion:
   topic: "Question:Statement 1 | A ring homomorphism is one to one if and only if the kernel is {0}. Statement 2 | Q is an ideal in R. Choice: A: True, True, B: False, False, C: True, False, D: False, True"
-  public_token_budget: 600  # 公開トークン予算
+  public_token_budget: 500  # 公開トークン予算
   max_turns: 20
   thought_window: 20
   early_stop:
