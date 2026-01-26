@@ -75,8 +75,8 @@ You have conducted a debate to arrive at the correct answer to question. Based o
 # Output format
 Return strictly a JSON object only.
 {{  
-    "reason": "string", //Explain the reason for choosing that answer. (within 300 words).
-    "answer": "string" //Your final answer to the question. One of 'A', 'B', 'C', or 'D'.
+    "reason": "Explain the reason for choosing that answer. (within 300 words).", 
+    "answer": "Your final answer to the question. One of 'A', 'B', 'C', or 'D'." 
 }}
 """.strip()
 
@@ -112,7 +112,7 @@ Return strictly a JSON object only.
 SYSTEM_PROMPT = """
 You are {name}.
 You are participating in a rigorous debate with {peer1}, {peer2}.
-Your goal is to exchange opinions, and collectively determine the ccorect answer to the question available public token budget.
+Your goal is to exchange opinions, and collectively determine the correct answer to the question within the available public token budget.
 
 # Constraint
 - You must always respond in valid JSON format. Do not output any conversational text outside the JSON block.
@@ -139,7 +139,7 @@ Question:{topic}
 - This is turn {turn}. Use the remaining public tokens efficiently to reach the correct answer.
 - You are speaker for this turn.
 
-## The initial answers provided by all members before the debate began:
+## The initial answers provided by all members before the debate began
 {initial_answer}
 
 ## Debate history
@@ -152,7 +152,7 @@ Turn{turn}:
 
 
 # Instructions
-- You are speaker for this turn.
+- You are {name}.You are speaker for this turn.
 - Generate a persuasive statement to guide the team toward the correct answer within the remaining turns.
   - If you disagree with previous speakers, explicitly point out their logical flaws.
   - If you agree, make constructive statements toward reaching an agreement.
@@ -181,7 +181,7 @@ Question:{topic}
 - This is turn {turn}. Use the remaining public tokens efficiently to reach the correct answer.
 - You are speaker for this turn.
 
-## The initial answers provided by all members before the debate began:
+## The initial answers provided by all members before the debate began
 {initial_answer}
 
 ## Debate history
@@ -193,7 +193,7 @@ Turn{turn}:
 {latest_thoughts}
 
 # Instructions
-- You are speaker for this turn.
+- You are {name}.You are speaker for this turn.
 - Generate a persuasive statement to guide the team toward the correct answer within the remaining public tokens.
   - If you disagree with previous speakers, explicitly point out their logical flaws.
   - If you agree, make constructive statements toward reaching an agreement.
@@ -225,7 +225,7 @@ You are debating to arrive at the correct answer to the question. Based on the d
 - This is turn {turn}. Use the remaining public tokens efficiently to reach the correct answer.
 - You are listener for this turn.
 
-## The initial answers provided by all members before the debate began:
+## The initial answers provided by all members before the debate began
 {initial_answer}
 ## Debate history
 {turn_log}
@@ -237,14 +237,14 @@ You are debating to arrive at the correct answer to the question. Based on the d
 {last_event}
 
 # Instructions
-1. Based on the debate information, briefly explain your current internal thoughts such as your perspective on the responses to the questions, your action plan for the remaining turns, your reaction.
-2. Based on the debate information, output currently most supported answer to the question.
+1. Based on the debate so far and the utterance of this turn, briefly explain your current internal thoughts such as your perspective on the responses to the questions, your action plan for the remaining turns, your reaction.
+2. Based on the debate so far, output your answer to the question at this turn.
 - Provide your response in the following output format.
 
 # Output format
 Return strictly a JSON object only.
 {{
-  "thought": "Your brief internal thought regarding the debate information within 50 words.",
+  "thought": "Your brief internal thought regarding the debate information in one or two sentences.",
   "answer": "Your current answer to the question.one of 'A', 'B', 'C', or 'D'"
 }}
 """.strip()
