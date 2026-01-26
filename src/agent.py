@@ -22,8 +22,8 @@ class Agent:
         self.peer_names: List[str] = []
 
         # runtime state
-        # thought_history: List[(turn, thought, current_answer, consensus)]
-        self.thought_history: List[Tuple[int, str, str, bool]] = []
+        # thought_history: List[(turn, thought, current_answer)]
+        self.thought_history: List[Tuple[int, str, str]] = []
         self.initial_answer: Dict[str, str] = {}
         self.initial_answer_str: str = ""
         self.all_initial_answers_str: str = ""  # 全員分
@@ -52,7 +52,7 @@ class Agent:
         recent = self.thought_history[-self.thought_window:]
         
         lines = []
-        for (turn, thought, _, _) in recent:
+        for (turn, thought, _) in recent:
             lines.append(f"Turn {turn}: {thought}")
             
         return "\n".join(lines)
@@ -137,8 +137,8 @@ class Agent:
         topic: str,
         turn_log: str,
         turn: int,
-        turns_left_for_agent: int,
-        max_turn: int,
+        token_budget: int,
+        tokens_left: int,
     ) -> str:
         system_prompt = self._build_system_prompt()
         latest_thoughts = self._get_latest_thoughts_str()
@@ -151,8 +151,8 @@ class Agent:
                 turn_log=turn_log,
                 initial_answers_all=self.all_initial_answers_str,
                 turn=turn,
-                turns_left_for_agent=turns_left_for_agent,
-                max_turn=max_turn,
+                token_budget=token_budget,
+                tokens_left=tokens_left,
                 latest_thoughts=latest_thoughts,
             )
         else:
@@ -163,8 +163,8 @@ class Agent:
                 turn_log=turn_log,
                 initial_answers_all=self.all_initial_answers_str,
                 turn=turn,
-                turns_left_for_agent=turns_left_for_agent,
-                max_turn=max_turn,
+                token_budget=token_budget,
+                tokens_left=tokens_left,
                 latest_thoughts=latest_thoughts,
             )
 
@@ -185,12 +185,13 @@ class Agent:
         topic: str,
         turn_log: str,
         turn: int,
-        max_turn: int,
+        token_budget: int,
+        tokens_left: int,
     ) -> Dict[str, Any]:
         system_prompt = self._build_system_prompt()
         latest_thoughts = self._get_latest_thoughts_str()
 
-        thought, current_answer, consensus, raw_text = (
+        thought, current_answer, raw_text = (
             self.llm_handler.generate_listener_thought(
                 agent_name=self.name,
                 system_prompt=system_prompt,
@@ -198,12 +199,13 @@ class Agent:
                 turn_log=turn_log,
                 initial_answers_all=self.all_initial_answers_str,
                 turn=turn,
-                max_turn=max_turn,
+                token_budget=token_budget,
+                tokens_left=tokens_left,
                 latest_thoughts=latest_thoughts,
             )
         )
 
-        self.thought_history.append((turn, thought, current_answer, consensus))
+        self.thought_history.append((turn, thought, current_answer))
 
         if self.llm_handler.logger:
             self.llm_handler.logger.log_generated(
@@ -216,5 +218,4 @@ class Agent:
         return {
             "thought": thought,
             "answer": current_answer,
-            "consensus": consensus,
         }

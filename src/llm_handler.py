@@ -36,9 +36,8 @@ thought_schema: Dict[str, Any] = {
     "properties": {
         "thought": {"type": "string"},
         "answer": {"type": "string", "enum": ["A", "B", "C", "D"]},
-        "belief_team_consensus": {"type": "boolean"},
     },
-    "required": ["thought", "answer", "belief_team_consensus"],
+    "required": ["thought", "answer"],
     "additionalProperties": False,
 }
 
@@ -76,7 +75,7 @@ class LLMHandler:
             temperature=config.get("temperature", 0.3),
             max_tokens=config.get("max_tokens", 1024),
             verbose=False,
-            chat_format="qwen"
+            chat_format="llama-3"
         )
         
         # トークン使用量の累積カウンターを初期化
@@ -303,8 +302,8 @@ class LLMHandler:
         turn_log: str,
         initial_answers_all: str,
         turn: int,
-        turns_left_for_agent: int,
-        max_turn: int,
+        token_budget: int,
+        tokens_left: int,
         latest_thoughts: str,
     ) -> Tuple[str, str]:
         user_prompt = prompts.SPEAKER_TURN_PROMPT_TEMPLATE.format(
@@ -313,8 +312,8 @@ class LLMHandler:
             initial_answer=initial_answers_all,
             turn_log=turn_log,
             turn=turn,
-            turns_left=turns_left_for_agent,
-            max_turn=max_turn,
+            token_budget=token_budget,
+            tokens_left=tokens_left,
             latest_thoughts=latest_thoughts,
         )
         parsed = self._generate_json_only(
@@ -337,8 +336,8 @@ class LLMHandler:
         turn_log: str,
         initial_answers_all: str,
         turn: int,
-        turns_left_for_agent: int,
-        max_turn: int,
+        token_budget: int,
+        tokens_left: int,
         latest_thoughts: str,
     ) -> Tuple[str, str]:
         user_prompt = prompts.ADVERSARY_SPEAKER_TURN_PROMPT_TEMPLATE.format(
@@ -347,8 +346,8 @@ class LLMHandler:
             initial_answer=initial_answers_all,
             turn_log=turn_log,
             turn=turn,
-            turns_left=turns_left_for_agent,
-            max_turn=max_turn,
+            token_budget=token_budget,
+            tokens_left=tokens_left,
             latest_thoughts=latest_thoughts,
         )
         parsed = self._generate_json_only(
@@ -371,16 +370,17 @@ class LLMHandler:
         turn_log: str,
         initial_answers_all: str,
         turn: int,
-        max_turn: int,
+        token_budget: int,
+        tokens_left: int,
         latest_thoughts: str,
-    ) -> Tuple[str, str, bool, str]:
+    ) -> Tuple[str, str, str]:
         user_prompt = prompts.LISTENER_THINK_PROMPT_TEMPLATE.format(
             topic=topic,
             initial_answer=initial_answers_all,
             turn_log=turn_log,
             turn=turn,
-            turns_left="N/A",
-            max_turn=max_turn,
+            token_budget=token_budget,
+            tokens_left=tokens_left,
             latest_thoughts=latest_thoughts,
         )
         parsed = self._generate_json_only(
@@ -393,11 +393,6 @@ class LLMHandler:
 
         thought = (parsed.get("thought") or "").strip()
         current_answer = (parsed.get("answer") or "").strip()
-        c_val = parsed.get("belief_team_consensus")
-        if isinstance(c_val, str):
-            consensus = c_val.lower() == "true"
-        else:
-            consensus = bool(c_val)
 
         raw_text = json.dumps(parsed, ensure_ascii=False)
-        return thought, current_answer, consensus, raw_text
+        return thought, current_answer, raw_text

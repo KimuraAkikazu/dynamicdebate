@@ -3,7 +3,7 @@ llm:
   # Hugging FaceのリポジトリID
   repo_id: "bartowski/Meta-Llama-3.1-8B-Instruct-GGUF"
   # ダウンロードするモデルファイル名
-  filename: "Qwen2.5-7B-Instruct-Q8_0.gguf"
+  filename: "Meta-Llama-3.1-8B-Instruct-Q8_0.gguf"
   # llama-cpp-python用の設定
   n_gpu_layers: -1  # GPUにオフロードするレイヤー数 (-1で全て)
   n_ctx: 35000       # コンテキストウィンドウサイズ
@@ -13,7 +13,8 @@ llm:
 # 議論全体の設定
 discussion:
   topic: "Question:Statement 1 | A ring homomorphism is one to one if and only if the kernel is {0}. Statement 2 | Q is an ideal in R. Choice: A: True, True, B: False, False, C: True, False, D: False, True"
-  max_turns: 9
+  public_token_budget: 600  # 公開トークン予算
+  max_turns: 20
   thought_window: 20
   early_stop:
     enabled: true           # 早期終了の有効/無効

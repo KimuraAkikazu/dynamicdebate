@@ -44,6 +44,12 @@ class DiscussionManager:
         )
         self.max_turns: int = len(self.order) * self.turns_per_agent
 
+        # 公開トークン制御
+        self.public_token_budget: int = int(
+            config.get("discussion", {}).get("public_token_budget", 600)
+        )
+        self.public_tokens_used: int = 0
+
         # name -> Agent
         self._agent_by_name = {a.name: a for a in self.agents}
         missing = [n for n in self.order if n not in self._agent_by_name]
@@ -65,12 +71,23 @@ class DiscussionManager:
         self.final_answers: Dict[str, Dict[str, str]] = {}
         self.log_data: List[Dict[str, Any]] = []
 
-        # 早期終了用
-        self.early_stop_answer: Optional[str] = None
-        self.early_stop_turn: Optional[int] = None
-        self.early_stop_states: Optional[List[Dict[str, Any]]] = None
-
         self._write_log()  # 空配列でファイルを作成
+
+    # ───────────────────────── トークン関連 ───────────────────────── #
+    def tokens_left(self) -> int:
+        return max(0, self.public_token_budget - self.public_tokens_used)
+
+    def _count_tokens(self, text: str) -> int:
+        if not text:
+            return 0
+        try:
+            if self.agents and self.agents[0].llm_handler and getattr(
+                self.agents[0].llm_handler, "model", None
+            ):
+                return len(self.agents[0].llm_handler.model.tokenize(text.encode("utf-8")))
+        except Exception:
+            pass
+        return max(1, len(text.split()))
 
     # ───────────────────────── 公開 API ───────────────────────── #
     def run_discussion(self) -> Dict[str, Dict[str, str]]:
@@ -78,19 +95,12 @@ class DiscussionManager:
         self._initialize_discussion()
 
         turn = 0
-        for _r in range(1, self.turns_per_agent + 1):
+        while self.tokens_left() > 0:
             for name in self.order:
+                if self.tokens_left() <= 0:
+                    break
                 turn += 1
                 self._run_fixed_turn(turn, speaker_name=name)
-
-                if self.early_stop_answer is not None:
-                    print(
-                        f"=== Early consensus reached at turn {turn}: "
-                        f"answer={self.early_stop_answer} ==="
-                    )
-                    break
-            if self.early_stop_answer is not None:
-                break
 
         print("=== Debate End ===")
         self._collect_final_answers()
@@ -288,15 +298,12 @@ class DiscussionManager:
         # 発言者向け turn_log（直近の発話のみ）
         turn_log_for_speaker = self._build_turn_log(limit=HISTORY_WINDOW)
 
-        turns_left_for_agent = self._turns_left_of_agent_after_this_turn(
-            speaker_name, turn
-        )
         utterance = speaker.produce_speech(
             topic=self.topic,
             turn_log=turn_log_for_speaker,
             turn=turn,
-            turns_left_for_agent=turns_left_for_agent,
-            max_turn=self.max_turns,
+            token_budget=self.public_token_budget,
+            tokens_left=self.tokens_left(),
         )
         if utterance:
             print(f"[Turn {turn}] {speaker_name}: {utterance}")
@@ -304,7 +311,13 @@ class DiscussionManager:
         else:
             print(f"[Turn {turn}] {speaker_name}: (empty utterance)")
 
-        # 非発言者の thought / current_answer / consensus を取得
+        # 公開トークン加算（少なくとも1トークン消費させて停滞を防ぐ）
+        added_tokens = max(1, self._count_tokens(utterance))
+        self.public_tokens_used = min(
+            self.public_token_budget, self.public_tokens_used + added_tokens
+        )
+
+        # 非発言者の thought / current_answer を取得
         listener_thoughts: List[Dict[str, Any]] = []
         for ag in self.agents:
             if ag is speaker:
@@ -313,14 +326,14 @@ class DiscussionManager:
                 topic=self.topic,
                 turn_log=self._build_turn_log(limit=HISTORY_WINDOW),
                 turn=turn,
-                max_turn=self.max_turns,
+                token_budget=self.public_token_budget,
+                tokens_left=self.tokens_left(),
             )
             listener_thoughts.append(
                 {
                     "agent_name": ag.name,
                     "thought": thought_info.get("thought", ""),
                     "answer": thought_info.get("answer", ""),
-                    "consensus": bool(thought_info.get("consensus", False)),
                 }
             )
 
@@ -328,40 +341,19 @@ class DiscussionManager:
         agent_states: List[Dict[str, Any]] = []
         for ag in self.agents:
             if ag.thought_history:
-                last_turn, thought, current_answer, consensus = ag.thought_history[-1]
+                last_turn, thought, current_answer = ag.thought_history[-1]
             else:
                 # 修正: thought_history が空の場合は初期回答を使用する
                 thought = ""  # 発言者の思考は表出しないので空でOK
                 current_answer = ag.initial_answer.get("answer", "")
-                consensus = False
 
             agent_states.append(
                 {
                     "agent_name": ag.name,
                     # "thought": thought,  # 必要なら有効化
                     "answer": current_answer,
-                    "consensus": consensus,
                 }
             )
-
-        # 合意判定（全員 consensus==True かつ current_answer が一致）
-        consensus_all_true = bool(agent_states) and all(
-            st["consensus"] for st in agent_states
-        )
-        consensus_answer: Optional[str] = None
-        if consensus_all_true:
-            answers = {st["answer"] for st in agent_states if st["answer"]}
-            if len(answers) == 1:
-                only_ans = next(iter(answers))
-                if only_ans in {"A", "B", "C", "D"}:
-                    consensus_answer = only_ans
-                    self.early_stop_answer = only_ans
-                    self.early_stop_turn = turn
-                    self.early_stop_states = agent_states
-                    print(
-                        f"[Consensus] Early stop triggered at turn {turn}, "
-                        f"answer={only_ans}"
-                    )
 
         record: Dict[str, Any] = {
             "turn": turn,
@@ -370,11 +362,10 @@ class DiscussionManager:
             "content": utterance,
             "listener_thoughts": listener_thoughts,
             "agent_states": agent_states,
-            "consensus_all_true": consensus_all_true,
-            "consensus_answer": consensus_answer,
+            "public_token_budget": self.public_token_budget,
+            "public_tokens_used": self.public_tokens_used,
+            "public_tokens_left": self.tokens_left(),
         }
-        if self.early_stop_answer is not None and self.early_stop_turn == turn:
-            record["early_stop"] = True
         self.log_data.append(record)
         self._write_log()
 
@@ -407,37 +398,6 @@ class DiscussionManager:
             token_usage = self.agents[0].llm_handler.total_token_usage
             print(f"[Usage] Total Tokens: {token_usage}")
 
-        if self.early_stop_answer is not None and self.early_stop_states is not None:
-            self.final_answers = {}
-            for ag in self.agents:
-                st = next(
-                    (s for s in self.early_stop_states if s["agent_name"] == ag.name),
-                    None,
-                )
-                reason = ""
-                if st is not None:
-                    reason = st.get("thought", "")  # thought は上でコメントアウトしているので基本 ""
-                self.final_answers[ag.name] = {
-                    "answer": self.early_stop_answer,
-                    "reason": reason,
-                }
-                print(f"[FINAL/EARLY] {ag.name} -> {self.final_answers[ag.name]}")
-
-            self.log_data.append(
-                {
-                    "turn": "final",
-                    "event_type": "final_answers",
-                    "answers": self.final_answers,
-                    "early_stop": True,
-                    "early_stop_turn": self.early_stop_turn,
-                    "early_stop_answer": self.early_stop_answer,
-                    "token_usage": token_usage,  # ログに追加
-                }
-            )
-            self._write_log()
-            return
-
-        # 通常ケース
         debate_history = "\n".join(
             f"Turn{i} \n {spk}: {txt}"
             for i, (spk, txt) in enumerate(self.history[-1000:], start=1)
@@ -453,8 +413,10 @@ class DiscussionManager:
                 "turn": "final",
                 "event_type": "final_answers",
                 "answers": self.final_answers,
-                "early_stop": False,
                 "token_usage": token_usage, # ログに追加
+                "public_token_budget": self.public_token_budget,
+                "public_tokens_used": self.public_tokens_used,
+                "public_tokens_left": self.tokens_left(),
             }
         )
         self._write_log()

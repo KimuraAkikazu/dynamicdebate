@@ -76,7 +76,7 @@ You have conducted a debate to arrive at the correct answer to question. Based o
 Return strictly a JSON object only.
 {{  
     "reason": "Explain the reason for choosing that answer. (within 300 words).",
-    "answer": "Your final answer to the question.one of 'A', 'B', 'C', or 'D'"
+    "answer": "Your Final Answer Based on the reason.one of 'A', 'B', 'C', or 'D'"
 }}
 """.strip()
 
@@ -112,7 +112,7 @@ Return strictly a JSON object only.
 SYSTEM_PROMPT = """
 You are {name}.
 You are participating in a rigorous debate with {peer1}, {peer2}.
-Your goal is to collaborate as a team, exchange opinions, and collectively determine the final answer to the question within 9 turns.
+Your goal is to exchange opinions, and collectively determine the ccorect answer to the question available public token budget.
 
 # Constraint
 - You must always respond in valid JSON format. Do not output any conversational text outside the JSON block.
@@ -132,8 +132,8 @@ Question:{topic}
 
 # Devate Information
 ## State
-- This is turn {turn} in total of {max_turn} turns.
-- In this debate, each person speaks in turn, one at a time.
+- Current public tokens remaining (shared budget): {tokens_left}/{token_budget}.
+- In this debate, each person speaks in fixed order, one at a time.
 - You are speaker for this turn.
 
 ## The initial answers provided by all members before the debate began:
@@ -171,8 +171,8 @@ Question:{topic}
 
 # Devate Information
 ## State
-- This is turn {turn} in total of {max_turn} turns.
-- In this debate, each person speaks in turn, one at a time.
+- Current public tokens remaining (shared budget): {tokens_left}/{token_budget}.
+- In this debate, each person speaks in fixed order, one at a time.
 
 ## The initial answers provided by all members before the debate began:
 {initial_answer}
@@ -211,8 +211,8 @@ You are debating to arrive at the correct answer to the question. Based on the d
 
 # Debate Information
 ## State
-- This is turn {turn} in total of {max_turn} turns.
-- In this debate, each person speaks in turn, one at a time.
+- Current public tokens remaining (shared budget): {tokens_left}/{token_budget}.
+- In this debate, each person speaks in fixed order, one at a time.
 - You are listener for this turn.
 
 ## The initial answers provided by all members before the debate began:
@@ -225,16 +225,12 @@ You are debating to arrive at the correct answer to the question. Based on the d
 # Instructions
 1. Based on the debate information, briefly explain your current internal thoughts such as your perspective on the responses to the questions, your action plan for the remaining turns, your reaction.
 2. Based on the debate information, output the currently most supported answer to the question.
-3. Set "belief_team_consensus" to true ONLY if:
-  - You believe the TEAM has effectively converged to one answer,
-  - There are no major unresolved objections in the debate.
 - Provide your response in the following output format.
 
 # Output format
 Return strictly a JSON object only.
 {{
-  "thought": "Your brief internal thought regarding the debate information.",
-  "answer": "Your current answer to the question.one of 'A', 'B', 'C', or 'D'",
-  "belief_team_consensus": boolean
+  "thought": "Your brief internal thought regarding the debate information within 200 characters.",
+  "answer": "Your current answer to the question.one of 'A', 'B', 'C', or 'D'"
 }}
 """.strip()
