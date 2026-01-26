@@ -1040,9 +1040,12 @@ def main():
             "scenarios": scenario_list_with_index(common_pids),
         }
     }
+    tags = ["proposed framework", "dynamic order without interruption", "fixed order"]
+    i = 0
 
     for r_data in all_runs_data:
-        tag = r_data["tag"]
+        tag = tags[i]
+        i += 1
         run_is_roundrobin = r_data["metrics"].get("is_roundrobin", False)
 
         acc_final_common = compute_final_accuracy_for_set(common_pids, r_data["acc"])
