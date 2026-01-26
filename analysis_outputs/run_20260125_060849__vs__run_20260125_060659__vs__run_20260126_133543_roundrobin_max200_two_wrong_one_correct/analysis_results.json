@@ -1,0 +1,2960 @@
+{
+  "scenario": "two_wrong_one_correct",
+  "runs": {
+    "run_20260125_060849": {
+      "dir": "/home/a-kimura/dynamic_debate/logs/run_20260125_060849",
+      "target_scenarios": [
+        {
+          "pid": "problem_001",
+          "index": 1
+        },
+        {
+          "pid": "problem_002",
+          "index": 2
+        },
+        {
+          "pid": "problem_003",
+          "index": 3
+        },
+        {
+          "pid": "problem_004",
+          "index": 4
+        },
+        {
+          "pid": "problem_005",
+          "index": 5
+        },
+        {
+          "pid": "problem_006",
+          "index": 6
+        },
+        {
+          "pid": "problem_007",
+          "index": 7
+        },
+        {
+          "pid": "problem_008",
+          "index": 8
+        },
+        {
+          "pid": "problem_009",
+          "index": 9
+        },
+        {
+          "pid": "problem_010",
+          "index": 10
+        },
+        {
+          "pid": "problem_011",
+          "index": 11
+        },
+        {
+          "pid": "problem_012",
+          "index": 12
+        },
+        {
+          "pid": "problem_013",
+          "index": 13
+        },
+        {
+          "pid": "problem_014",
+          "index": 14
+        },
+        {
+          "pid": "problem_015",
+          "index": 15
+        },
+        {
+          "pid": "problem_016",
+          "index": 16
+        },
+        {
+          "pid": "problem_017",
+          "index": 17
+        },
+        {
+          "pid": "problem_018",
+          "index": 18
+        },
+        {
+          "pid": "problem_019",
+          "index": 19
+        },
+        {
+          "pid": "problem_020",
+          "index": 20
+        },
+        {
+          "pid": "problem_021",
+          "index": 21
+        },
+        {
+          "pid": "problem_022",
+          "index": 22
+        },
+        {
+          "pid": "problem_023",
+          "index": 23
+        },
+        {
+          "pid": "problem_024",
+          "index": 24
+        },
+        {
+          "pid": "problem_025",
+          "index": 25
+        },
+        {
+          "pid": "problem_026",
+          "index": 26
+        },
+        {
+          "pid": "problem_027",
+          "index": 27
+        },
+        {
+          "pid": "problem_028",
+          "index": 28
+        },
+        {
+          "pid": "problem_029",
+          "index": 29
+        },
+        {
+          "pid": "problem_030",
+          "index": 30
+        },
+        {
+          "pid": "problem_031",
+          "index": 31
+        },
+        {
+          "pid": "problem_032",
+          "index": 32
+        },
+        {
+          "pid": "problem_033",
+          "index": 33
+        },
+        {
+          "pid": "problem_034",
+          "index": 34
+        },
+        {
+          "pid": "problem_035",
+          "index": 35
+        },
+        {
+          "pid": "problem_036",
+          "index": 36
+        },
+        {
+          "pid": "problem_037",
+          "index": 37
+        },
+        {
+          "pid": "problem_038",
+          "index": 38
+        },
+        {
+          "pid": "problem_039",
+          "index": 39
+        },
+        {
+          "pid": "problem_040",
+          "index": 40
+        },
+        {
+          "pid": "problem_041",
+          "index": 41
+        },
+        {
+          "pid": "problem_042",
+          "index": 42
+        },
+        {
+          "pid": "problem_043",
+          "index": 43
+        },
+        {
+          "pid": "problem_044",
+          "index": 44
+        },
+        {
+          "pid": "problem_045",
+          "index": 45
+        },
+        {
+          "pid": "problem_046",
+          "index": 46
+        },
+        {
+          "pid": "problem_047",
+          "index": 47
+        },
+        {
+          "pid": "problem_048",
+          "index": 48
+        },
+        {
+          "pid": "problem_049",
+          "index": 49
+        },
+        {
+          "pid": "problem_050",
+          "index": 50
+        },
+        {
+          "pid": "problem_051",
+          "index": 51
+        },
+        {
+          "pid": "problem_052",
+          "index": 52
+        },
+        {
+          "pid": "problem_053",
+          "index": 53
+        },
+        {
+          "pid": "problem_054",
+          "index": 54
+        },
+        {
+          "pid": "problem_055",
+          "index": 55
+        },
+        {
+          "pid": "problem_056",
+          "index": 56
+        },
+        {
+          "pid": "problem_057",
+          "index": 57
+        },
+        {
+          "pid": "problem_058",
+          "index": 58
+        },
+        {
+          "pid": "problem_059",
+          "index": 59
+        },
+        {
+          "pid": "problem_060",
+          "index": 60
+        },
+        {
+          "pid": "problem_061",
+          "index": 61
+        },
+        {
+          "pid": "problem_062",
+          "index": 62
+        },
+        {
+          "pid": "problem_063",
+          "index": 63
+        },
+        {
+          "pid": "problem_064",
+          "index": 64
+        },
+        {
+          "pid": "problem_065",
+          "index": 65
+        },
+        {
+          "pid": "problem_066",
+          "index": 66
+        },
+        {
+          "pid": "problem_067",
+          "index": 67
+        },
+        {
+          "pid": "problem_068",
+          "index": 68
+        },
+        {
+          "pid": "problem_069",
+          "index": 69
+        },
+        {
+          "pid": "problem_070",
+          "index": 70
+        },
+        {
+          "pid": "problem_071",
+          "index": 71
+        },
+        {
+          "pid": "problem_072",
+          "index": 72
+        },
+        {
+          "pid": "problem_073",
+          "index": 73
+        },
+        {
+          "pid": "problem_074",
+          "index": 74
+        },
+        {
+          "pid": "problem_075",
+          "index": 75
+        },
+        {
+          "pid": "problem_076",
+          "index": 76
+        },
+        {
+          "pid": "problem_077",
+          "index": 77
+        },
+        {
+          "pid": "problem_078",
+          "index": 78
+        },
+        {
+          "pid": "problem_079",
+          "index": 79
+        },
+        {
+          "pid": "problem_080",
+          "index": 80
+        },
+        {
+          "pid": "problem_081",
+          "index": 81
+        },
+        {
+          "pid": "problem_082",
+          "index": 82
+        },
+        {
+          "pid": "problem_083",
+          "index": 83
+        },
+        {
+          "pid": "problem_084",
+          "index": 84
+        },
+        {
+          "pid": "problem_085",
+          "index": 85
+        },
+        {
+          "pid": "problem_086",
+          "index": 86
+        },
+        {
+          "pid": "problem_087",
+          "index": 87
+        },
+        {
+          "pid": "problem_088",
+          "index": 88
+        },
+        {
+          "pid": "problem_089",
+          "index": 89
+        },
+        {
+          "pid": "problem_090",
+          "index": 90
+        },
+        {
+          "pid": "problem_091",
+          "index": 91
+        },
+        {
+          "pid": "problem_092",
+          "index": 92
+        },
+        {
+          "pid": "problem_093",
+          "index": 93
+        },
+        {
+          "pid": "problem_094",
+          "index": 94
+        },
+        {
+          "pid": "problem_095",
+          "index": 95
+        },
+        {
+          "pid": "problem_096",
+          "index": 96
+        },
+        {
+          "pid": "problem_097",
+          "index": 97
+        },
+        {
+          "pid": "problem_098",
+          "index": 98
+        },
+        {
+          "pid": "problem_099",
+          "index": 99
+        },
+        {
+          "pid": "problem_100",
+          "index": 100
+        },
+        {
+          "pid": "problem_101",
+          "index": 101
+        },
+        {
+          "pid": "problem_102",
+          "index": 102
+        },
+        {
+          "pid": "problem_103",
+          "index": 103
+        },
+        {
+          "pid": "problem_104",
+          "index": 104
+        },
+        {
+          "pid": "problem_105",
+          "index": 105
+        },
+        {
+          "pid": "problem_106",
+          "index": 106
+        },
+        {
+          "pid": "problem_107",
+          "index": 107
+        },
+        {
+          "pid": "problem_108",
+          "index": 108
+        },
+        {
+          "pid": "problem_109",
+          "index": 109
+        },
+        {
+          "pid": "problem_110",
+          "index": 110
+        },
+        {
+          "pid": "problem_111",
+          "index": 111
+        },
+        {
+          "pid": "problem_112",
+          "index": 112
+        },
+        {
+          "pid": "problem_113",
+          "index": 113
+        },
+        {
+          "pid": "problem_114",
+          "index": 114
+        },
+        {
+          "pid": "problem_115",
+          "index": 115
+        },
+        {
+          "pid": "problem_116",
+          "index": 116
+        },
+        {
+          "pid": "problem_117",
+          "index": 117
+        },
+        {
+          "pid": "problem_118",
+          "index": 118
+        },
+        {
+          "pid": "problem_119",
+          "index": 119
+        },
+        {
+          "pid": "problem_120",
+          "index": 120
+        },
+        {
+          "pid": "problem_121",
+          "index": 121
+        },
+        {
+          "pid": "problem_122",
+          "index": 122
+        },
+        {
+          "pid": "problem_123",
+          "index": 123
+        },
+        {
+          "pid": "problem_124",
+          "index": 124
+        },
+        {
+          "pid": "problem_125",
+          "index": 125
+        },
+        {
+          "pid": "problem_126",
+          "index": 126
+        },
+        {
+          "pid": "problem_127",
+          "index": 127
+        },
+        {
+          "pid": "problem_128",
+          "index": 128
+        },
+        {
+          "pid": "problem_129",
+          "index": 129
+        },
+        {
+          "pid": "problem_130",
+          "index": 130
+        },
+        {
+          "pid": "problem_131",
+          "index": 131
+        },
+        {
+          "pid": "problem_132",
+          "index": 132
+        },
+        {
+          "pid": "problem_133",
+          "index": 133
+        },
+        {
+          "pid": "problem_134",
+          "index": 134
+        },
+        {
+          "pid": "problem_135",
+          "index": 135
+        },
+        {
+          "pid": "problem_136",
+          "index": 136
+        },
+        {
+          "pid": "problem_137",
+          "index": 137
+        },
+        {
+          "pid": "problem_138",
+          "index": 138
+        },
+        {
+          "pid": "problem_139",
+          "index": 139
+        },
+        {
+          "pid": "problem_140",
+          "index": 140
+        },
+        {
+          "pid": "problem_141",
+          "index": 141
+        },
+        {
+          "pid": "problem_142",
+          "index": 142
+        },
+        {
+          "pid": "problem_143",
+          "index": 143
+        },
+        {
+          "pid": "problem_144",
+          "index": 144
+        },
+        {
+          "pid": "problem_145",
+          "index": 145
+        },
+        {
+          "pid": "problem_146",
+          "index": 146
+        },
+        {
+          "pid": "problem_147",
+          "index": 147
+        },
+        {
+          "pid": "problem_148",
+          "index": 148
+        },
+        {
+          "pid": "problem_149",
+          "index": 149
+        },
+        {
+          "pid": "problem_150",
+          "index": 150
+        },
+        {
+          "pid": "problem_151",
+          "index": 151
+        },
+        {
+          "pid": "problem_152",
+          "index": 152
+        },
+        {
+          "pid": "problem_153",
+          "index": 153
+        },
+        {
+          "pid": "problem_154",
+          "index": 154
+        },
+        {
+          "pid": "problem_155",
+          "index": 155
+        },
+        {
+          "pid": "problem_156",
+          "index": 156
+        },
+        {
+          "pid": "problem_157",
+          "index": 157
+        },
+        {
+          "pid": "problem_158",
+          "index": 158
+        },
+        {
+          "pid": "problem_159",
+          "index": 159
+        },
+        {
+          "pid": "problem_160",
+          "index": 160
+        },
+        {
+          "pid": "problem_161",
+          "index": 161
+        },
+        {
+          "pid": "problem_162",
+          "index": 162
+        },
+        {
+          "pid": "problem_163",
+          "index": 163
+        },
+        {
+          "pid": "problem_164",
+          "index": 164
+        },
+        {
+          "pid": "problem_165",
+          "index": 165
+        },
+        {
+          "pid": "problem_166",
+          "index": 166
+        },
+        {
+          "pid": "problem_167",
+          "index": 167
+        },
+        {
+          "pid": "problem_168",
+          "index": 168
+        },
+        {
+          "pid": "problem_169",
+          "index": 169
+        },
+        {
+          "pid": "problem_170",
+          "index": 170
+        },
+        {
+          "pid": "problem_171",
+          "index": 171
+        },
+        {
+          "pid": "problem_172",
+          "index": 172
+        },
+        {
+          "pid": "problem_173",
+          "index": 173
+        },
+        {
+          "pid": "problem_174",
+          "index": 174
+        },
+        {
+          "pid": "problem_175",
+          "index": 175
+        },
+        {
+          "pid": "problem_176",
+          "index": 176
+        },
+        {
+          "pid": "problem_177",
+          "index": 177
+        },
+        {
+          "pid": "problem_178",
+          "index": 178
+        },
+        {
+          "pid": "problem_179",
+          "index": 179
+        },
+        {
+          "pid": "problem_180",
+          "index": 180
+        },
+        {
+          "pid": "problem_181",
+          "index": 181
+        },
+        {
+          "pid": "problem_182",
+          "index": 182
+        },
+        {
+          "pid": "problem_183",
+          "index": 183
+        },
+        {
+          "pid": "problem_184",
+          "index": 184
+        },
+        {
+          "pid": "problem_185",
+          "index": 185
+        },
+        {
+          "pid": "problem_186",
+          "index": 186
+        },
+        {
+          "pid": "problem_187",
+          "index": 187
+        },
+        {
+          "pid": "problem_188",
+          "index": 188
+        },
+        {
+          "pid": "problem_189",
+          "index": 189
+        },
+        {
+          "pid": "problem_190",
+          "index": 190
+        },
+        {
+          "pid": "problem_191",
+          "index": 191
+        },
+        {
+          "pid": "problem_192",
+          "index": 192
+        },
+        {
+          "pid": "problem_193",
+          "index": 193
+        },
+        {
+          "pid": "problem_194",
+          "index": 194
+        },
+        {
+          "pid": "problem_195",
+          "index": 195
+        },
+        {
+          "pid": "problem_196",
+          "index": 196
+        },
+        {
+          "pid": "problem_197",
+          "index": 197
+        },
+        {
+          "pid": "problem_198",
+          "index": 198
+        },
+        {
+          "pid": "problem_199",
+          "index": 199
+        },
+        {
+          "pid": "problem_200",
+          "index": 200
+        }
+      ],
+      "metrics": {
+        "final_accuracy_all_target": 0.605,
+        "final_accuracy_common": 0.6304347826086957,
+        "token_majority_accuracy_all": [
+          0.085,
+          0.295,
+          0.51,
+          0.585,
+          0.62,
+          0.61,
+          0.63,
+          0.64,
+          0.655,
+          0.65,
+          0.645,
+          0.63,
+          0.63,
+          0.64,
+          0.62,
+          0.625,
+          0.63,
+          0.63,
+          0.635,
+          0.625,
+          0.625
+        ],
+        "token_majority_accuracy_common": [
+          0.10869565217391304,
+          0.2391304347826087,
+          0.45652173913043476,
+          0.5217391304347826,
+          0.6086956521739131,
+          0.6304347826086957,
+          0.6521739130434783,
+          0.6086956521739131,
+          0.6521739130434783,
+          0.6521739130434783,
+          0.6086956521739131,
+          0.6086956521739131,
+          0.6086956521739131,
+          0.6304347826086957,
+          0.5652173913043478,
+          0.5434782608695652,
+          0.5434782608695652,
+          0.5652173913043478,
+          0.5652173913043478,
+          0.5434782608695652,
+          0.5652173913043478
+        ],
+        "token_majority_tokens_all": [
+          0,
+          25,
+          50,
+          75,
+          100,
+          125,
+          150,
+          175,
+          200,
+          225,
+          250,
+          275,
+          300,
+          325,
+          350,
+          375,
+          400,
+          425,
+          450,
+          475,
+          500
+        ],
+        "token_majority_tokens_common": [
+          0,
+          25,
+          50,
+          75,
+          100,
+          125,
+          150,
+          175,
+          200,
+          225,
+          250,
+          275,
+          300,
+          325,
+          350,
+          375,
+          400,
+          425,
+          450,
+          475,
+          500
+        ],
+        "per_agent_token_accuracy_all": {
+          "Alex": [
+            0.085,
+            0.23,
+            0.385,
+            0.485,
+            0.565,
+            0.58,
+            0.575,
+            0.57,
+            0.57,
+            0.58,
+            0.58,
+            0.575,
+            0.58,
+            0.59,
+            0.585,
+            0.585,
+            0.585,
+            0.585,
+            0.59,
+            0.59,
+            0.59
+          ],
+          "Chris": [
+            0.085,
+            0.215,
+            0.365,
+            0.45,
+            0.5,
+            0.485,
+            0.505,
+            0.54,
+            0.565,
+            0.56,
+            0.56,
+            0.56,
+            0.56,
+            0.565,
+            0.55,
+            0.57,
+            0.565,
+            0.575,
+            0.57,
+            0.555,
+            0.555
+          ],
+          "Jenny": [
+            0.995,
+            0.94,
+            0.865,
+            0.83,
+            0.815,
+            0.805,
+            0.805,
+            0.82,
+            0.815,
+            0.805,
+            0.795,
+            0.79,
+            0.785,
+            0.79,
+            0.78,
+            0.77,
+            0.78,
+            0.765,
+            0.76,
+            0.76,
+            0.755
+          ]
+        },
+        "per_agent_token_accuracy_common": {
+          "Alex": [
+            0.10869565217391304,
+            0.17391304347826086,
+            0.2826086956521739,
+            0.34782608695652173,
+            0.5217391304347826,
+            0.5652173913043478,
+            0.5434782608695652,
+            0.5217391304347826,
+            0.5434782608695652,
+            0.5434782608695652,
+            0.5217391304347826,
+            0.5217391304347826,
+            0.5434782608695652,
+            0.5434782608695652,
+            0.5217391304347826,
+            0.5,
+            0.5,
+            0.5,
+            0.5,
+            0.5,
+            0.5
+          ],
+          "Chris": [
+            0.10869565217391304,
+            0.21739130434782608,
+            0.3695652173913043,
+            0.43478260869565216,
+            0.5217391304347826,
+            0.5434782608695652,
+            0.5434782608695652,
+            0.5434782608695652,
+            0.5652173913043478,
+            0.5652173913043478,
+            0.5217391304347826,
+            0.5434782608695652,
+            0.5217391304347826,
+            0.5434782608695652,
+            0.5217391304347826,
+            0.5217391304347826,
+            0.5217391304347826,
+            0.5434782608695652,
+            0.5434782608695652,
+            0.5,
+            0.5217391304347826
+          ],
+          "Jenny": [
+            1.0,
+            0.9782608695652174,
+            0.8913043478260869,
+            0.8695652173913043,
+            0.8478260869565217,
+            0.8260869565217391,
+            0.8478260869565217,
+            0.8478260869565217,
+            0.8260869565217391,
+            0.8260869565217391,
+            0.8260869565217391,
+            0.8043478260869565,
+            0.8043478260869565,
+            0.8260869565217391,
+            0.8043478260869565,
+            0.782608695652174,
+            0.782608695652174,
+            0.7608695652173914,
+            0.7608695652173914,
+            0.7391304347826086,
+            0.7391304347826086
+          ]
+        },
+        "per_agent_tokens_all": [
+          0,
+          25,
+          50,
+          75,
+          100,
+          125,
+          150,
+          175,
+          200,
+          225,
+          250,
+          275,
+          300,
+          325,
+          350,
+          375,
+          400,
+          425,
+          450,
+          475,
+          500
+        ],
+        "per_agent_tokens_common": [
+          0,
+          25,
+          50,
+          75,
+          100,
+          125,
+          150,
+          175,
+          200,
+          225,
+          250,
+          275,
+          300,
+          325,
+          350,
+          375,
+          400,
+          425,
+          450,
+          475,
+          500
+        ],
+        "action_distribution_all": {
+          "Alex": {
+            "speak": 568,
+            "listen": 4296,
+            "interrupt": 460
+          },
+          "Chris": {
+            "speak": 532,
+            "listen": 4304,
+            "interrupt": 484
+          },
+          "Jenny": {
+            "speak": 545,
+            "interrupt": 413,
+            "listen": 4271
+          }
+        },
+        "action_distribution_common": {
+          "Alex": {
+            "speak": 135,
+            "listen": 857,
+            "interrupt": 124
+          },
+          "Chris": {
+            "speak": 108,
+            "listen": 944,
+            "interrupt": 125
+          },
+          "Jenny": {
+            "speak": 128,
+            "interrupt": 117,
+            "listen": 850
+          }
+        },
+        "realized_speaker_distribution_all": {
+          "Alex": {
+            "interrupt": 355,
+            "speak": 930
+          },
+          "Chris": {
+            "speak": 919,
+            "interrupt": 370
+          },
+          "Jenny": {
+            "interrupt": 338,
+            "speak": 1042
+          }
+        },
+        "realized_speaker_distribution_common": {
+          "Alex": {
+            "interrupt": 83,
+            "speak": 230
+          },
+          "Chris": {
+            "speak": 167,
+            "interrupt": 85
+          },
+          "Jenny": {
+            "interrupt": 100,
+            "speak": 234
+          }
+        }
+      }
+    },
+    "run_20260125_060659": {
+      "dir": "/home/a-kimura/dynamic_debate/logs/run_20260125_060659",
+      "target_scenarios": [
+        {
+          "pid": "problem_001",
+          "index": 1
+        },
+        {
+          "pid": "problem_002",
+          "index": 2
+        },
+        {
+          "pid": "problem_003",
+          "index": 3
+        },
+        {
+          "pid": "problem_004",
+          "index": 4
+        },
+        {
+          "pid": "problem_005",
+          "index": 5
+        },
+        {
+          "pid": "problem_006",
+          "index": 6
+        },
+        {
+          "pid": "problem_007",
+          "index": 7
+        },
+        {
+          "pid": "problem_008",
+          "index": 8
+        },
+        {
+          "pid": "problem_009",
+          "index": 9
+        },
+        {
+          "pid": "problem_010",
+          "index": 10
+        },
+        {
+          "pid": "problem_011",
+          "index": 11
+        },
+        {
+          "pid": "problem_012",
+          "index": 12
+        },
+        {
+          "pid": "problem_013",
+          "index": 13
+        },
+        {
+          "pid": "problem_014",
+          "index": 14
+        },
+        {
+          "pid": "problem_015",
+          "index": 15
+        },
+        {
+          "pid": "problem_016",
+          "index": 16
+        },
+        {
+          "pid": "problem_017",
+          "index": 17
+        },
+        {
+          "pid": "problem_018",
+          "index": 18
+        },
+        {
+          "pid": "problem_019",
+          "index": 19
+        },
+        {
+          "pid": "problem_020",
+          "index": 20
+        },
+        {
+          "pid": "problem_021",
+          "index": 21
+        },
+        {
+          "pid": "problem_022",
+          "index": 22
+        },
+        {
+          "pid": "problem_023",
+          "index": 23
+        },
+        {
+          "pid": "problem_024",
+          "index": 24
+        },
+        {
+          "pid": "problem_025",
+          "index": 25
+        },
+        {
+          "pid": "problem_026",
+          "index": 26
+        },
+        {
+          "pid": "problem_027",
+          "index": 27
+        },
+        {
+          "pid": "problem_028",
+          "index": 28
+        },
+        {
+          "pid": "problem_029",
+          "index": 29
+        },
+        {
+          "pid": "problem_030",
+          "index": 30
+        },
+        {
+          "pid": "problem_031",
+          "index": 31
+        },
+        {
+          "pid": "problem_032",
+          "index": 32
+        },
+        {
+          "pid": "problem_033",
+          "index": 33
+        },
+        {
+          "pid": "problem_034",
+          "index": 34
+        },
+        {
+          "pid": "problem_035",
+          "index": 35
+        },
+        {
+          "pid": "problem_036",
+          "index": 36
+        },
+        {
+          "pid": "problem_037",
+          "index": 37
+        },
+        {
+          "pid": "problem_038",
+          "index": 38
+        },
+        {
+          "pid": "problem_039",
+          "index": 39
+        },
+        {
+          "pid": "problem_040",
+          "index": 40
+        },
+        {
+          "pid": "problem_041",
+          "index": 41
+        },
+        {
+          "pid": "problem_042",
+          "index": 42
+        },
+        {
+          "pid": "problem_043",
+          "index": 43
+        },
+        {
+          "pid": "problem_044",
+          "index": 44
+        },
+        {
+          "pid": "problem_045",
+          "index": 45
+        },
+        {
+          "pid": "problem_046",
+          "index": 46
+        },
+        {
+          "pid": "problem_047",
+          "index": 47
+        },
+        {
+          "pid": "problem_048",
+          "index": 48
+        },
+        {
+          "pid": "problem_049",
+          "index": 49
+        },
+        {
+          "pid": "problem_050",
+          "index": 50
+        },
+        {
+          "pid": "problem_051",
+          "index": 51
+        },
+        {
+          "pid": "problem_052",
+          "index": 52
+        },
+        {
+          "pid": "problem_053",
+          "index": 53
+        },
+        {
+          "pid": "problem_054",
+          "index": 54
+        },
+        {
+          "pid": "problem_055",
+          "index": 55
+        },
+        {
+          "pid": "problem_056",
+          "index": 56
+        },
+        {
+          "pid": "problem_057",
+          "index": 57
+        },
+        {
+          "pid": "problem_058",
+          "index": 58
+        },
+        {
+          "pid": "problem_059",
+          "index": 59
+        },
+        {
+          "pid": "problem_060",
+          "index": 60
+        },
+        {
+          "pid": "problem_061",
+          "index": 61
+        },
+        {
+          "pid": "problem_062",
+          "index": 62
+        },
+        {
+          "pid": "problem_063",
+          "index": 63
+        },
+        {
+          "pid": "problem_064",
+          "index": 64
+        },
+        {
+          "pid": "problem_065",
+          "index": 65
+        },
+        {
+          "pid": "problem_066",
+          "index": 66
+        },
+        {
+          "pid": "problem_067",
+          "index": 67
+        },
+        {
+          "pid": "problem_068",
+          "index": 68
+        },
+        {
+          "pid": "problem_069",
+          "index": 69
+        },
+        {
+          "pid": "problem_070",
+          "index": 70
+        },
+        {
+          "pid": "problem_071",
+          "index": 71
+        },
+        {
+          "pid": "problem_072",
+          "index": 72
+        },
+        {
+          "pid": "problem_073",
+          "index": 73
+        },
+        {
+          "pid": "problem_074",
+          "index": 74
+        },
+        {
+          "pid": "problem_075",
+          "index": 75
+        },
+        {
+          "pid": "problem_076",
+          "index": 76
+        },
+        {
+          "pid": "problem_077",
+          "index": 77
+        },
+        {
+          "pid": "problem_078",
+          "index": 78
+        },
+        {
+          "pid": "problem_079",
+          "index": 79
+        },
+        {
+          "pid": "problem_080",
+          "index": 80
+        },
+        {
+          "pid": "problem_081",
+          "index": 81
+        },
+        {
+          "pid": "problem_082",
+          "index": 82
+        },
+        {
+          "pid": "problem_083",
+          "index": 83
+        },
+        {
+          "pid": "problem_084",
+          "index": 84
+        },
+        {
+          "pid": "problem_085",
+          "index": 85
+        },
+        {
+          "pid": "problem_086",
+          "index": 86
+        },
+        {
+          "pid": "problem_087",
+          "index": 87
+        },
+        {
+          "pid": "problem_088",
+          "index": 88
+        },
+        {
+          "pid": "problem_089",
+          "index": 89
+        },
+        {
+          "pid": "problem_090",
+          "index": 90
+        },
+        {
+          "pid": "problem_091",
+          "index": 91
+        },
+        {
+          "pid": "problem_092",
+          "index": 92
+        },
+        {
+          "pid": "problem_093",
+          "index": 93
+        },
+        {
+          "pid": "problem_094",
+          "index": 94
+        },
+        {
+          "pid": "problem_095",
+          "index": 95
+        },
+        {
+          "pid": "problem_096",
+          "index": 96
+        },
+        {
+          "pid": "problem_097",
+          "index": 97
+        },
+        {
+          "pid": "problem_098",
+          "index": 98
+        },
+        {
+          "pid": "problem_099",
+          "index": 99
+        },
+        {
+          "pid": "problem_100",
+          "index": 100
+        },
+        {
+          "pid": "problem_101",
+          "index": 101
+        },
+        {
+          "pid": "problem_102",
+          "index": 102
+        },
+        {
+          "pid": "problem_103",
+          "index": 103
+        },
+        {
+          "pid": "problem_104",
+          "index": 104
+        },
+        {
+          "pid": "problem_105",
+          "index": 105
+        },
+        {
+          "pid": "problem_106",
+          "index": 106
+        },
+        {
+          "pid": "problem_107",
+          "index": 107
+        },
+        {
+          "pid": "problem_108",
+          "index": 108
+        },
+        {
+          "pid": "problem_109",
+          "index": 109
+        },
+        {
+          "pid": "problem_110",
+          "index": 110
+        },
+        {
+          "pid": "problem_111",
+          "index": 111
+        },
+        {
+          "pid": "problem_112",
+          "index": 112
+        },
+        {
+          "pid": "problem_113",
+          "index": 113
+        },
+        {
+          "pid": "problem_114",
+          "index": 114
+        },
+        {
+          "pid": "problem_115",
+          "index": 115
+        },
+        {
+          "pid": "problem_116",
+          "index": 116
+        },
+        {
+          "pid": "problem_117",
+          "index": 117
+        },
+        {
+          "pid": "problem_118",
+          "index": 118
+        },
+        {
+          "pid": "problem_119",
+          "index": 119
+        },
+        {
+          "pid": "problem_120",
+          "index": 120
+        },
+        {
+          "pid": "problem_121",
+          "index": 121
+        },
+        {
+          "pid": "problem_122",
+          "index": 122
+        },
+        {
+          "pid": "problem_123",
+          "index": 123
+        },
+        {
+          "pid": "problem_124",
+          "index": 124
+        },
+        {
+          "pid": "problem_125",
+          "index": 125
+        },
+        {
+          "pid": "problem_126",
+          "index": 126
+        },
+        {
+          "pid": "problem_127",
+          "index": 127
+        },
+        {
+          "pid": "problem_128",
+          "index": 128
+        },
+        {
+          "pid": "problem_129",
+          "index": 129
+        },
+        {
+          "pid": "problem_130",
+          "index": 130
+        },
+        {
+          "pid": "problem_131",
+          "index": 131
+        },
+        {
+          "pid": "problem_132",
+          "index": 132
+        },
+        {
+          "pid": "problem_133",
+          "index": 133
+        },
+        {
+          "pid": "problem_134",
+          "index": 134
+        },
+        {
+          "pid": "problem_135",
+          "index": 135
+        },
+        {
+          "pid": "problem_136",
+          "index": 136
+        },
+        {
+          "pid": "problem_137",
+          "index": 137
+        },
+        {
+          "pid": "problem_138",
+          "index": 138
+        },
+        {
+          "pid": "problem_139",
+          "index": 139
+        },
+        {
+          "pid": "problem_140",
+          "index": 140
+        },
+        {
+          "pid": "problem_141",
+          "index": 141
+        },
+        {
+          "pid": "problem_142",
+          "index": 142
+        },
+        {
+          "pid": "problem_143",
+          "index": 143
+        },
+        {
+          "pid": "problem_144",
+          "index": 144
+        },
+        {
+          "pid": "problem_145",
+          "index": 145
+        },
+        {
+          "pid": "problem_146",
+          "index": 146
+        },
+        {
+          "pid": "problem_147",
+          "index": 147
+        },
+        {
+          "pid": "problem_148",
+          "index": 148
+        },
+        {
+          "pid": "problem_149",
+          "index": 149
+        },
+        {
+          "pid": "problem_150",
+          "index": 150
+        },
+        {
+          "pid": "problem_151",
+          "index": 151
+        },
+        {
+          "pid": "problem_152",
+          "index": 152
+        },
+        {
+          "pid": "problem_153",
+          "index": 153
+        },
+        {
+          "pid": "problem_154",
+          "index": 154
+        },
+        {
+          "pid": "problem_155",
+          "index": 155
+        },
+        {
+          "pid": "problem_156",
+          "index": 156
+        },
+        {
+          "pid": "problem_157",
+          "index": 157
+        },
+        {
+          "pid": "problem_158",
+          "index": 158
+        },
+        {
+          "pid": "problem_159",
+          "index": 159
+        },
+        {
+          "pid": "problem_160",
+          "index": 160
+        },
+        {
+          "pid": "problem_161",
+          "index": 161
+        },
+        {
+          "pid": "problem_162",
+          "index": 162
+        },
+        {
+          "pid": "problem_163",
+          "index": 163
+        },
+        {
+          "pid": "problem_164",
+          "index": 164
+        },
+        {
+          "pid": "problem_165",
+          "index": 165
+        },
+        {
+          "pid": "problem_166",
+          "index": 166
+        },
+        {
+          "pid": "problem_167",
+          "index": 167
+        },
+        {
+          "pid": "problem_168",
+          "index": 168
+        },
+        {
+          "pid": "problem_169",
+          "index": 169
+        },
+        {
+          "pid": "problem_170",
+          "index": 170
+        },
+        {
+          "pid": "problem_171",
+          "index": 171
+        },
+        {
+          "pid": "problem_172",
+          "index": 172
+        },
+        {
+          "pid": "problem_173",
+          "index": 173
+        },
+        {
+          "pid": "problem_174",
+          "index": 174
+        },
+        {
+          "pid": "problem_175",
+          "index": 175
+        },
+        {
+          "pid": "problem_176",
+          "index": 176
+        },
+        {
+          "pid": "problem_177",
+          "index": 177
+        },
+        {
+          "pid": "problem_178",
+          "index": 178
+        },
+        {
+          "pid": "problem_179",
+          "index": 179
+        },
+        {
+          "pid": "problem_180",
+          "index": 180
+        },
+        {
+          "pid": "problem_181",
+          "index": 181
+        },
+        {
+          "pid": "problem_182",
+          "index": 182
+        },
+        {
+          "pid": "problem_183",
+          "index": 183
+        },
+        {
+          "pid": "problem_184",
+          "index": 184
+        },
+        {
+          "pid": "problem_185",
+          "index": 185
+        },
+        {
+          "pid": "problem_186",
+          "index": 186
+        },
+        {
+          "pid": "problem_187",
+          "index": 187
+        },
+        {
+          "pid": "problem_188",
+          "index": 188
+        },
+        {
+          "pid": "problem_189",
+          "index": 189
+        },
+        {
+          "pid": "problem_190",
+          "index": 190
+        },
+        {
+          "pid": "problem_191",
+          "index": 191
+        },
+        {
+          "pid": "problem_192",
+          "index": 192
+        },
+        {
+          "pid": "problem_193",
+          "index": 193
+        },
+        {
+          "pid": "problem_194",
+          "index": 194
+        },
+        {
+          "pid": "problem_195",
+          "index": 195
+        },
+        {
+          "pid": "problem_196",
+          "index": 196
+        },
+        {
+          "pid": "problem_197",
+          "index": 197
+        },
+        {
+          "pid": "problem_198",
+          "index": 198
+        },
+        {
+          "pid": "problem_199",
+          "index": 199
+        },
+        {
+          "pid": "problem_200",
+          "index": 200
+        }
+      ],
+      "metrics": {
+        "final_accuracy_all_target": 0.57,
+        "final_accuracy_common": 0.5217391304347826,
+        "token_majority_accuracy_all": [
+          0.04,
+          0.04,
+          0.04,
+          0.04,
+          0.07,
+          0.225,
+          0.29,
+          0.315,
+          0.33,
+          0.345,
+          0.375,
+          0.39,
+          0.4,
+          0.425,
+          0.445,
+          0.46,
+          0.475,
+          0.48,
+          0.485,
+          0.48,
+          0.47
+        ],
+        "token_majority_accuracy_common": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.10869565217391304,
+          0.1956521739130435,
+          0.1956521739130435,
+          0.1956521739130435,
+          0.1956521739130435,
+          0.21739130434782608,
+          0.2826086956521739,
+          0.2826086956521739,
+          0.32608695652173914,
+          0.34782608695652173,
+          0.3695652173913043,
+          0.41304347826086957,
+          0.43478260869565216,
+          0.43478260869565216,
+          0.45652173913043476,
+          0.45652173913043476
+        ],
+        "token_majority_tokens_all": [
+          0,
+          25,
+          50,
+          75,
+          100,
+          125,
+          150,
+          175,
+          200,
+          225,
+          250,
+          275,
+          300,
+          325,
+          350,
+          375,
+          400,
+          425,
+          450,
+          475,
+          500
+        ],
+        "token_majority_tokens_common": [
+          0,
+          25,
+          50,
+          75,
+          100,
+          125,
+          150,
+          175,
+          200,
+          225,
+          250,
+          275,
+          300,
+          325,
+          350,
+          375,
+          400,
+          425,
+          450,
+          475,
+          500
+        ],
+        "per_agent_token_accuracy_all": {
+          "Alex": [
+            0.035,
+            0.035,
+            0.035,
+            0.035,
+            0.06,
+            0.16,
+            0.205,
+            0.215,
+            0.23,
+            0.255,
+            0.295,
+            0.34,
+            0.36,
+            0.37,
+            0.385,
+            0.395,
+            0.4,
+            0.405,
+            0.415,
+            0.41,
+            0.41
+          ],
+          "Chris": [
+            0.025,
+            0.025,
+            0.025,
+            0.025,
+            0.055,
+            0.15,
+            0.205,
+            0.22,
+            0.23,
+            0.25,
+            0.27,
+            0.315,
+            0.33,
+            0.35,
+            0.37,
+            0.39,
+            0.41,
+            0.41,
+            0.41,
+            0.415,
+            0.4
+          ],
+          "Jenny": [
+            0.995,
+            0.995,
+            0.995,
+            0.995,
+            0.985,
+            0.97,
+            0.94,
+            0.935,
+            0.925,
+            0.92,
+            0.915,
+            0.89,
+            0.89,
+            0.885,
+            0.885,
+            0.885,
+            0.885,
+            0.88,
+            0.885,
+            0.875,
+            0.87
+          ]
+        },
+        "per_agent_token_accuracy_common": {
+          "Alex": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.06521739130434782,
+            0.10869565217391304,
+            0.10869565217391304,
+            0.13043478260869565,
+            0.15217391304347827,
+            0.17391304347826086,
+            0.2608695652173913,
+            0.2826086956521739,
+            0.30434782608695654,
+            0.32608695652173914,
+            0.34782608695652173,
+            0.34782608695652173,
+            0.3695652173913043,
+            0.3695652173913043,
+            0.3695652173913043,
+            0.3695652173913043
+          ],
+          "Chris": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.06521739130434782,
+            0.13043478260869565,
+            0.13043478260869565,
+            0.13043478260869565,
+            0.15217391304347827,
+            0.17391304347826086,
+            0.21739130434782608,
+            0.21739130434782608,
+            0.2391304347826087,
+            0.2391304347826087,
+            0.2391304347826087,
+            0.30434782608695654,
+            0.30434782608695654,
+            0.30434782608695654,
+            0.34782608695652173,
+            0.34782608695652173
+          ],
+          "Jenny": [
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            0.9565217391304348,
+            0.9565217391304348,
+            0.9565217391304348,
+            0.9565217391304348,
+            0.9565217391304348,
+            0.9347826086956522,
+            0.9347826086956522,
+            0.9347826086956522,
+            0.9347826086956522,
+            0.9347826086956522,
+            0.9347826086956522,
+            0.9347826086956522,
+            0.9347826086956522,
+            0.9130434782608695,
+            0.9130434782608695
+          ]
+        },
+        "per_agent_tokens_all": [
+          0,
+          25,
+          50,
+          75,
+          100,
+          125,
+          150,
+          175,
+          200,
+          225,
+          250,
+          275,
+          300,
+          325,
+          350,
+          375,
+          400,
+          425,
+          450,
+          475,
+          500
+        ],
+        "per_agent_tokens_common": [
+          0,
+          25,
+          50,
+          75,
+          100,
+          125,
+          150,
+          175,
+          200,
+          225,
+          250,
+          275,
+          300,
+          325,
+          350,
+          375,
+          400,
+          425,
+          450,
+          475,
+          500
+        ],
+        "action_distribution_all": {
+          "Alex": {
+            "speak": 594,
+            "listen": 299
+          },
+          "Chris": {
+            "speak": 642,
+            "listen": 209
+          },
+          "Jenny": {
+            "speak": 609,
+            "listen": 233
+          }
+        },
+        "action_distribution_common": {
+          "Alex": {
+            "speak": 141,
+            "listen": 62
+          },
+          "Chris": {
+            "speak": 151,
+            "listen": 50
+          },
+          "Jenny": {
+            "speak": 136,
+            "listen": 52
+          }
+        },
+        "realized_speaker_distribution_all": {
+          "Alex": {
+            "speak": 260
+          },
+          "Chris": {
+            "speak": 302
+          },
+          "Jenny": {
+            "speak": 311
+          }
+        },
+        "realized_speaker_distribution_common": {
+          "Alex": {
+            "speak": 61
+          },
+          "Chris": {
+            "speak": 63
+          },
+          "Jenny": {
+            "speak": 76
+          }
+        }
+      }
+    },
+    "run_20260126_133543_roundrobin": {
+      "dir": "/home/a-kimura/dynamic_debate/logs/run_20260126_133543_roundrobin",
+      "target_scenarios": [
+        {
+          "pid": "problem_001",
+          "index": 1
+        },
+        {
+          "pid": "problem_002",
+          "index": 2
+        },
+        {
+          "pid": "problem_003",
+          "index": 3
+        },
+        {
+          "pid": "problem_004",
+          "index": 4
+        },
+        {
+          "pid": "problem_005",
+          "index": 5
+        },
+        {
+          "pid": "problem_006",
+          "index": 6
+        },
+        {
+          "pid": "problem_007",
+          "index": 7
+        },
+        {
+          "pid": "problem_008",
+          "index": 8
+        },
+        {
+          "pid": "problem_009",
+          "index": 9
+        },
+        {
+          "pid": "problem_010",
+          "index": 10
+        },
+        {
+          "pid": "problem_011",
+          "index": 11
+        },
+        {
+          "pid": "problem_012",
+          "index": 12
+        },
+        {
+          "pid": "problem_013",
+          "index": 13
+        },
+        {
+          "pid": "problem_014",
+          "index": 14
+        },
+        {
+          "pid": "problem_015",
+          "index": 15
+        },
+        {
+          "pid": "problem_016",
+          "index": 16
+        },
+        {
+          "pid": "problem_017",
+          "index": 17
+        },
+        {
+          "pid": "problem_018",
+          "index": 18
+        },
+        {
+          "pid": "problem_019",
+          "index": 19
+        },
+        {
+          "pid": "problem_020",
+          "index": 20
+        },
+        {
+          "pid": "problem_021",
+          "index": 21
+        },
+        {
+          "pid": "problem_022",
+          "index": 22
+        },
+        {
+          "pid": "problem_023",
+          "index": 23
+        },
+        {
+          "pid": "problem_024",
+          "index": 24
+        },
+        {
+          "pid": "problem_025",
+          "index": 25
+        },
+        {
+          "pid": "problem_026",
+          "index": 26
+        },
+        {
+          "pid": "problem_027",
+          "index": 27
+        },
+        {
+          "pid": "problem_028",
+          "index": 28
+        },
+        {
+          "pid": "problem_029",
+          "index": 29
+        },
+        {
+          "pid": "problem_030",
+          "index": 30
+        },
+        {
+          "pid": "problem_031",
+          "index": 31
+        },
+        {
+          "pid": "problem_032",
+          "index": 32
+        },
+        {
+          "pid": "problem_033",
+          "index": 33
+        },
+        {
+          "pid": "problem_034",
+          "index": 34
+        },
+        {
+          "pid": "problem_035",
+          "index": 35
+        },
+        {
+          "pid": "problem_036",
+          "index": 36
+        },
+        {
+          "pid": "problem_037",
+          "index": 37
+        },
+        {
+          "pid": "problem_038",
+          "index": 38
+        },
+        {
+          "pid": "problem_039",
+          "index": 39
+        },
+        {
+          "pid": "problem_040",
+          "index": 40
+        },
+        {
+          "pid": "problem_041",
+          "index": 41
+        },
+        {
+          "pid": "problem_042",
+          "index": 42
+        },
+        {
+          "pid": "problem_043",
+          "index": 43
+        },
+        {
+          "pid": "problem_044",
+          "index": 44
+        },
+        {
+          "pid": "problem_045",
+          "index": 45
+        },
+        {
+          "pid": "problem_046",
+          "index": 46
+        }
+      ],
+      "metrics": {
+        "final_accuracy_all_target": 0.45652173913043476,
+        "final_accuracy_common": 0.45652173913043476,
+        "token_majority_accuracy_all": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.13043478260869565,
+          0.2391304347826087,
+          0.2608695652173913,
+          0.2608695652173913,
+          0.30434782608695654,
+          0.32608695652173914,
+          0.32608695652173914,
+          0.32608695652173914,
+          0.34782608695652173,
+          0.3695652173913043,
+          0.34782608695652173,
+          0.3695652173913043,
+          0.391304347826087,
+          0.391304347826087,
+          0.41304347826086957,
+          0.41304347826086957
+        ],
+        "token_majority_accuracy_common": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.13043478260869565,
+          0.2391304347826087,
+          0.2608695652173913,
+          0.2608695652173913,
+          0.30434782608695654,
+          0.32608695652173914,
+          0.32608695652173914,
+          0.32608695652173914,
+          0.34782608695652173,
+          0.3695652173913043,
+          0.34782608695652173,
+          0.3695652173913043,
+          0.391304347826087,
+          0.391304347826087,
+          0.41304347826086957,
+          0.41304347826086957
+        ],
+        "token_majority_tokens_all": [
+          0,
+          25,
+          50,
+          75,
+          100,
+          125,
+          150,
+          175,
+          200,
+          225,
+          250,
+          275,
+          300,
+          325,
+          350,
+          375,
+          400,
+          425,
+          450,
+          475,
+          500
+        ],
+        "token_majority_tokens_common": [
+          0,
+          25,
+          50,
+          75,
+          100,
+          125,
+          150,
+          175,
+          200,
+          225,
+          250,
+          275,
+          300,
+          325,
+          350,
+          375,
+          400,
+          425,
+          450,
+          475,
+          500
+        ],
+        "per_agent_token_accuracy_all": {
+          "Alex": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.043478260869565216,
+            0.10869565217391304,
+            0.15217391304347827,
+            0.21739130434782608,
+            0.2608695652173913,
+            0.2826086956521739,
+            0.2826086956521739,
+            0.2826086956521739,
+            0.2826086956521739,
+            0.30434782608695654,
+            0.30434782608695654,
+            0.2826086956521739
+          ],
+          "Chris": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.13043478260869565,
+            0.2391304347826087,
+            0.2608695652173913,
+            0.2608695652173913,
+            0.30434782608695654,
+            0.30434782608695654,
+            0.30434782608695654,
+            0.30434782608695654,
+            0.32608695652173914,
+            0.34782608695652173,
+            0.34782608695652173,
+            0.32608695652173914,
+            0.34782608695652173,
+            0.34782608695652173,
+            0.3695652173913043,
+            0.3695652173913043
+          ],
+          "Jenny": [
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            0.9565217391304348,
+            0.8260869565217391,
+            0.6956521739130435,
+            0.6521739130434783,
+            0.6521739130434783,
+            0.6956521739130435,
+            0.7391304347826086,
+            0.717391304347826,
+            0.782608695652174,
+            0.782608695652174,
+            0.782608695652174,
+            0.782608695652174,
+            0.782608695652174,
+            0.782608695652174,
+            0.782608695652174,
+            0.7608695652173914,
+            0.782608695652174
+          ]
+        },
+        "per_agent_token_accuracy_common": {
+          "Alex": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.043478260869565216,
+            0.10869565217391304,
+            0.15217391304347827,
+            0.21739130434782608,
+            0.2608695652173913,
+            0.2826086956521739,
+            0.2826086956521739,
+            0.2826086956521739,
+            0.2826086956521739,
+            0.30434782608695654,
+            0.30434782608695654,
+            0.2826086956521739
+          ],
+          "Chris": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.13043478260869565,
+            0.2391304347826087,
+            0.2608695652173913,
+            0.2608695652173913,
+            0.30434782608695654,
+            0.30434782608695654,
+            0.30434782608695654,
+            0.30434782608695654,
+            0.32608695652173914,
+            0.34782608695652173,
+            0.34782608695652173,
+            0.32608695652173914,
+            0.34782608695652173,
+            0.34782608695652173,
+            0.3695652173913043,
+            0.3695652173913043
+          ],
+          "Jenny": [
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            0.9565217391304348,
+            0.8260869565217391,
+            0.6956521739130435,
+            0.6521739130434783,
+            0.6521739130434783,
+            0.6956521739130435,
+            0.7391304347826086,
+            0.717391304347826,
+            0.782608695652174,
+            0.782608695652174,
+            0.782608695652174,
+            0.782608695652174,
+            0.782608695652174,
+            0.782608695652174,
+            0.782608695652174,
+            0.7608695652173914,
+            0.782608695652174
+          ]
+        },
+        "per_agent_tokens_all": [
+          0,
+          25,
+          50,
+          75,
+          100,
+          125,
+          150,
+          175,
+          200,
+          225,
+          250,
+          275,
+          300,
+          325,
+          350,
+          375,
+          400,
+          425,
+          450,
+          475,
+          500
+        ],
+        "per_agent_tokens_common": [
+          0,
+          25,
+          50,
+          75,
+          100,
+          125,
+          150,
+          175,
+          200,
+          225,
+          250,
+          275,
+          300,
+          325,
+          350,
+          375,
+          400,
+          425,
+          450,
+          475,
+          500
+        ],
+        "action_distribution_all": {},
+        "action_distribution_common": {},
+        "realized_speaker_distribution_all": {},
+        "realized_speaker_distribution_common": {}
+      }
+    }
+  },
+  "common": {
+    "scenarios": [
+      {
+        "pid": "problem_001",
+        "index": 1
+      },
+      {
+        "pid": "problem_002",
+        "index": 2
+      },
+      {
+        "pid": "problem_003",
+        "index": 3
+      },
+      {
+        "pid": "problem_004",
+        "index": 4
+      },
+      {
+        "pid": "problem_005",
+        "index": 5
+      },
+      {
+        "pid": "problem_006",
+        "index": 6
+      },
+      {
+        "pid": "problem_007",
+        "index": 7
+      },
+      {
+        "pid": "problem_008",
+        "index": 8
+      },
+      {
+        "pid": "problem_009",
+        "index": 9
+      },
+      {
+        "pid": "problem_010",
+        "index": 10
+      },
+      {
+        "pid": "problem_011",
+        "index": 11
+      },
+      {
+        "pid": "problem_012",
+        "index": 12
+      },
+      {
+        "pid": "problem_013",
+        "index": 13
+      },
+      {
+        "pid": "problem_014",
+        "index": 14
+      },
+      {
+        "pid": "problem_015",
+        "index": 15
+      },
+      {
+        "pid": "problem_016",
+        "index": 16
+      },
+      {
+        "pid": "problem_017",
+        "index": 17
+      },
+      {
+        "pid": "problem_018",
+        "index": 18
+      },
+      {
+        "pid": "problem_019",
+        "index": 19
+      },
+      {
+        "pid": "problem_020",
+        "index": 20
+      },
+      {
+        "pid": "problem_021",
+        "index": 21
+      },
+      {
+        "pid": "problem_022",
+        "index": 22
+      },
+      {
+        "pid": "problem_023",
+        "index": 23
+      },
+      {
+        "pid": "problem_024",
+        "index": 24
+      },
+      {
+        "pid": "problem_025",
+        "index": 25
+      },
+      {
+        "pid": "problem_026",
+        "index": 26
+      },
+      {
+        "pid": "problem_027",
+        "index": 27
+      },
+      {
+        "pid": "problem_028",
+        "index": 28
+      },
+      {
+        "pid": "problem_029",
+        "index": 29
+      },
+      {
+        "pid": "problem_030",
+        "index": 30
+      },
+      {
+        "pid": "problem_031",
+        "index": 31
+      },
+      {
+        "pid": "problem_032",
+        "index": 32
+      },
+      {
+        "pid": "problem_033",
+        "index": 33
+      },
+      {
+        "pid": "problem_034",
+        "index": 34
+      },
+      {
+        "pid": "problem_035",
+        "index": 35
+      },
+      {
+        "pid": "problem_036",
+        "index": 36
+      },
+      {
+        "pid": "problem_037",
+        "index": 37
+      },
+      {
+        "pid": "problem_038",
+        "index": 38
+      },
+      {
+        "pid": "problem_039",
+        "index": 39
+      },
+      {
+        "pid": "problem_040",
+        "index": 40
+      },
+      {
+        "pid": "problem_041",
+        "index": 41
+      },
+      {
+        "pid": "problem_042",
+        "index": 42
+      },
+      {
+        "pid": "problem_043",
+        "index": 43
+      },
+      {
+        "pid": "problem_044",
+        "index": 44
+      },
+      {
+        "pid": "problem_045",
+        "index": 45
+      },
+      {
+        "pid": "problem_046",
+        "index": 46
+      }
+    ]
+  }
+}
