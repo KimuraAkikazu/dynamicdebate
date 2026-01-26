@@ -2,7 +2,7 @@ __pycache__/
 models/
 scripts/
 logs/samples.jsonl
-analysis_outputs/
+#analysis_outputs/
 analysis_outputs_cumulative/
 initial_answer/
 logs/

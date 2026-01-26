@@ -1,0 +1,24 @@
+{
+  "run_20260125_060849": {
+    "problems": 279,
+    "model_tokens": {
+      "prompt_tokens": 59657063,
+      "completion_tokens": 2685447,
+      "total_tokens": 62342510
+    },
+    "avg_public_tokens": 439.7347670250896,
+    "interrupt_help_rate": null,
+    "tokens_to_first_correct_avg": 64.3314606741573
+  },
+  "run_20260125_060659": {
+    "problems": 300,
+    "model_tokens": {
+      "prompt_tokens": 13509433,
+      "completion_tokens": 950274,
+      "total_tokens": 14459707
+    },
+    "avg_public_tokens": 500.99666666666667,
+    "interrupt_help_rate": null,
+    "tokens_to_first_correct_avg": 208.0
+  }
+}
