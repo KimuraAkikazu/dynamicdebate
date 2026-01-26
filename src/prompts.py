@@ -36,7 +36,7 @@ You have conducted a debate to arrive at the correct answer to question. Based o
 {initial_answer}
 ## Debate history
 {debate_history}
-## Your memory
+### Your memory
 {latest_thoughts}
 
 # Instructions
@@ -79,13 +79,13 @@ You are debating to arrive at the correct answer to the question. Based on the d
 - Only one member can speak per turn. The next speaker is selected from the highest urgency level.
 - Each turn, one chunk at a time from the speaker's generated statement is revealed to all members. The current speaker may have more statement prepared and not yet revealed.
 
-## The initial answers provided by all members before the debate began
+## Your initial answer before the debate began
 {initial_answer}
 
 ## Debate history
 {turn_log}
 
-## Your memory
+### Your memory
 {latest_thoughts}
 
 ## Event of this turn
@@ -116,7 +116,7 @@ You can take the following actions:
 # Output format
 Return strictly a JSON object only.
 {{ 
- "thought": "Your brief internal thought regarding the debate information.",
+ "thought": "Your brief internal thought regarding the debate information within 200 characters.",
  "urgency": 0-9, 
  "action": "listen or interrupt", 
  "purpose": "agree|disagree|summarize|confirmation|proposal|conclusion|think", 
@@ -140,7 +140,7 @@ You are debating to arrive at the correct answer to the question. Based on the d
 - Remaining public tokens available to all agents: {tokens_left}.
 - Only one member can speak per turn. The next speaker is selected from the highest urgency level.
 
-## The initial answers provided by all members before the debate began
+## Your initial answer before the debate began
 {initial_answer}
 
 ## Debate history
@@ -172,7 +172,7 @@ You can take the following actions:
 # Output format
 Return strictly a JSON object only.
 {{ 
- "thought": "Your brief internal thought regarding the debate information.",  
+ "thought": "Your brief internal thought regarding the debate information within 200 characters.",  
  "urgency": 0-9,  
  "action": "listen or speak", 
  "purpose": "agree|disagree|summarize|confirmation|proposal|conclusion|think", 
@@ -197,13 +197,13 @@ You are debating to arrive at the correct answer to the question. Based on the d
 - Only one member can speak per turn. The next speaker is selected from the highest urgency level.
 - Each turn, one chunk at a time from the speaker's generated statement is revealed to all members. The current speaker may have more statement prepared and not yet revealed.
 
-## The initial answers provided by all members before the debate began
+## Your initial answer before the debate began
 {initial_answer}
 
 ## Debate history
 {turn_log}
 
-## Your memory
+### Your memory
 {latest_thoughts}
 
 ## Event of this turn
@@ -230,7 +230,7 @@ You can take the following actions:
 # Output format
 Return strictly a JSON object only.
 {{ 
- "thought": "Your brief internal thought regarding the debate information.",  
+ "thought": "Your brief internal thought regarding the debate information within 200 characters.",  
  "urgency": 0-9,  
  "action": "listen or speak", 
  "purpose": "agree|disagree|summarize|confirmation|proposal|conclusion|think", 
@@ -254,7 +254,7 @@ You are debating to arrive at the correct answer to the question. Based on the d
 - Remaining public tokens available to all agents: {tokens_left}.
 - Only one member can speak per turn. The next speaker is selected from the highest urgency level.
 
-## The initial answers provided by all members before the debate began
+## Your initial answer before the debate began
 {initial_answer}
 
 ## Debate history
@@ -329,11 +329,12 @@ You are conducting a debate to arrive at the correct answer to question. Based o
 {topic}
 
 # Debate Information
-## The initial answers provided by all members before the debate began
+
+## Your initial answer before the debate began
 {initial_answer}
 ## Debate history
 {debate_history}
-## Your memory
+### Your memory
 {latest_thoughts}
 
 # Instructions
@@ -361,13 +362,13 @@ You are debating to arrive at the correct answer to the question. Based on the d
 - Only one member can speak per turn. The next speaker is selected from the highest urgency level.
 - Each turn, one chunk at a time from the speaker's generated statement is revealed to all members. The current speaker may have more statement prepared and not yet revealed.
 
-## The initial answers provided by all members before the debate began
+## Your initial answer before the debate began
 {initial_answer}
 
 ## Debate history
 {turn_log}
 
-## Your memory
+### Your memory
 {latest_thoughts}
 
 ## Event of this turn
@@ -398,7 +399,7 @@ You can take the following actions:
 # Output format
 Return strictly a JSON object only.
 {{ 
- "thought": "Your brief internal thought regarding the debate information.",
+ "thought": "Your brief internal thought regarding the debate information within 200 characters.",
  "urgency": 0-9, 
  "action": "listen or interrupt", 
  "purpose": "agree|disagree|summarize|confirmation|proposal|conclusion|think", 
@@ -423,13 +424,13 @@ You are debating to arrive at the correct answer to the question. Based on the d
 - Only one member can speak per turn. The next speaker is selected from the highest urgency level.
 
 
-## The initial answers provided by all members before the debate began
+## Your initial answer before the debate began
 {initial_answer}
 
 ## Debate history
 {turn_log}
 
-## Your memory
+### Your memory
 {latest_thoughts}
 
 ## Event of this turn
@@ -477,13 +478,13 @@ You are debating to arrive at the correct answer to the question. Based on the d
 - Only one member can speak per turn. The next speaker is selected from the highest urgency level.
 - Each turn, one chunk at a time from the speaker's generated statement is revealed to all members. The current speaker may have more statement prepared and not yet revealed.
 
-## The initial answers provided by all members before the debate began
+## Your initial answer before the debate began
 {initial_answer}
 
 ## Debate history
 {turn_log}
 
-## Your memory
+### Your memory
 {latest_thoughts}
 
 ## Event of this turn
@@ -510,7 +511,7 @@ You can take the following actions:
 # Output format
 Return strictly a JSON object only.
 {{ 
- "thought": "Your brief current internal thought regarding the debate information in one or two sentences.",  
+ "thought": "Your brief current internal thought regarding the debate information within 200 characters.",  
  "urgency": 0-9,  
  "action": "listen or speak", 
  "purpose": "agree|disagree|summarize|confirmation|proposal|conclusion|think", 
@@ -531,7 +532,7 @@ You are debating to arrive at the correct answer to the question. Based on the d
 - Remaining public tokens available to all agents: {tokens_left}.
 - Only one member can speak per turn. The next speaker is selected from the highest urgency level.
 
-## The initial answers provided by all members before the debate began
+## Your initial answer before the debate began
 {initial_answer}
 
 ## Debate history
@@ -539,7 +540,7 @@ You are debating to arrive at the correct answer to the question. Based on the d
 Turn{turn}({event_type})
 {name}:
 
-## Your memory
+### Your memory
 {latest_thoughts}
 
 ## State

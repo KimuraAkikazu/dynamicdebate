@@ -203,14 +203,14 @@ class DiscussionManager:
                 self._accumulate_token_usage(usage)
                 print(f"[Init] {ag.name} → {ag.initial_answer_str}")
 
-        # 2) 全初回回答を共有
-        all_initial = "\n".join(
-            f"Name: {ag.name},\nAnswer: {ag.initial_answer.get('answer','')},\nreason: {ag.initial_answer.get('reason','') }"
-            "\n"
-            for ag in self.agents
-        )
+        # 2) 初回回答の共有範囲
+        #    以前は全員分を共有していたが、このブランチでは各エージェント自身の初回回答のみを見られるようにする。
         for ag in self.agents:
-            ag.all_initial_answers_str = all_initial
+            ag.all_initial_answers_str = (
+                f"Name: {ag.name},\n"
+                f"Answer: {ag.initial_answer.get('answer','')},\n"
+                f"reason: {ag.initial_answer.get('reason','') }\n"
+            )
 
         # 3) ターン0の行動計画
         self.current_actions.clear()

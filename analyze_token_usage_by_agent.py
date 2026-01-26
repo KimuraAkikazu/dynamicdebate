@@ -8,12 +8,7 @@ What it does
 - Derives interrupt events even when event_type stays "utterance":
   if an agent chose action_plan.action == "interrupt" on turn t and becomes the
   speaker on turn t+1, that turn is treated as an interrupt.
-- Uses initial_answers as 0-token answers and carries forward prior answers when a
-  speaker does not supply an answer.
 - Computes accuracy vs gold label bucketed by public tokens.
-- Aggregates model-token usage from prompt_log_*.jsonl and average public tokens.
-- Measures interrupt usefulness (accuracy delta before/after interrupt) and AUC-like
-  average accuracy across buckets.
 - Plots:
   * token_accuracy_overall.png      : overall token-wise accuracy per run.
   * token_accuracy_by_agent_<run>.png: per-agent token-wise accuracy for each run.
@@ -44,36 +39,6 @@ def load_json(path: Path):
         return json.load(f)
 
 
-def load_jsonl(path: Path):
-    for line in path.open("r", encoding="utf-8"):
-        line = line.strip()
-        if not line:
-            continue
-        try:
-            yield json.loads(line)
-        except Exception:
-            continue
-
-
-def find_prompt_log(problem_dir: Path) -> Optional[Path]:
-    logs = sorted(problem_dir.glob("prompt_log_*.jsonl"))
-    return logs[-1] if logs else None
-
-
-def parse_prompt_tokens(prompt_log: Path) -> Counter:
-    agg = Counter()
-    for rec in load_jsonl(prompt_log):
-        if not isinstance(rec, dict):
-            continue
-        stats = rec.get("token_stats") or {}
-        for k in ("prompt_tokens", "completion_tokens", "total_tokens"):
-            try:
-                agg[k] += int(stats.get(k, 0))
-            except Exception:
-                continue
-    return agg
-
-
 # ------------------------ core parsing ------------------------ #
 def load_gold(problem_dir: Path) -> Optional[str]:
     meta = problem_dir / "adversary_meta.json"
@@ -102,24 +67,11 @@ def process_problem(problem_dir: Path, bucket: int):
     # per-problem accumulators
     action_counts: Dict[str, Counter] = defaultdict(Counter)
     bucket_answers: Dict[str, Dict[int, str]] = defaultdict(dict)  # agent -> bucket -> ans
-    interrupt_deltas: List[Tuple[float, int]] = []  # (delta accuracy, tokens_after)
     max_tokens = 0
 
     prev_interrupt_agents: set[str] = set()
     last_answer: Dict[str, Optional[str]] = {}
     cum_tokens = 0
-
-    # seed with initial answers at token 0
-    if data:
-        init = data[0].get("initial_answers") or {}
-        for agent, meta in init.items():
-            if isinstance(meta, dict):
-                ans = meta.get("answer")
-                if isinstance(ans, str):
-                    ans_norm = ans.strip().upper()
-                    if ans_norm in {"A", "B", "C", "D"}:
-                        last_answer[agent] = ans_norm
-                        bucket_answers[agent][0] = ans_norm
 
     for ev in data:
         raw_event_type = ev.get("event_type")
@@ -170,14 +122,6 @@ def process_problem(problem_dir: Path, bucket: int):
                 if ans_norm in {"A", "B", "C", "D"}:
                     answers_current[agent] = ans_norm
 
-        # interrupt delta calculation (before vs after answers)
-        if derived_event_type == "interrupt" and gold:
-            agents_considered = [a for a in set(list(last_answer.keys()) + list(answers_current.keys())) if answers_current.get(a) or last_answer.get(a)]
-            if agents_considered:
-                correct_before = sum(1 for a in agents_considered if last_answer.get(a) == gold) / len(agents_considered)
-                correct_after = sum(1 for a in agents_considered if answers_current.get(a) == gold) / len(agents_considered)
-                interrupt_deltas.append((correct_after - correct_before, cum_tokens))
-
         # if speaker missing answer, carry forward automatically via answers_current
         last_answer = answers_current
 
@@ -196,7 +140,6 @@ def process_problem(problem_dir: Path, bucket: int):
         "bucket_answers": bucket_answers,
         "max_tokens": max_tokens,
         "action_counts": action_counts,
-        "interrupt_deltas": interrupt_deltas,
     }
 
 
@@ -211,10 +154,6 @@ def aggregate_run(run_dir: Path, num_problems: int, bucket: int):
     per_agent_correct: Dict[str, Counter] = defaultdict(Counter)
     per_agent_total: Dict[str, Counter] = defaultdict(Counter)
     action_counts: Dict[str, Counter] = defaultdict(Counter)
-    interrupt_deltas: List[float] = []
-    public_tokens_sum = 0
-    public_tokens_count = 0
-    model_tokens_sum = Counter()
 
     max_bucket = 0
     processed = 0
@@ -240,19 +179,6 @@ def aggregate_run(run_dir: Path, num_problems: int, bucket: int):
         for agent, cnt in res["action_counts"].items():
             action_counts[agent].update(cnt)
 
-        for delta, _tok in res["interrupt_deltas"]:
-            interrupt_deltas.append(delta)
-
-        # public token usage
-        public_tokens_sum += res["max_tokens"]
-        public_tokens_count += 1
-
-        # model token usage
-        prompt_log = find_prompt_log(pdir)
-        if prompt_log:
-            tok = parse_prompt_tokens(prompt_log)
-            model_tokens_sum.update(tok)
-
         processed += 1
 
     xs = list(range(0, max_bucket + bucket, bucket)) if max_bucket > 0 else [0]
@@ -269,30 +195,12 @@ def aggregate_run(run_dir: Path, num_problems: int, bucket: int):
         for agent in per_agent_total.keys()
     }
 
-    def curve_auc(curve: List[Optional[float]]) -> Optional[float]:
-        vals = [v for v in curve if v is not None]
-        return sum(vals) / len(vals) if vals else None
-
-    overall_auc = curve_auc(overall_curve)
-    per_agent_auc = {agent: curve_auc(curve) for agent, curve in per_agent_curves.items()}
-
-    interrupt_summary = {
-        "count": len(interrupt_deltas),
-        "delta_mean": (sum(interrupt_deltas) / len(interrupt_deltas)) if interrupt_deltas else None,
-        "delta_positive_rate": (sum(1 for d in interrupt_deltas if d > 0) / len(interrupt_deltas)) if interrupt_deltas else None,
-    }
-
     return {
         "xs": xs,
         "overall_curve": overall_curve,
         "per_agent_curves": per_agent_curves,
         "action_counts": action_counts,
         "problems": processed,
-        "interrupt": interrupt_summary,
-        "overall_auc": overall_auc,
-        "per_agent_auc": per_agent_auc,
-        "public_tokens_avg": public_tokens_sum / public_tokens_count if public_tokens_count else 0,
-        "model_tokens": dict(model_tokens_sum),
     }
 
 
@@ -361,7 +269,7 @@ def _line_chart(series: Dict[str, List[Optional[float]]], xs: List[int], title: 
     for idx, (label, ys_raw) in enumerate(series.items()):
         pts = []
         for x_val, y_val in zip(xs, ys_raw):
-            if y_val is None:
+            if y_val is None or x_val > 600:
                 continue
             pts.append((x_to_px(x_val), y_to_px(y_val)))
         if len(pts) >= 2:
@@ -520,11 +428,6 @@ def main():
         summary[rid] = {
             "problems": res["problems"],
             "bucket": args.bucket,
-            "overall_auc": res.get("overall_auc"),
-            "per_agent_auc": res.get("per_agent_auc"),
-            "public_tokens_avg": res.get("public_tokens_avg"),
-            "model_tokens": res.get("model_tokens"),
-            "interrupt": res.get("interrupt"),
             "overall_accuracy": {str(x): res["overall_curve"][i] for i, x in enumerate(res["xs"])},
             "per_agent_accuracy": {
                 agent: {str(x): curve[i] for i, x in enumerate(res["xs"])}
