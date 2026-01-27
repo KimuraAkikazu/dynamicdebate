@@ -86,7 +86,7 @@ You are debating to arrive at the correct answer to the question. Based on the d
 {turn_log}
 
 ### Your memory
-{latest_thoughts}
+# {latest_thoughts}
 
 ## Event of this turn
 {last_event}
@@ -105,7 +105,7 @@ You can take the following actions:
 3. Refer to the provided information and your current thought, decide the next turn's action you should take as {name}.
   - While considering the possibility that someone may be mid-sentence, decide whether to interrupt and respond immediately to this turn's statement or listen to its completion.
 4. Select the purpose of the action you have chosen.
-5. Based on the debate so far, output your answer to the question at this turn.
+5. Based on the debate information, output the currently most supported answer to the question.
 6. Set "consensus" to true ONLY if you believe all members have effectively converged to one answer choice. Otherwise set false.
    If the anticipated continuation of statement may resolve your concern, choose listen. 
 
@@ -165,7 +165,7 @@ You can take the following actions:
 2. Determine the urgency for you to start talking now. Raise urgency only when (a) you can immediately correct a factual or logical error in the latest statement, (b) tokens_left is low and essential information must be shared soon, or (c) your current answer disagrees with the apparent majority in the turn_log. Otherwise keep urgency low and listen.
 3. Refer to the provided information and your thought, decide your next turn action as {name}.
 4. Select the purpose of the action you have chosen.
-5. Based on the debate so far, output your answer to the question at this turn.
+5. Based on the debate information, output the currently most supported answer to the question.
 6. Set "consensus" to true ONLY if you believe the TEAM has effectively converged to one answer choice. Otherwise set false.
    Be careful not to stray into debate that are not necessary for answering the question.
 
@@ -449,7 +449,7 @@ You can take the following actions:
 2. Determine the urgency for you to start talking now. Raise urgency only when (a) you can immediately correct a factual or logical error in the latest statement, (b) tokens_left is low and essential information must be shared soon, or (c) your current answer disagrees with the apparent majority in the turn_log. Otherwise keep urgency low and listen.
 3. Refer to the provided information and your thought, decide your next turn action as {name}.
 4. Select the purpose of the action you have chosen.
-5. Based on the debate so far, output your answer to the question at this turn.
+5. Based on the debate information, output the currently most supported answer to the question.
 6. Set "consensus" to true ONLY if you believe the TEAM has effectively converged to one answer choice. Otherwise set false.
    Be careful not to stray into debate that are not necessary for answering the question.
 
@@ -504,7 +504,7 @@ You can take the following actions:
 3. Refer to the provided information and your thought, decide your next turn action as {name}.
   - Please bear in mind that prolonged silence hinders progress in debate.
 4. Select the purpose of the action you have chosen.
-5. Based on the debate so far, output your answer to the question at this turn.
+5. Based on the debate information, output the currently most supported answer to the question.
 6. Set "consensus" to true ONLY if you believe the TEAM has effectively converged to one answer choice. Otherwise set false.
    Be careful not to stray into debate that are not necessary for answering the question.
 

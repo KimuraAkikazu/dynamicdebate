@@ -291,8 +291,10 @@ def load_exec_logs(run_dir: str) -> Dict[str, Dict[str, Any]]:
       "initial_answers": {agent: ans},
       "token_budget": int|None,
       "snapshots": [{"turn":..,"turn_sort":..,"tokens":..,"answers":{..},"speaker":..,"event_type_fixed":..}],
-      "action_dist": {agent: Counter(action_plan.action)},
-      "realized_speaker_dist": {agent: Counter({"speak":x,"interrupt":y})}
+      "action_dist": {agent: Counter(action_plan.action)},                               # 全イベント
+      "action_dist_by_ctx": {ctx: {agent: Counter}}  (ctx ∈ {"talk","silence"})          # イベント別
+      "realized_speaker_dist": {agent: Counter({"speak":x,"interrupt":y})},
+      "final_answers": {agent: answer}  # ログ最終行から取得できる場合のみ
     }
     """
     result: Dict[str, Dict[str, Any]] = {}
@@ -341,6 +343,9 @@ def load_exec_logs(run_dir: str) -> Dict[str, Dict[str, Any]]:
 
         # 行動分布（roundrobin では利用しない）
         action_dist: Optional[Dict[str, Counter]] = {a: Counter() for a in agents} if not is_roundrobin else None
+        action_dist_by_ctx: Optional[Dict[str, Dict[str, Counter]]] = (
+            {ctx: {a: Counter() for a in agents} for ctx in ["talk", "silence"]} if not is_roundrobin else None
+        )
         # 実現された発話分布（roundrobin では利用しない）
         realized_speaker_dist: Optional[Dict[str, Counter]] = {a: Counter() for a in agents} if not is_roundrobin else None
 
@@ -355,6 +360,8 @@ def load_exec_logs(run_dir: str) -> Dict[str, Dict[str, Any]]:
         # 「この turn で speak/interrupt を選んだエージェント」を次 turn の speaker と対応付ける
         prev_planned_speaker_actions: Dict[str, str] = {}
 
+        final_answers_map: Dict[str, str] = {}
+
         for rec in records:
             if not isinstance(rec, dict):
                 continue
@@ -363,6 +370,15 @@ def load_exec_logs(run_dir: str) -> Dict[str, Dict[str, Any]]:
             speaker = rec.get("speaker")
             turn = rec.get("turn")
             turn_sort = normalize_turn(turn)
+
+            # final_answers レコードは最後に出るので先に拾っておく
+            if event_type == "final_answers":
+                ans_map = rec.get("answers")
+                if isinstance(ans_map, dict):
+                    for ag, ans in ans_map.items():
+                        if isinstance(ans, str):
+                            final_answers_map[ag] = ans.strip()
+                continue
             
 
             # token 使用量（累積）
@@ -372,6 +388,19 @@ def load_exec_logs(run_dir: str) -> Dict[str, Dict[str, Any]]:
                     tokens_used = 0
             if not isinstance(tokens_used, int):
                 tokens_used = None
+
+            # interrupt 推定を先に行う（ctx 判定にも使う）
+            event_type_fixed = event_type
+            if event_type == "utterance" and isinstance(speaker, str):
+                if speaker in prev_interrupters and speaker != prev_speaker:
+                    event_type_fixed = "interrupt"
+
+            # イベント種別で行動分布の文脈を決める（event_type_fixed を使用）
+            ctx_for_action: Optional[str] = None
+            if event_type_fixed == "silence" or event_type == "silence":
+                ctx_for_action = "silence"
+            elif event_type_fixed in ("utterance", "interrupt"):
+                ctx_for_action = "talk"
 
             # この turn の agent_actions を処理
             planned_speaker_actions: Dict[str, str] = {}
@@ -405,14 +434,10 @@ def load_exec_logs(run_dir: str) -> Dict[str, Dict[str, Any]]:
                             current_answers[agent] = ans.strip()
                         if act and action_dist is not None:
                             action_dist[agent][act] += 1
+                            if ctx_for_action and action_dist_by_ctx is not None and agent in action_dist_by_ctx[ctx_for_action]:
+                                action_dist_by_ctx[ctx_for_action][agent][act] += 1
                             if act in ("speak", "interrupt"):
                                 planned_speaker_actions[agent] = act
-
-            # interrupt 推定
-            event_type_fixed = event_type
-            if event_type == "utterance" and isinstance(speaker, str):
-                if speaker in prev_interrupters and speaker != prev_speaker:
-                    event_type_fixed = "interrupt"
 
             # speaker 実現分布（roundrobinでは集計しない）
             if not is_roundrobin and realized_speaker_dist is not None:
@@ -490,7 +515,12 @@ def load_exec_logs(run_dir: str) -> Dict[str, Dict[str, Any]]:
             "token_budget": token_budget,
             "snapshots": snapshots_sorted,
             "action_dist": {a: dict(action_dist[a]) for a in agents} if action_dist is not None else {},
+            "action_dist_by_ctx": (
+                {ctx: {a: dict(action_dist_by_ctx[ctx][a]) for a in action_dist_by_ctx[ctx]} for ctx in action_dist_by_ctx}
+                if action_dist_by_ctx is not None else {}
+            ),
             "realized_speaker_dist": {a: dict(realized_speaker_dist[a]) for a in agents} if realized_speaker_dist is not None else {},
+            "final_answers": final_answers_map,
         }
 
     return result
@@ -730,6 +760,140 @@ def compute_tokenwise_per_agent_accuracy(
     return tokens, series
 
 
+def analyze_interrupt_effects(
+    pids: List[str],
+    problems: Dict[str, Dict[str, Any]],
+    acc_by_pid: Dict[str, Dict[str, Any]],
+) -> Dict[str, Any]:
+    """
+    interrupt が発生したターンで、割り込みを行ったエージェントの回答が
+    直前からどう変化したかを評価する。
+    戻り値:
+      {
+        "total_interrupts": int,
+        "evaluated": int,              # gold と最終回答が両方あるもの
+        "improved": int,              # 割り込み後〜最終で誰かが正答化
+        "worsened": int,              # 割り込み後〜最終で誰かが誤答化
+        "unchanged": int,
+        "details": [...],              # 少数の例を保持（最初の50件）
+      }
+    """
+    details: List[Dict[str, Any]] = []
+    total = 0
+    evaluated = improved = worsened = unchanged = 0
+    unchanged_correct_to_correct = 0
+    unchanged_wrong_to_wrong = 0
+
+    for pid in pids:
+        pdata = problems.get(pid)
+        acc = acc_by_pid.get(pid)
+        if not pdata or not acc:
+            continue
+        gold = acc.get("gold")
+        if not isinstance(gold, str):
+            continue
+        snaps = pdata.get("snapshots", [])
+        final_answers_map = pdata.get("final_answers", {}) or {}
+        if not isinstance(final_answers_map, dict):
+            final_answers_map = {}
+        processed_agents = set()  # 同一問題・同一エージェントの割り込みは1回にまとめる
+        for i, snap in enumerate(snaps):
+            if snap.get("event_type_fixed") != "interrupt":
+                continue
+            total += 1
+            speaker = snap.get("speaker")
+            if not isinstance(speaker, str):
+                continue
+            if speaker in processed_agents:
+                continue
+            processed_agents.add(speaker)
+
+            # 直前スナップショットの回答（全員）
+            answers_before = {}
+            if i > 0:
+                answers_before = snaps[i - 1].get("answers", {}) or {}
+            elif snaps:
+                answers_before = snaps[0].get("answers", {}) or {}
+
+            # 最終回答（全員）。final_answers_map が空なら最後の snapshot を代用。
+            answers_final = final_answers_map if final_answers_map else (snaps[-1].get("answers", {}) if snaps else {})
+            if not isinstance(answers_final, dict):
+                answers_final = {}
+
+            # 評価対象のエージェント集合：割り込み実施者＋その他
+            agent_names = set(answers_final.keys()) | set(answers_before.keys())
+            if not agent_names:
+                continue
+
+            def is_correct(ans: Any) -> Optional[bool]:
+                return ans == gold if isinstance(ans, str) else None
+
+            improved_flag = False
+            worsened_flag = False
+            for ag in agent_names:
+                before = answers_before.get(ag)
+                after = answers_final.get(ag)
+                cb = is_correct(before)
+                ca = is_correct(after)
+                if cb is None or ca is None:
+                    continue
+                if (not cb) and ca:
+                    improved_flag = True
+                if cb and (not ca):
+                    worsened_flag = True
+
+            evaluated += 1
+            if improved_flag:
+                improved += 1
+                outcome = "improved"
+            elif worsened_flag:
+                worsened += 1
+                outcome = "worsened"
+            else:
+                # unchanged: 分類する
+                unchanged += 1
+                # unchanged の内訳判定（任意のエージェントで正解->正解 or 不正解->不正解が維持されたかを見る）
+                # 判定は、全員の before/after を調べ、少なくとも1人が正解を維持していれば c2c、
+                # 全員が不正解を維持なら w2w、それ以外は0
+                c2c = False
+                w2w = True  # 一人でも正解していれば False にする
+                for ag in agent_names:
+                    before = answers_before.get(ag)
+                    after = answers_final.get(ag)
+                    cb = is_correct(before)
+                    ca = is_correct(after)
+                    if cb is True and ca is True:
+                        c2c = True
+                    if ca is True:
+                        w2w = False
+                if c2c:
+                    unchanged_correct_to_correct += 1
+                elif w2w:
+                    unchanged_wrong_to_wrong += 1
+                outcome = "unchanged"
+
+            if len(details) < 50:
+                details.append({
+                    "pid": pid,
+                    "speaker": speaker,
+                    "gold": gold,
+                    "before": {ag: answers_before.get(ag) for ag in agent_names},
+                    "final": {ag: answers_final.get(ag) for ag in agent_names},
+                    "outcome": outcome,
+                })
+
+    return {
+        "total_interrupts": total,
+        "evaluated": evaluated,
+        "improved": improved,
+        "worsened": worsened,
+        "unchanged": unchanged,
+        "unchanged_correct_to_correct": unchanged_correct_to_correct,
+        "unchanged_wrong_to_wrong": unchanged_wrong_to_wrong,
+        "details": details,
+    }
+
+
 def aggregate_action_distribution(
     pids: List[str],
     problems: Dict[str, Dict[str, Any]],
@@ -748,6 +912,35 @@ def aggregate_action_distribution(
             for agent, m in ad.items():
                 if isinstance(m, dict):
                     dist[agent].update(m)
+    return dist
+
+
+def aggregate_action_distribution_by_context(
+    pids: List[str],
+    problems: Dict[str, Dict[str, Any]],
+) -> Dict[str, Dict[str, Counter]]:
+    """
+    action_plan.action の分布をイベント文脈ごとに集計する。
+    return: {context: {agent: Counter(action)}}
+    context は "talk" (utterance/interrupt) と "silence" を想定。
+    """
+    dist: Dict[str, Dict[str, Counter]] = {
+        "talk": defaultdict(Counter),
+        "silence": defaultdict(Counter),
+    }
+    for pid in pids:
+        pdata = problems.get(pid)
+        if not pdata:
+            continue
+        by_ctx = pdata.get("action_dist_by_ctx", {})
+        if isinstance(by_ctx, dict):
+            for ctx, agents_map in by_ctx.items():
+                if ctx not in dist:
+                    continue
+                if isinstance(agents_map, dict):
+                    for agent, m in agents_map.items():
+                        if isinstance(m, dict):
+                            dist[ctx][agent].update(m)
     return dist
 
 
@@ -992,7 +1185,9 @@ def main():
         tokens_all, token_majority_all = compute_tokenwise_majority_accuracy(scenarios, probs, acc, args.token_step)
         pa_tokens_all, per_agent_token_all = compute_tokenwise_per_agent_accuracy(scenarios, probs, acc, args.token_step)
         action_dist_all = aggregate_action_distribution(scenarios, probs) if not run_is_roundrobin else {}
+        action_dist_ctx_all = aggregate_action_distribution_by_context(scenarios, probs) if not run_is_roundrobin else {}
         realized_speaker_dist_all = aggregate_realized_speaker_distribution(scenarios, probs) if not run_is_roundrobin else {}
+        interrupt_effects_all = analyze_interrupt_effects(scenarios, probs, acc) if not run_is_roundrobin else {}
 
         all_runs_data.append({
             "dir": r_dir,
@@ -1007,7 +1202,12 @@ def main():
                 "per_agent_token_accuracy_all": per_agent_token_all,
                 "per_agent_tokens_all": pa_tokens_all,
                 "action_distribution_all": {a: dict(action_dist_all[a]) for a in action_dist_all},
+                "action_distribution_by_ctx_all": {
+                    ctx: {a: dict(action_dist_ctx_all.get(ctx, {}).get(a, {})) for a in action_dist_ctx_all.get(ctx, {})}
+                    for ctx in action_dist_ctx_all
+                },
                 "realized_speaker_distribution_all": {a: dict(realized_speaker_dist_all[a]) for a in realized_speaker_dist_all},
+                "interrupt_effects_all": interrupt_effects_all,
                 "is_roundrobin": run_is_roundrobin,
             },
         })
@@ -1052,7 +1252,9 @@ def main():
         tokens_common, token_majority_common = compute_tokenwise_majority_accuracy(common_pids, r_data["probs"], r_data["acc"], args.token_step)
         pa_tokens_common, per_agent_token_common = compute_tokenwise_per_agent_accuracy(common_pids, r_data["probs"], r_data["acc"], args.token_step)
         action_dist_common = aggregate_action_distribution(common_pids, r_data["probs"]) if not run_is_roundrobin else {}
+        action_dist_ctx_common = aggregate_action_distribution_by_context(common_pids, r_data["probs"]) if not run_is_roundrobin else {}
         realized_speaker_dist_common = aggregate_realized_speaker_distribution(common_pids, r_data["probs"]) if not run_is_roundrobin else {}
+        interrupt_effects_common = analyze_interrupt_effects(common_pids, r_data["probs"], r_data["acc"]) if not run_is_roundrobin else {}
 
         r_data["metrics"]["final_accuracy_common"] = acc_final_common
         r_data["metrics"]["token_majority_accuracy_common"] = token_majority_common
@@ -1060,7 +1262,12 @@ def main():
         r_data["metrics"]["per_agent_token_accuracy_common"] = per_agent_token_common
         r_data["metrics"]["per_agent_tokens_common"] = pa_tokens_common
         r_data["metrics"]["action_distribution_common"] = {a: dict(action_dist_common[a]) for a in action_dist_common}
+        r_data["metrics"]["action_distribution_by_ctx_common"] = {
+            ctx: {a: dict(action_dist_ctx_common.get(ctx, {}).get(a, {})) for a in action_dist_ctx_common.get(ctx, {})}
+            for ctx in action_dist_ctx_common
+        }
         r_data["metrics"]["realized_speaker_distribution_common"] = {a: dict(realized_speaker_dist_common[a]) for a in realized_speaker_dist_common}
+        r_data["metrics"]["interrupt_effects_common"] = interrupt_effects_common
 
         print(f"[RESULT] {tag} | Final Acc (All Target): {r_data['metrics']['final_accuracy_all_target']:.3f}")
         print(f"[RESULT] {tag} | Final Acc (Common Only): {acc_final_common:.3f}")
@@ -1098,6 +1305,14 @@ def main():
                 title=f"{tag} - Action Selection Distribution (action_plan.action, all target)",
                 out_path=out_ad,
             )
+            # イベント別の行動分布（talk / silence）
+            for ctx_label, ctx_key in [("talk", "talk"), ("silence", "silence")]:
+                out_ctx = os.path.join(pair_out_dir, f"action_distribution_{ctx_label}_{tag}.png")
+                plot_action_distribution_grouped(
+                    aggregate_action_distribution_by_context(r_data["scenarios"], r_data["probs"]).get(ctx_key, {}),
+                    title=f"{tag} - Action Selection Distribution ({ctx_label}, all target)",
+                    out_path=out_ctx,
+                )
 
             # run ごとの実現発話分布（speak/interrupt）
             out_rs = os.path.join(pair_out_dir, f"realized_speaker_distribution_{tag}.png")
@@ -1123,8 +1338,12 @@ def main():
                 "per_agent_tokens_common": pa_tokens_common,
                 "action_distribution_all": r_data["metrics"]["action_distribution_all"],
                 "action_distribution_common": r_data["metrics"]["action_distribution_common"],
+                "action_distribution_by_ctx_all": r_data["metrics"]["action_distribution_by_ctx_all"],
+                "action_distribution_by_ctx_common": r_data["metrics"]["action_distribution_by_ctx_common"],
                 "realized_speaker_distribution_all": r_data["metrics"]["realized_speaker_distribution_all"],
                 "realized_speaker_distribution_common": r_data["metrics"]["realized_speaker_distribution_common"],
+                "interrupt_effects_all": r_data["metrics"]["interrupt_effects_all"],
+                "interrupt_effects_common": r_data["metrics"]["interrupt_effects_common"],
             }
         }
 
