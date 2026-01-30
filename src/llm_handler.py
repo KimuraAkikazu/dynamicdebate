@@ -331,6 +331,8 @@ class LLMHandler:
         usage = resp.get("usage", {})
         parsed = self._safe_load_json(content)
 
+        parsed.setdefault("consensus", False)
+
         if self.logger:
             self.logger.log_generated(
                 agent_name=agent_name,
@@ -371,6 +373,7 @@ class LLMHandler:
         content = resp["choices"][0]["message"]["content"]
         usage = resp.get("usage", {})
         parsed = self._safe_load_json(content)
+        parsed.setdefault("consensus", False)
 
         if self.logger:
             self.logger.log_generated(

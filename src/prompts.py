@@ -106,8 +106,7 @@ You can take the following actions:
   - While considering the possibility that someone may be mid-sentence, decide whether to interrupt and respond immediately to this turn's statement or listen to its completion.
 4. Select the purpose of the action you have chosen.
 5. Based on the debate information, output the currently most supported answer to the question.
-6. Set "consensus" to true ONLY if you believe all members have effectively converged to one answer choice. Otherwise set false.
-   If the anticipated continuation of statement may resolve your concern, choose listen. 
+If the anticipated continuation of statement may resolve your concern, choose listen. 
 
 # Constraints for Interruption
 - You shouldn't interrupt if the current speaker has only stated their stance but has not yet provided the reason or evidence.
@@ -121,9 +120,11 @@ Return strictly a JSON object only.
  "action": "listen or interrupt", 
  "purpose": "agree|disagree|summarize|confirmation|proposal|conclusion|think", 
  "answer": "Your current answer to the question.one of 'A', 'B', 'C', or 'D'",
- "consensus": boolean
   }}
 """.strip()
+
+# 6. Set "consensus" to true ONLY if you believe all members have effectively converged to one answer choice. Otherwise set false.
+#  "consensus": boolean
 
 # -------------------------------------------------- #
 # Plan-action prompt - NO INTERRUPTION (Normal)
@@ -166,8 +167,7 @@ You can take the following actions:
 3. Refer to the provided information and your thought, decide your next turn action as {name}.
 4. Select the purpose of the action you have chosen.
 5. Based on the debate information, output the currently most supported answer to the question.
-6. Set "consensus" to true ONLY if you believe the TEAM has effectively converged to one answer choice. Otherwise set false.
-   Be careful not to stray into debate that are not necessary for answering the question.
+Be careful not to stray into debate that are not necessary for answering the question.
 
 # Output format
 Return strictly a JSON object only.
@@ -177,9 +177,11 @@ Return strictly a JSON object only.
  "action": "listen or speak", 
  "purpose": "agree|disagree|summarize|confirmation|proposal|conclusion|think", 
  "answer": "Your current answer to the question.one of 'A', 'B', 'C', or 'D'",
- "consensus": boolean
   }}
 """.strip()
+
+# 6. Set "consensus" to true ONLY if you believe the TEAM has effectively converged to one answer choice. Otherwise set false.
+# "consensus": boolean
 
 # --------------------------------------------------
 # Plan-action prompt (silence turn)
@@ -224,8 +226,7 @@ You can take the following actions:
   - Please bear in mind that prolonged silence hinders progress in debate.
 4. Select the purpose of the action you have chosen.
 5. Based on the debate information, output the currently most supported answer to the question.
-6. Set "consensus" to true ONLY if you believe the TEAM has effectively converged to one answer choice. Otherwise set false.
-   Be careful not to stray into debate that are not necessary for answering the question.
+Be careful not to stray into debate that are not necessary for answering the question.
 
 # Output format
 Return strictly a JSON object only.
@@ -235,9 +236,11 @@ Return strictly a JSON object only.
  "action": "listen or speak", 
  "purpose": "agree|disagree|summarize|confirmation|proposal|conclusion|think", 
  "answer": "Your current answer to the question.one of 'A', 'B', 'C', or 'D'",
- "consensus": boolean
   }}
 """.strip()
+
+# 6. Set "consensus" to true ONLY if you believe the TEAM has effectively converged to one answer choice. Otherwise set false.
+# "consensus": boolean
 
 # --------------------------------------------------
 # Utterance-generation prompt
@@ -269,10 +272,10 @@ Turn{turn}({event_type})
 - You are {name}.
 - This is turn {turn}. Use the remaining public tokens efficiently to reach the correct answer.
 
-## Your purpose
-  - your action:{event_type},
-  - your thought:{thought},
-  - purpose of your speech:{purpose}
+## Purpose of your speech
+  - action:{event_type},
+  - hought:{thought},
+  - purpose:{purpose}
 
 # Instructions
 - You requested to speak during the previous turn and were granted the right to speak.
@@ -389,8 +392,7 @@ You can take the following actions:
   - While considering the possibility that someone may be mid-sentence, decide whether to interrupt and respond immediately to this turn's statement or listen to its completion.
 4. Select the purpose of the action you have chosen.
 5. Based on the debate so far, output your answer to the question at this turn.
-6. Set "consensus" to true ONLY if you believe the TEAM has effectively converged to one answer choice. Otherwise set false.
-   If the anticipated continuation of statement may resolve your concern, choose listen. 
+If the anticipated continuation of statement may resolve your concern, choose listen. 
 
 # Constraints for Interruption
 - You shouldn't interrupt if the current speaker has only stated their stance but has not yet provided the reason or evidence.
@@ -404,9 +406,12 @@ Return strictly a JSON object only.
  "action": "listen or interrupt", 
  "purpose": "agree|disagree|summarize|confirmation|proposal|conclusion|think", 
  "answer": "Your current answer to the question.one of 'A', 'B', 'C', or 'D'",
- "consensus": boolean
+ 
   }}
 """.strip()
+
+# "consensus": boolean
+# 6. Set "consensus" to true ONLY if you believe the TEAM has effectively converged to one answer choice. Otherwise set false.
 
 # -------------------------------------------------- #
 # Plan-action prompt - NO INTERRUPTION (Adversary)
@@ -450,8 +455,7 @@ You can take the following actions:
 3. Refer to the provided information and your thought, decide your next turn action as {name}.
 4. Select the purpose of the action you have chosen.
 5. Based on the debate information, output the currently most supported answer to the question.
-6. Set "consensus" to true ONLY if you believe the TEAM has effectively converged to one answer choice. Otherwise set false.
-   Be careful not to stray into debate that are not necessary for answering the question.
+Be careful not to stray into debate that are not necessary for answering the question.
 
 # Output format
 Return strictly a JSON object only.
@@ -461,9 +465,11 @@ Return strictly a JSON object only.
  "action": "listen or speak", 
  "purpose": "agree|disagree|summarize|confirmation|proposal|conclusion|think", 
  "answer": "Your current answer to the question.one of 'A', 'B', 'C', or 'D'",
- "consensus": boolean
   }}
 """.strip()
+
+# 6. Set "consensus" to true ONLY if you believe the TEAM has effectively converged to one answer choice. Otherwise set false.
+# "consensus": boolean
 
 ADVERSARY_SILENCE_PLAN_PROMPT_TEMPLATE = """
 You are debating to arrive at the correct answer to the question. Based on the debate information, generate a response to the instructions.
@@ -505,8 +511,7 @@ You can take the following actions:
   - Please bear in mind that prolonged silence hinders progress in debate.
 4. Select the purpose of the action you have chosen.
 5. Based on the debate information, output the currently most supported answer to the question.
-6. Set "consensus" to true ONLY if you believe the TEAM has effectively converged to one answer choice. Otherwise set false.
-   Be careful not to stray into debate that are not necessary for answering the question.
+Be careful not to stray into debate that are not necessary for answering the question.
 
 # Output format
 Return strictly a JSON object only.
@@ -516,9 +521,11 @@ Return strictly a JSON object only.
  "action": "listen or speak", 
  "purpose": "agree|disagree|summarize|confirmation|proposal|conclusion|think", 
  "answer": "Your current answer to the question.one of 'A', 'B', 'C', or 'D'",
- "consensus": boolean
   }}
 """.strip()
+
+# 6. Set "consensus" to true ONLY if you believe the TEAM has effectively converged to one answer choice. Otherwise set false.
+#  "consensus": boolean
 
 ADVERSARY_GENERATE_UTTERANCE_PROMPT_TEMPLATE = """
 You are debating to arrive at the correct answer to the question. Based on the debate information, generate a response to the instructions.
@@ -547,10 +554,10 @@ Turn{turn}({event_type})
 - You are {name}.
 - This is turn {turn}. Use the remaining public tokens efficiently to reach the correct answer.
 
-## Your purpose
-  - type of your action:{event_type},
-  - your thought:{thought},
-  - purpose of your utterance:{purpose}
+## Purpose of your speech
+  - action:{event_type},
+  - hought:{thought},
+  - purpose:{purpose}
 
 # Instructions
 - You requested to speak during the previous turn and were granted the right to speak.

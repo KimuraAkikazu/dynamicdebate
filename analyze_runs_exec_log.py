@@ -44,6 +44,7 @@ import re
 from glob import glob
 from collections import defaultdict, Counter
 from typing import Dict, Any, List, Tuple, Optional
+import random
 
 import matplotlib.pyplot as plt
 
@@ -209,6 +210,18 @@ def majority_vote(answers: List[Optional[str]]) -> Optional[str]:
     if most_common[0][1] == most_common[1][1]:
         return None
     return most_common[0][0]
+
+
+def majority_with_random_tie(answers: List[Optional[str]], rng: "random.Random") -> Optional[str]:
+    """多数決。同票の場合は一様ランダムに1つ選ぶ。"""
+    filtered = [a for a in answers if isinstance(a, str) and a.strip()]
+    if not filtered:
+        return None
+    counts = Counter(filtered)
+    most = counts.most_common()
+    top_freq = most[0][1]
+    tied = [a for a, c in most if c == top_freq]
+    return rng.choice(tied)
 
 
 def scenario_list_with_index(pids: List[str]) -> List[Dict[str, Any]]:
@@ -418,7 +431,8 @@ def load_exec_logs(run_dir: str) -> Dict[str, Dict[str, Any]]:
                             current_answers[agent] = ans.strip()
             else:
                 agent_actions = rec.get("agent_actions")
-                freeze_answers = (turn_sort == 0 and tokens_used == 0 and event_type == "plan")
+                # 仕様変更: public_tokens_used が 0 の間は initial_answers を保持し、agent_actions の answer は無視
+                freeze_answers = (tokens_used == 0)
                 if isinstance(agent_actions, list):
                     for aa in agent_actions:
                         if not isinstance(aa, dict):
@@ -625,62 +639,72 @@ def compute_tokenwise_majority_accuracy(
 ) -> Tuple[List[int], List[float]]:
     """
     token=0..max_token の多数決正解率を list で返す。
-    forward-fill: その token までに観測された最新の snapshot の answers を使う。
+    仕様:
+      - token=0 は初期回答を使うが精度は 0.0 固定とみなす（初期状態はまだ未確定）。
+      - 以後、各 snapshot の回答でそのターンの token 区間を塗りつぶす（backfill）。
+      - 同票（3人全てバラバラ等）のときは不正解（None）扱い。
     """
     if not pids:
         return [], []
 
     max_token = _max_token_for_pids(pids, problems)
-
-    pid_snaps: Dict[str, List[Dict[str, Any]]] = {}
-    pid_ptr: Dict[str, int] = {}
-    pid_agents: Dict[str, List[str]] = {}
+    tokens_out = list(range(0, max_token + 1, token_step))
+    # 各問題ごとに token ごとの 0/1 を用意
+    per_pid_acc: Dict[str, List[float]] = {}
 
     for pid in pids:
         pdata = problems.get(pid)
         if not pdata:
             continue
         snaps = pdata.get("snapshots", [])
-        if not isinstance(snaps, list) or not snaps:
+        agents = pdata.get("agents", [])
+        acc = acc_by_pid.get(pid)
+        if not acc or not snaps:
             continue
-        pid_snaps[pid] = snaps
-        pid_ptr[pid] = 0
-        pid_agents[pid] = pdata.get("agents", [])
+        gold = acc.get("gold")
+        if not isinstance(gold, str):
+            continue
 
-    if not pid_snaps:
+        # 長さ max_token+1 の配列
+        arr = [0.0] * (max_token + 1)
+        prev_tok = 0
+        prev_acc = 0.0  # token=0 は常に 0 とする
+
+        for s in snaps:
+            tok = s.get("tokens")
+            if not isinstance(tok, int):
+                continue
+            # 区間 [prev_tok, tok) を prev_acc で塗る
+            end = min(tok, max_token + 1)
+            for t in range(prev_tok, end):
+                arr[t] = prev_acc
+
+            # 現在の snapshot で精度を計算
+            ans_map = s.get("answers", {}) or {}
+            maj = majority_vote([ans_map.get(a) for a in agents])
+            curr_acc = 1.0 if maj == gold else 0.0
+
+            prev_acc = curr_acc
+            # token=0 は常に 0 としたいので、次の塗りつぶし開始点は max(tok,1)
+            prev_tok = max(tok, 1)
+
+        # 末尾を塗る
+        for t in range(prev_tok, max_token + 1):
+            arr[t] = prev_acc
+        # token=0 は強制的に 0
+        arr[0] = 0.0
+
+        per_pid_acc[pid] = arr
+
+    if not per_pid_acc:
         return [], []
 
-    tokens: List[int] = []
     acc_series: List[float] = []
+    for tok in tokens_out:
+        vals = [arr[tok] for arr in per_pid_acc.values() if tok < len(arr)]
+        acc_series.append(sum(vals) / len(vals) if vals else 0.0)
 
-    for tok in range(0, max_token + 1, token_step):
-        correct = 0
-        total = 0
-
-        for pid, snaps in pid_snaps.items():
-            acc = acc_by_pid.get(pid)
-            if not acc:
-                continue
-            gold = acc.get("gold")
-            if not isinstance(gold, str):
-                continue
-
-            ptr = pid_ptr[pid]
-            while ptr + 1 < len(snaps) and isinstance(snaps[ptr + 1].get("tokens"), int) and snaps[ptr + 1]["tokens"] <= tok:
-                ptr += 1
-            pid_ptr[pid] = ptr
-
-            ans_map = snaps[ptr].get("answers", {})
-            agents = pid_agents.get(pid, [])
-            maj = majority_vote([ans_map.get(a) for a in agents])
-            total += 1
-            if maj == gold:
-                correct += 1
-
-        tokens.append(tok)
-        acc_series.append((correct / total) if total else 0.0)
-
-    return tokens, acc_series
+    return tokens_out, acc_series
 
 
 def compute_tokenwise_per_agent_accuracy(
@@ -884,6 +908,129 @@ def analyze_interrupt_effects(
 
     return {
         "total_interrupts": total,
+        "evaluated": evaluated,
+        "improved": improved,
+        "worsened": worsened,
+        "unchanged": unchanged,
+        "unchanged_correct_to_correct": unchanged_correct_to_correct,
+        "unchanged_wrong_to_wrong": unchanged_wrong_to_wrong,
+        "details": details,
+    }
+
+
+def analyze_speak_effects(
+    pids: List[str],
+    problems: Dict[str, Dict[str, Any]],
+    acc_by_pid: Dict[str, Dict[str, Any]],
+) -> Dict[str, Any]:
+    """
+    interrupt ではない utterance の効果を評価する。
+    - event_type_fixed != interrupt かつ event_type == utterance を対象
+    - 同一エージェントの連続 utterance は 1 回として扱う
+    改善/悪化判定は interrupt_effects と同じロジック:
+      speaker が最終正答で誰かが正答化 → improved
+      speaker が最終誤答で誰かが誤答化 → worsened
+    """
+    details: List[Dict[str, Any]] = []
+    total = evaluated = improved = worsened = unchanged = 0
+    unchanged_correct_to_correct = 0
+    unchanged_wrong_to_wrong = 0
+
+    for pid in pids:
+        pdata = problems.get(pid)
+        acc = acc_by_pid.get(pid)
+        if not pdata or not acc:
+            continue
+        gold = acc.get("gold")
+        if not isinstance(gold, str):
+            continue
+        snaps = pdata.get("snapshots", [])
+        final_answers_map = pdata.get("final_answers", {}) or {}
+        if not isinstance(final_answers_map, dict):
+            final_answers_map = {}
+
+        prev_speaker_for_speak = None
+
+        for i, snap in enumerate(snaps):
+            if snap.get("event_type_fixed") == "interrupt":
+                prev_speaker_for_speak = snap.get("speaker")
+                continue
+            if snap.get("event_type") != "utterance":
+                prev_speaker_for_speak = snap.get("speaker")
+                continue
+
+            speaker = snap.get("speaker")
+            if not isinstance(speaker, str):
+                prev_speaker_for_speak = speaker
+                continue
+            # 同一エージェントの連続 utterance はスキップ
+            if speaker == prev_speaker_for_speak:
+                continue
+            prev_speaker_for_speak = speaker
+
+            total += 1
+
+            answers_before = {}
+            if i > 0:
+                answers_before = snaps[i - 1].get("answers", {}) or {}
+            elif snaps:
+                answers_before = snaps[0].get("answers", {}) or {}
+
+            answers_final = final_answers_map if final_answers_map else (snaps[-1].get("answers", {}) if snaps else {})
+            if not isinstance(answers_final, dict):
+                answers_final = {}
+
+            agent_names = set(answers_final.keys()) | set(answers_before.keys())
+            if not agent_names:
+                continue
+
+            def is_correct(ans: Any) -> Optional[bool]:
+                return ans == gold if isinstance(ans, str) else None
+
+            speaker_before_correct = is_correct(answers_before.get(speaker)) is True
+            any_improved = any(
+                (is_correct(answers_before.get(ag)) is False) and (is_correct(answers_final.get(ag)) is True)
+                for ag in agent_names
+            )
+            improved_flag = speaker_before_correct and any_improved
+            worsened_flag = (not speaker_before_correct) and any_improved
+
+            evaluated += 1
+            if improved_flag:
+                improved += 1
+                outcome = "improved"
+            elif worsened_flag:
+                worsened += 1
+                outcome = "worsened"
+            else:
+                unchanged += 1
+                c2c = False
+                w2w = True
+                for ag in agent_names:
+                    cb = is_correct(answers_before.get(ag))
+                    ca = is_correct(answers_final.get(ag))
+                    if cb is True and ca is True:
+                        c2c = True
+                    if ca is True:
+                        w2w = False
+                if c2c:
+                    unchanged_correct_to_correct += 1
+                elif w2w:
+                    unchanged_wrong_to_wrong += 1
+                outcome = "unchanged"
+
+            if len(details) < 50:
+                details.append({
+                    "pid": pid,
+                    "speaker": speaker,
+                    "gold": gold,
+                    "before": {ag: answers_before.get(ag) for ag in agent_names},
+                    "final": {ag: answers_final.get(ag) for ag in agent_names},
+                    "outcome": outcome,
+                })
+
+    return {
+        "total_speak": total,
         "evaluated": evaluated,
         "improved": improved,
         "worsened": worsened,
@@ -1179,7 +1326,21 @@ def main():
         probs, acc = filter_problems_by_max_index(probs_full, acc_full, args.max_problem_index)
 
         scenarios = select_scenarios(probs, acc, args.scenario)
-        print(f"  -> Found {len(scenarios)} scenarios.")
+        # 3人バラバラ（初回回答が全員異なる）は除外
+        filtered = []
+        for pid in scenarios:
+            ia = probs.get(pid, {}).get("initial_answers", {})
+            if not isinstance(ia, dict):
+                continue
+            uniq = set(ia.values())
+            if len(uniq) == 3:
+                continue
+            filtered.append(pid)
+        # 件数上限（max-problem-index）を「何件まで」に読み替え、先頭から切り詰め
+        if args.max_problem_index is not None:
+            filtered = filtered[: args.max_problem_index]
+        scenarios = filtered
+        print(f"  -> Found {len(scenarios)} scenarios after filtering (exclude 3-way tie, cap by max-problem-index).")
 
         final_acc_all = compute_final_accuracy_for_set(scenarios, acc)
         tokens_all, token_majority_all = compute_tokenwise_majority_accuracy(scenarios, probs, acc, args.token_step)
@@ -1188,6 +1349,7 @@ def main():
         action_dist_ctx_all = aggregate_action_distribution_by_context(scenarios, probs) if not run_is_roundrobin else {}
         realized_speaker_dist_all = aggregate_realized_speaker_distribution(scenarios, probs) if not run_is_roundrobin else {}
         interrupt_effects_all = analyze_interrupt_effects(scenarios, probs, acc) if not run_is_roundrobin else {}
+        speak_effects_all = analyze_speak_effects(scenarios, probs, acc)
 
         all_runs_data.append({
             "dir": r_dir,
@@ -1208,6 +1370,7 @@ def main():
                 },
                 "realized_speaker_distribution_all": {a: dict(realized_speaker_dist_all[a]) for a in realized_speaker_dist_all},
                 "interrupt_effects_all": interrupt_effects_all,
+                "speak_effects_all": speak_effects_all,
                 "is_roundrobin": run_is_roundrobin,
             },
         })
@@ -1221,6 +1384,9 @@ def main():
     for i in range(1, len(all_runs_data)):
         common_pids_set &= set(all_runs_data[i]["scenarios"])
     common_pids = sorted(list(common_pids_set))
+    # max-problem-index を「件数上限」として共通問題にも適用
+    if args.max_problem_index is not None:
+        common_pids = common_pids[: args.max_problem_index]
 
     print(f"[INFO] Common scenarios (in ALL runs) = {len(common_pids)}")
     if common_pids:
@@ -1255,6 +1421,7 @@ def main():
         action_dist_ctx_common = aggregate_action_distribution_by_context(common_pids, r_data["probs"]) if not run_is_roundrobin else {}
         realized_speaker_dist_common = aggregate_realized_speaker_distribution(common_pids, r_data["probs"]) if not run_is_roundrobin else {}
         interrupt_effects_common = analyze_interrupt_effects(common_pids, r_data["probs"], r_data["acc"]) if not run_is_roundrobin else {}
+        speak_effects_common = analyze_speak_effects(common_pids, r_data["probs"], r_data["acc"])
 
         r_data["metrics"]["final_accuracy_common"] = acc_final_common
         r_data["metrics"]["token_majority_accuracy_common"] = token_majority_common
@@ -1268,6 +1435,7 @@ def main():
         }
         r_data["metrics"]["realized_speaker_distribution_common"] = {a: dict(realized_speaker_dist_common[a]) for a in realized_speaker_dist_common}
         r_data["metrics"]["interrupt_effects_common"] = interrupt_effects_common
+        r_data["metrics"]["speak_effects_common"] = speak_effects_common
 
         print(f"[RESULT] {tag} | Final Acc (All Target): {r_data['metrics']['final_accuracy_all_target']:.3f}")
         print(f"[RESULT] {tag} | Final Acc (Common Only): {acc_final_common:.3f}")
@@ -1344,6 +1512,8 @@ def main():
                 "realized_speaker_distribution_common": r_data["metrics"]["realized_speaker_distribution_common"],
                 "interrupt_effects_all": r_data["metrics"]["interrupt_effects_all"],
                 "interrupt_effects_common": r_data["metrics"]["interrupt_effects_common"],
+                "speak_effects_all": r_data["metrics"]["speak_effects_all"],
+                "speak_effects_common": r_data["metrics"]["speak_effects_common"],
             }
         }
 
