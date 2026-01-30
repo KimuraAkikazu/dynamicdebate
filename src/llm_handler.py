@@ -330,6 +330,7 @@ class LLMHandler:
         content = resp["choices"][0]["message"]["content"]
         usage = resp.get("usage", {})
         parsed = self._safe_load_json(content)
+        parsed.setdefault("consensus", False)
 
         if self.logger:
             self.logger.log_generated(
@@ -371,6 +372,7 @@ class LLMHandler:
         content = resp["choices"][0]["message"]["content"]
         usage = resp.get("usage", {})
         parsed = self._safe_load_json(content)
+        parsed.setdefault("consensus", False)
 
         if self.logger:
             self.logger.log_generated(

@@ -121,7 +121,6 @@ Return strictly a JSON object only.
  "action": "listen or interrupt", 
  "purpose": "agree|disagree|summarize|confirmation|proposal|conclusion|think", 
  "answer": "Your current answer to the question.one of 'A', 'B', 'C', or 'D'",
- "consensus": boolean
   }}
 """.strip()
 
@@ -166,8 +165,7 @@ You can take the following actions:
 3. Refer to the provided information and your thought, decide your next turn action as {name}.
 4. Select the purpose of the action you have chosen.
 5. Based on the debate so far, output your answer to the question at this turn.
-6. Set "consensus" to true ONLY if you believe the TEAM has effectively converged to one answer choice. Otherwise set false.
-   Be careful not to stray into debate that are not necessary for answering the question.
+Be careful not to stray into debate that are not necessary for answering the question.
 
 # Output format
 Return strictly a JSON object only.
@@ -177,7 +175,6 @@ Return strictly a JSON object only.
  "action": "listen or speak", 
  "purpose": "agree|disagree|summarize|confirmation|proposal|conclusion|think", 
  "answer": "Your current answer to the question.one of 'A', 'B', 'C', or 'D'",
- "consensus": boolean
   }}
 """.strip()
 
@@ -224,8 +221,7 @@ You can take the following actions:
   - Please bear in mind that prolonged silence hinders progress in debate.
 4. Select the purpose of the action you have chosen.
 5. Based on the debate information, output the currently most supported answer to the question.
-6. Set "consensus" to true ONLY if you believe the TEAM has effectively converged to one answer choice. Otherwise set false.
-   Be careful not to stray into debate that are not necessary for answering the question.
+Be careful not to stray into debate that are not necessary for answering the question.
 
 # Output format
 Return strictly a JSON object only.
@@ -235,7 +231,6 @@ Return strictly a JSON object only.
  "action": "listen or speak", 
  "purpose": "agree|disagree|summarize|confirmation|proposal|conclusion|think", 
  "answer": "Your current answer to the question.one of 'A', 'B', 'C', or 'D'",
- "consensus": boolean
   }}
 """.strip()
 
@@ -388,7 +383,7 @@ You can take the following actions:
   - While considering the possibility that someone may be mid-sentence, decide whether to interrupt and respond immediately to this turn's statement or listen to its completion.
 4. Select the purpose of the action you have chosen.
 5. Based on the debate so far, output your answer to the question at this turn.
-6. Set "consensus" to true ONLY if you believe the TEAM has effectively converged to one answer choice. Otherwise set false.
+ 
    If the anticipated continuation of statement may resolve your concern, choose listen. 
 
 # Constraints for Interruption
@@ -403,7 +398,6 @@ Return strictly a JSON object only.
  "action": "listen or interrupt", 
  "purpose": "agree|disagree|summarize|confirmation|proposal|conclusion|think", 
  "answer": "Your current answer to the question.one of 'A', 'B', 'C', or 'D'",
- "consensus": boolean
   }}
 """.strip()
 
@@ -449,8 +443,7 @@ You can take the following actions:
 3. Refer to the provided information and your thought, decide your next turn action as {name}.
 4. Select the purpose of the action you have chosen.
 5. Based on the debate so far, output your answer to the question at this turn.
-6. Set "consensus" to true ONLY if you believe the TEAM has effectively converged to one answer choice. Otherwise set false.
-   Be careful not to stray into debate that are not necessary for answering the question.
+Be careful not to stray into debate that are not necessary for answering the question.
 
 # Output format
 Return strictly a JSON object only.
@@ -460,7 +453,6 @@ Return strictly a JSON object only.
  "action": "listen or speak", 
  "purpose": "agree|disagree|summarize|confirmation|proposal|conclusion|think", 
  "answer": "Your current answer to the question.one of 'A', 'B', 'C', or 'D'",
- "consensus": boolean
   }}
 """.strip()
 
@@ -504,8 +496,7 @@ You can take the following actions:
   - Please bear in mind that prolonged silence hinders progress in debate.
 4. Select the purpose of the action you have chosen.
 5. Based on the debate so far, output your answer to the question at this turn.
-6. Set "consensus" to true ONLY if you believe the TEAM has effectively converged to one answer choice. Otherwise set false.
-   Be careful not to stray into debate that are not necessary for answering the question.
+Be careful not to stray into debate that are not necessary for answering the question.
 
 # Output format
 Return strictly a JSON object only.
@@ -515,7 +506,6 @@ Return strictly a JSON object only.
  "action": "listen or speak", 
  "purpose": "agree|disagree|summarize|confirmation|proposal|conclusion|think", 
  "answer": "Your current answer to the question.one of 'A', 'B', 'C', or 'D'",
- "consensus": boolean
   }}
 """.strip()
 
