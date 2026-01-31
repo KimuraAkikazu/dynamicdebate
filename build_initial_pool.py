@@ -14,7 +14,7 @@ from typing import Any, Dict, List, Tuple, Optional
 JSON_SCHEMA = {
     "type": "object",
     "properties": {
-        "reason": {"type": "string"},
+        "reason": {"type": "string", "maxLength": 1000},
         "answer": {"type": "string", "enum": ["A", "B", "C", "D"]},
     },
     "required": ["reason", "answer"],
@@ -56,7 +56,7 @@ def format_messages(question: str, choices: list[str]) -> list[dict[str, str]]:
 # Output format
 Return strictly a JSON object only.
 {{
-    "reason": "Detailed reasoning for your choice (within 300 words).",
+    "reason": "Detailed reasoning for your choice (within 100 words).",
     "answer": "one of 'A', 'B', 'C', or 'D'"
 }}"""
     }

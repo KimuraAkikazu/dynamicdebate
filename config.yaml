@@ -3,7 +3,7 @@ llm:
   repo_id: "bartowski/Qwen2.5-7B-Instruct-GGUF"
   filename: "Meta-Llama-3.1-8B-Instruct-Q8_0.gguf"
   n_gpu_layers: -1
-  n_ctx: 35000
+  n_ctx: 30000
   temperature: 0.3
   max_tokens: 1026
 
@@ -23,6 +23,8 @@ discussion:
     require_consecutive: 1
     min_turns: 5
   dynamic: true
+  thought_window: 3
+
 
 
 # 参加エージェントの設定

@@ -391,8 +391,8 @@ You can take the following actions:
 3. Refer to the provided information and your current thought, decide the next turn's action you should take as {name}.
   - While considering the possibility that someone may be mid-sentence, decide whether to interrupt and respond immediately to this turn's statement or listen to its completion.
 4. Select the purpose of the action you have chosen.
-5. Based on the debate so far, output your answer to the question at this turn.
-If the anticipated continuation of statement may resolve your concern, choose listen. 
+5. Based on the debate information, output the currently most supported answer to the question.
+- If the anticipated continuation of statement may resolve your concern, choose listen. 
 
 # Constraints for Interruption
 - You shouldn't interrupt if the current speaker has only stated their stance but has not yet provided the reason or evidence.
@@ -455,7 +455,7 @@ You can take the following actions:
 3. Refer to the provided information and your thought, decide your next turn action as {name}.
 4. Select the purpose of the action you have chosen.
 5. Based on the debate information, output the currently most supported answer to the question.
-Be careful not to stray into debate that are not necessary for answering the question.
+- Be careful not to stray into debate that are not necessary for answering the question.
 
 # Output format
 Return strictly a JSON object only.
