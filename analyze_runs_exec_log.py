@@ -395,7 +395,10 @@ def load_exec_logs(run_dir: str) -> Dict[str, Dict[str, Any]]:
             
 
             # token 使用量（累積）
-            tokens_used = rec.get("public_tokens_used")
+            tokens_budget = rec.get("public_token_budget")
+            tokens_left = rec.get("public_tokens_left")
+            tokens_used = tokens_budget - tokens_left if (isinstance(tokens_budget, int) and isinstance(tokens_left, int)) else None
+
             if tokens_used is None:
                 if turn == 0:
                     tokens_used = 0
@@ -569,6 +572,10 @@ def select_scenarios(
         if not isinstance(initial, dict) or not initial:
             continue
 
+        if scenario == "all":
+            selected.append(pid)
+            continue
+
         correct_cnt = sum(1 for ans in initial.values() if isinstance(ans, str) and ans == gold)
         wrong_cnt = len(initial) - correct_cnt
 
@@ -640,8 +647,7 @@ def compute_tokenwise_majority_accuracy(
     """
     token=0..max_token の多数決正解率を list で返す。
     仕様:
-      - token=0 は初期回答を使うが精度は 0.0 固定とみなす（初期状態はまだ未確定）。
-      - 以後、各 snapshot の回答でそのターンの token 区間を塗りつぶす（backfill）。
+      - forward-fill: 各スナップショットの回答を、その時点以降に適用。
       - 同票（3人全てバラバラ等）のときは不正解（None）扱い。
     """
     if not pids:
@@ -668,7 +674,11 @@ def compute_tokenwise_majority_accuracy(
         # 長さ max_token+1 の配列
         arr = [0.0] * (max_token + 1)
         prev_tok = 0
-        prev_acc = 0.0  # token=0 は常に 0 とする
+        # 最初のスナップショットの精度を初期値にする
+        first_snap = snaps[0]
+        ans_map_first = first_snap.get("answers", {}) or {}
+        first_maj = majority_vote([ans_map_first.get(a) for a in agents])
+        prev_acc = 1.0 if first_maj == gold else 0.0
 
         for s in snaps:
             tok = s.get("tokens")
@@ -685,14 +695,11 @@ def compute_tokenwise_majority_accuracy(
             curr_acc = 1.0 if maj == gold else 0.0
 
             prev_acc = curr_acc
-            # token=0 は常に 0 としたいので、次の塗りつぶし開始点は max(tok,1)
-            prev_tok = max(tok, 1)
+            prev_tok = tok
 
         # 末尾を塗る
         for t in range(prev_tok, max_token + 1):
             arr[t] = prev_acc
-        # token=0 は強制的に 0
-        arr[0] = 0.0
 
         per_pid_acc[pid] = arr
 
@@ -1290,8 +1297,8 @@ def main():
     parser.add_argument(
         "--scenario",
         default="two_wrong_one_correct",
-        choices=["two_wrong_one_correct", "two_correct_one_wrong"],
-        help="対象シナリオ (default: two_wrong_one_correct)",
+        choices=["two_wrong_one_correct", "two_correct_one_wrong", "all"],
+        help="対象シナリオ (default: two_wrong_one_correct). 'all' は初期回答の正誤構成で絞り込まない。",
     )
     args = parser.parse_args()
     if args.token_step <= 0:
