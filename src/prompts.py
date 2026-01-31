@@ -17,7 +17,7 @@ Follow the instructions strictly and return only valid JSON that matches the pro
 # Output format
 Return strictly a JSON object only.
 {{  
-    "reason": "Detailed reasoning for your choice (within 300 words).",
+    "reason": "Detailed reasoning for your choice (within 150 words).",
     "answer": "one of 'A', 'B', 'C', or 'D'"
 }}
 """.strip()
@@ -46,7 +46,7 @@ You have conducted a debate to arrive at the correct answer to question. Based o
 # Output format
 Return strictly a JSON object only.
 {{  
-    "reason": "Explain the reason for choosing that answer. (within 300 words).",
+    "reason": "Explain the reason for choosing that answer. (within 100 words).",
     "answer": "Your final answer to the question.one of 'A', 'B', 'C', or 'D'"
 }}
 """.strip()
@@ -75,7 +75,7 @@ You are debating to arrive at the correct answer to the question. Based on the d
 # Debate Context
 ## Debate rules
 - The debate ends when the shared public token budget of {token_budget} tokens is exhausted. Only revealed text counts toward this budget.
-- Remaining public tokens available to all agents: {tokens_left}.
+- Remaining public tokens available to all agents: {tokens_left} / {token_budget}.
 - Only one member can speak per turn. The next speaker is selected from the highest urgency level.
 - Each turn, one chunk at a time from the speaker's generated statement is revealed to all members. The current speaker may have more statement prepared and not yet revealed.
 
@@ -136,7 +136,7 @@ You are debating to arrive at the correct answer to the question. Based on the d
 # Debate context
 ## Debate rules
 - The debate ends when the shared public token budget of {token_budget} tokens is exhausted. Only revealed text counts toward this budget.
-- Remaining public tokens available to all agents: {tokens_left}.
+- Remaining public tokens available to all agents: {tokens_left} / {token_budget}.
 - Only one member can speak per turn. The next speaker is selected from the highest urgency level.
 
 ## The initial answers provided by all members before the debate began
@@ -190,7 +190,7 @@ You are debating to arrive at the correct answer to the question. Based on the d
 # Debate context
 ## Debate rules
 - The debate ends when the shared public token budget of {token_budget} tokens is exhausted. Only revealed text counts toward this budget.
-- Remaining public tokens available to all agents: {tokens_left}.
+- Remaining public tokens available to all agents: {tokens_left} / {token_budget}.
 - Only one member can speak per turn. The next speaker is selected from the highest urgency level.
 - Each turn, one chunk at a time from the speaker's generated statement is revealed to all members. The current speaker may have more statement prepared and not yet revealed.
 
@@ -246,7 +246,7 @@ You are debating to arrive at the correct answer to the question. Based on the d
 # Debate context
 ## Debate rules
 - The debate ends when the shared public token budget of {token_budget} tokens is exhausted. Only revealed text counts toward this budget.
-- Remaining public tokens available to all agents: {tokens_left}.
+- Remaining public tokens available to all agents: {tokens_left} / {token_budget}.
 - Only one member can speak per turn. The next speaker is selected from the highest urgency level.
 
 ## The initial answers provided by all members before the debate began
@@ -271,7 +271,7 @@ Turn{turn}({event_type})
 
 # Instructions
 - You requested to speak during the previous turn and were granted the right to speak.
-- Generate a persuasive statement to guide the team toward the correct answer within the remaining public tokens.
+- Generate a persuasive statement to guide the team toward the correct answer within the remaining {tokens_left} tokens.
   - If you disagree with previous speakers, explicitly point out their logical flaws.
   - If you agree, make constructive statements toward reaching an agreement.
   - Keep your utterance concise and impactful so as not to waste tokens_left.
@@ -352,7 +352,7 @@ You are debating to arrive at the correct answer to the question. Based on the d
 # Debate Context
 ## Debate rules
 - The debate ends when the shared public token budget of {token_budget} tokens is exhausted. Only revealed text counts toward this budget.
-- Remaining public tokens available to all agents: {tokens_left}.
+- Remaining public tokens available to all agents: {tokens_left} / {token_budget}.
 - Only one member can speak per turn. The next speaker is selected from the highest urgency level.
 - Each turn, one chunk at a time from the speaker's generated statement is revealed to all members. The current speaker may have more statement prepared and not yet revealed.
 
@@ -413,7 +413,7 @@ You are debating to arrive at the correct answer to the question. Based on the d
 # Debate context
 ## Debate rules
 - The debate ends when the shared public token budget of {token_budget} tokens is exhausted. Only revealed text counts toward this budget.
-- Remaining public tokens available to all agents: {tokens_left}.
+- Remaining public tokens available to all agents: {tokens_left} / {token_budget}.
 - Only one member can speak per turn. The next speaker is selected from the highest urgency level.
 
 
@@ -465,7 +465,7 @@ You are debating to arrive at the correct answer to the question. Based on the d
 # Debate context
 ## Debate rules
 - The debate ends when the shared public token budget of {token_budget} tokens is exhausted. Only revealed text counts toward this budget.
-- Remaining public tokens available to all agents: {tokens_left}.
+- Remaining public tokens available to all agents: {tokens_left} / {token_budget}.
 - Only one member can speak per turn. The next speaker is selected from the highest urgency level.
 - Each turn, one chunk at a time from the speaker's generated statement is revealed to all members. The current speaker may have more statement prepared and not yet revealed.
 
@@ -518,7 +518,7 @@ You are debating to arrive at the correct answer to the question. Based on the d
 # Debate context
 ## Debate rules
 - The debate ends when the shared public token budget of {token_budget} tokens is exhausted. Only revealed text counts toward this budget.
-- Remaining public tokens available to all agents: {tokens_left}.
+- Remaining public tokens available to all agents: {tokens_left} / {token_budget}.
 - Only one member can speak per turn. The next speaker is selected from the highest urgency level.
 
 ## The initial answers provided by all members before the debate began
@@ -543,7 +543,7 @@ Turn{turn}({event_type})
 
 # Instructions
 - You requested to speak during the previous turn and were granted the right to speak.
-- Generate a persuasive statement to guide the team toward the correct answer within the remaining public tokens.
+- Generate a persuasive statement to guide the team toward the correct answer within the remaining {tokens_left} tokens.
   - If you disagree with previous speakers, explicitly point out their logical flaws.
   - If you agree, make constructive statements toward reaching an agreement.
   - Keep your utterance concise and impactful so as not to waste tokens_left.
