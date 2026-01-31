@@ -35,7 +35,7 @@ utterance_schema: Dict[str, Any] = {
 thought_schema: Dict[str, Any] = {
     "type": "object",
     "properties": {
-        "thought": {"type": "string"},
+        "thought": {"type": "string", "maxLength": 500},
         "answer": {"type": "string", "enum": ["A", "B", "C", "D"]},
     },
     "required": ["thought", "answer"],

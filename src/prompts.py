@@ -26,7 +26,7 @@ Follow the instructions strictly and return only valid JSON that matches the pro
 # Output format
 Return strictly a JSON object only.
 {{  
-    "reason": "Detailed reasoning for your choice (within 300 words).",
+    "reason": "Detailed reasoning for your choice (within 150 words).",
     "answer": "one of 'A', 'B', 'C', or 'D'"
 }}
 """.strip()
@@ -238,7 +238,7 @@ You are debating to arrive at the correct answer to the question. Based on the d
 
 # Instructions
 1. Based on the debate so far and the utterance of this turn, briefly explain your current internal thoughts such as your perspective on the responses to the questions, your action plan for the remaining turns, your reaction.
-2. Based on the debate so far, output your answer to the question at this turn.
+2. Based on the debate information, output the currently most supported answer to the question.
 - Provide your response in the following output format.
 
 # Output format
