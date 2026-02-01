@@ -1,0 +1,3726 @@
+{
+  "scenario": "two_correct_one_wrong",
+  "runs": {
+    "proposed framework": {
+      "dir": "/home/a-kimura/dynamic_debate/logs/run_20260131_125235",
+      "target_scenarios": [
+        {
+          "pid": "problem_001",
+          "index": 1
+        },
+        {
+          "pid": "problem_002",
+          "index": 2
+        },
+        {
+          "pid": "problem_003",
+          "index": 3
+        },
+        {
+          "pid": "problem_004",
+          "index": 4
+        },
+        {
+          "pid": "problem_005",
+          "index": 5
+        },
+        {
+          "pid": "problem_006",
+          "index": 6
+        },
+        {
+          "pid": "problem_007",
+          "index": 7
+        },
+        {
+          "pid": "problem_008",
+          "index": 8
+        },
+        {
+          "pid": "problem_009",
+          "index": 9
+        },
+        {
+          "pid": "problem_010",
+          "index": 10
+        },
+        {
+          "pid": "problem_011",
+          "index": 11
+        },
+        {
+          "pid": "problem_012",
+          "index": 12
+        },
+        {
+          "pid": "problem_013",
+          "index": 13
+        },
+        {
+          "pid": "problem_014",
+          "index": 14
+        },
+        {
+          "pid": "problem_015",
+          "index": 15
+        },
+        {
+          "pid": "problem_016",
+          "index": 16
+        },
+        {
+          "pid": "problem_017",
+          "index": 17
+        },
+        {
+          "pid": "problem_018",
+          "index": 18
+        },
+        {
+          "pid": "problem_019",
+          "index": 19
+        },
+        {
+          "pid": "problem_020",
+          "index": 20
+        },
+        {
+          "pid": "problem_021",
+          "index": 21
+        },
+        {
+          "pid": "problem_022",
+          "index": 22
+        },
+        {
+          "pid": "problem_023",
+          "index": 23
+        },
+        {
+          "pid": "problem_024",
+          "index": 24
+        },
+        {
+          "pid": "problem_025",
+          "index": 25
+        },
+        {
+          "pid": "problem_026",
+          "index": 26
+        },
+        {
+          "pid": "problem_027",
+          "index": 27
+        },
+        {
+          "pid": "problem_028",
+          "index": 28
+        },
+        {
+          "pid": "problem_029",
+          "index": 29
+        },
+        {
+          "pid": "problem_030",
+          "index": 30
+        },
+        {
+          "pid": "problem_031",
+          "index": 31
+        },
+        {
+          "pid": "problem_032",
+          "index": 32
+        },
+        {
+          "pid": "problem_033",
+          "index": 33
+        },
+        {
+          "pid": "problem_034",
+          "index": 34
+        },
+        {
+          "pid": "problem_035",
+          "index": 35
+        },
+        {
+          "pid": "problem_036",
+          "index": 36
+        },
+        {
+          "pid": "problem_037",
+          "index": 37
+        },
+        {
+          "pid": "problem_038",
+          "index": 38
+        },
+        {
+          "pid": "problem_039",
+          "index": 39
+        },
+        {
+          "pid": "problem_040",
+          "index": 40
+        },
+        {
+          "pid": "problem_041",
+          "index": 41
+        },
+        {
+          "pid": "problem_042",
+          "index": 42
+        },
+        {
+          "pid": "problem_043",
+          "index": 43
+        },
+        {
+          "pid": "problem_044",
+          "index": 44
+        },
+        {
+          "pid": "problem_045",
+          "index": 45
+        },
+        {
+          "pid": "problem_046",
+          "index": 46
+        },
+        {
+          "pid": "problem_047",
+          "index": 47
+        },
+        {
+          "pid": "problem_048",
+          "index": 48
+        },
+        {
+          "pid": "problem_049",
+          "index": 49
+        },
+        {
+          "pid": "problem_050",
+          "index": 50
+        },
+        {
+          "pid": "problem_051",
+          "index": 51
+        },
+        {
+          "pid": "problem_052",
+          "index": 52
+        },
+        {
+          "pid": "problem_053",
+          "index": 53
+        },
+        {
+          "pid": "problem_054",
+          "index": 54
+        },
+        {
+          "pid": "problem_055",
+          "index": 55
+        },
+        {
+          "pid": "problem_056",
+          "index": 56
+        },
+        {
+          "pid": "problem_057",
+          "index": 57
+        },
+        {
+          "pid": "problem_058",
+          "index": 58
+        },
+        {
+          "pid": "problem_059",
+          "index": 59
+        },
+        {
+          "pid": "problem_060",
+          "index": 60
+        },
+        {
+          "pid": "problem_061",
+          "index": 61
+        },
+        {
+          "pid": "problem_062",
+          "index": 62
+        },
+        {
+          "pid": "problem_063",
+          "index": 63
+        },
+        {
+          "pid": "problem_064",
+          "index": 64
+        },
+        {
+          "pid": "problem_065",
+          "index": 65
+        },
+        {
+          "pid": "problem_066",
+          "index": 66
+        },
+        {
+          "pid": "problem_067",
+          "index": 67
+        },
+        {
+          "pid": "problem_068",
+          "index": 68
+        },
+        {
+          "pid": "problem_069",
+          "index": 69
+        }
+      ],
+      "metrics": {
+        "final_accuracy_all_target": 0.6231884057971014,
+        "final_accuracy_common": 0.5961538461538461,
+        "token_majority_accuracy_all": [
+          1.0,
+          0.9565217391304348,
+          0.927536231884058,
+          0.927536231884058,
+          0.927536231884058,
+          0.8695652173913043,
+          0.8260869565217391,
+          0.8405797101449275,
+          0.8260869565217391,
+          0.7971014492753623,
+          0.7971014492753623,
+          0.782608695652174,
+          0.782608695652174,
+          0.7536231884057971,
+          0.7681159420289855,
+          0.782608695652174,
+          0.782608695652174,
+          0.7681159420289855,
+          0.7971014492753623,
+          0.7971014492753623,
+          0.8115942028985508
+        ],
+        "token_majority_accuracy_common": [
+          1.0,
+          0.9423076923076923,
+          0.9230769230769231,
+          0.9230769230769231,
+          0.9038461538461539,
+          0.8461538461538461,
+          0.7884615384615384,
+          0.8076923076923077,
+          0.8076923076923077,
+          0.7884615384615384,
+          0.7884615384615384,
+          0.7692307692307693,
+          0.7692307692307693,
+          0.7307692307692307,
+          0.75,
+          0.7692307692307693,
+          0.7692307692307693,
+          0.75,
+          0.7884615384615384,
+          0.7884615384615384,
+          0.8076923076923077
+        ],
+        "token_majority_tokens_all": [
+          0,
+          25,
+          50,
+          75,
+          100,
+          125,
+          150,
+          175,
+          200,
+          225,
+          250,
+          275,
+          300,
+          325,
+          350,
+          375,
+          400,
+          425,
+          450,
+          475,
+          500
+        ],
+        "token_majority_tokens_common": [
+          0,
+          25,
+          50,
+          75,
+          100,
+          125,
+          150,
+          175,
+          200,
+          225,
+          250,
+          275,
+          300,
+          325,
+          350,
+          375,
+          400,
+          425,
+          450,
+          475,
+          500
+        ],
+        "per_agent_token_accuracy_all": {
+          "Alex": [
+            0.0,
+            0.08695652173913043,
+            0.21739130434782608,
+            0.2318840579710145,
+            0.2753623188405797,
+            0.3188405797101449,
+            0.4057971014492754,
+            0.42028985507246375,
+            0.463768115942029,
+            0.42028985507246375,
+            0.4057971014492754,
+            0.391304347826087,
+            0.463768115942029,
+            0.4782608695652174,
+            0.4782608695652174,
+            0.4492753623188406,
+            0.42028985507246375,
+            0.43478260869565216,
+            0.4782608695652174,
+            0.463768115942029,
+            0.4782608695652174
+          ],
+          "Chris": [
+            1.0,
+            1.0,
+            0.9855072463768116,
+            0.9710144927536232,
+            0.9565217391304348,
+            0.927536231884058,
+            0.855072463768116,
+            0.855072463768116,
+            0.8405797101449275,
+            0.8260869565217391,
+            0.8115942028985508,
+            0.7971014492753623,
+            0.7971014492753623,
+            0.7971014492753623,
+            0.7971014492753623,
+            0.8115942028985508,
+            0.8260869565217391,
+            0.8260869565217391,
+            0.8405797101449275,
+            0.8260869565217391,
+            0.8405797101449275
+          ],
+          "Jenny": [
+            1.0,
+            0.9565217391304348,
+            0.9420289855072463,
+            0.9565217391304348,
+            0.9710144927536232,
+            0.927536231884058,
+            0.9130434782608695,
+            0.9130434782608695,
+            0.8985507246376812,
+            0.9130434782608695,
+            0.8985507246376812,
+            0.9130434782608695,
+            0.9130434782608695,
+            0.8985507246376812,
+            0.8840579710144928,
+            0.8695652173913043,
+            0.8840579710144928,
+            0.8840579710144928,
+            0.8840579710144928,
+            0.8695652173913043,
+            0.8840579710144928
+          ]
+        },
+        "per_agent_token_accuracy_common": {
+          "Alex": [
+            0.0,
+            0.09615384615384616,
+            0.19230769230769232,
+            0.21153846153846154,
+            0.2692307692307692,
+            0.3076923076923077,
+            0.36538461538461536,
+            0.38461538461538464,
+            0.4230769230769231,
+            0.38461538461538464,
+            0.34615384615384615,
+            0.34615384615384615,
+            0.40384615384615385,
+            0.4230769230769231,
+            0.46153846153846156,
+            0.4230769230769231,
+            0.4230769230769231,
+            0.38461538461538464,
+            0.4423076923076923,
+            0.4423076923076923,
+            0.4423076923076923
+          ],
+          "Chris": [
+            1.0,
+            1.0,
+            0.9807692307692307,
+            0.9615384615384616,
+            0.9423076923076923,
+            0.9038461538461539,
+            0.8269230769230769,
+            0.8269230769230769,
+            0.8076923076923077,
+            0.8076923076923077,
+            0.7884615384615384,
+            0.7692307692307693,
+            0.7692307692307693,
+            0.7692307692307693,
+            0.7692307692307693,
+            0.7884615384615384,
+            0.8076923076923077,
+            0.8076923076923077,
+            0.8269230769230769,
+            0.8076923076923077,
+            0.8269230769230769
+          ],
+          "Jenny": [
+            1.0,
+            0.9423076923076923,
+            0.9423076923076923,
+            0.9615384615384616,
+            0.9615384615384616,
+            0.9230769230769231,
+            0.8846153846153846,
+            0.8846153846153846,
+            0.8846153846153846,
+            0.9038461538461539,
+            0.9038461538461539,
+            0.9423076923076923,
+            0.9423076923076923,
+            0.9038461538461539,
+            0.8846153846153846,
+            0.8846153846153846,
+            0.9038461538461539,
+            0.8846153846153846,
+            0.8653846153846154,
+            0.8653846153846154,
+            0.8653846153846154
+          ]
+        },
+        "per_agent_tokens_all": [
+          0,
+          25,
+          50,
+          75,
+          100,
+          125,
+          150,
+          175,
+          200,
+          225,
+          250,
+          275,
+          300,
+          325,
+          350,
+          375,
+          400,
+          425,
+          450,
+          475,
+          500
+        ],
+        "per_agent_tokens_common": [
+          0,
+          25,
+          50,
+          75,
+          100,
+          125,
+          150,
+          175,
+          200,
+          225,
+          250,
+          275,
+          300,
+          325,
+          350,
+          375,
+          400,
+          425,
+          450,
+          475,
+          500
+        ],
+        "action_distribution_all": {
+          "Alex": {
+            "speak": 226,
+            "listen": 1073,
+            "interrupt": 79
+          },
+          "Chris": {
+            "speak": 229,
+            "interrupt": 184,
+            "listen": 514
+          },
+          "Jenny": {
+            "listen": 923,
+            "speak": 206,
+            "interrupt": 150
+          }
+        },
+        "action_distribution_common": {
+          "Alex": {
+            "speak": 167,
+            "listen": 795,
+            "interrupt": 68
+          },
+          "Chris": {
+            "speak": 170,
+            "interrupt": 161,
+            "listen": 371
+          },
+          "Jenny": {
+            "listen": 678,
+            "speak": 150,
+            "interrupt": 133
+          }
+        },
+        "action_distribution_by_ctx_all": {
+          "talk": {
+            "Alex": {
+              "listen": 1027,
+              "interrupt": 79
+            },
+            "Chris": {
+              "interrupt": 184,
+              "listen": 471
+            },
+            "Jenny": {
+              "listen": 857,
+              "interrupt": 150
+            }
+          },
+          "silence": {
+            "Alex": {
+              "speak": 192,
+              "listen": 11
+            },
+            "Chris": {
+              "speak": 187,
+              "listen": 16
+            },
+            "Jenny": {
+              "speak": 182,
+              "listen": 21
+            }
+          }
+        },
+        "action_distribution_by_ctx_common": {
+          "talk": {
+            "Alex": {
+              "listen": 761,
+              "interrupt": 68
+            },
+            "Chris": {
+              "interrupt": 161,
+              "listen": 340
+            },
+            "Jenny": {
+              "listen": 627,
+              "interrupt": 133
+            }
+          },
+          "silence": {
+            "Alex": {
+              "speak": 142,
+              "listen": 7
+            },
+            "Chris": {
+              "speak": 137,
+              "listen": 12
+            },
+            "Jenny": {
+              "speak": 131,
+              "listen": 18
+            }
+          }
+        },
+        "realized_speaker_distribution_all": {
+          "Alex": {
+            "interrupt": 18,
+            "speak": 260
+          },
+          "Chris": {
+            "speak": 654,
+            "interrupt": 75
+          },
+          "Jenny": {
+            "interrupt": 58,
+            "speak": 319
+          }
+        },
+        "realized_speaker_distribution_common": {
+          "Alex": {
+            "interrupt": 15,
+            "speak": 201
+          },
+          "Chris": {
+            "speak": 482,
+            "interrupt": 62
+          },
+          "Jenny": {
+            "interrupt": 53,
+            "speak": 232
+          }
+        },
+        "interrupt_effects_all": {
+          "total_interrupts": 151,
+          "evaluated": 81,
+          "improved": 17,
+          "worsened": 7,
+          "unchanged": 57,
+          "unchanged_correct_to_correct": 57,
+          "unchanged_wrong_to_wrong": 0,
+          "details": [
+            {
+              "pid": "problem_001",
+              "speaker": "Jenny",
+              "gold": "C",
+              "before": {
+                "Jenny": "C",
+                "Alex": "C",
+                "Chris": "C"
+              },
+              "final": {
+                "Jenny": "B",
+                "Alex": "C",
+                "Chris": "C"
+              },
+              "outcome": "worsened"
+            },
+            {
+              "pid": "problem_002",
+              "speaker": "Jenny",
+              "gold": "A",
+              "before": {
+                "Jenny": "A",
+                "Alex": "C",
+                "Chris": "B"
+              },
+              "final": {
+                "Jenny": "A",
+                "Alex": "C",
+                "Chris": "B"
+              },
+              "outcome": "unchanged"
+            },
+            {
+              "pid": "problem_002",
+              "speaker": "Chris",
+              "gold": "A",
+              "before": {
+                "Jenny": "A",
+                "Alex": "C",
+                "Chris": "B"
+              },
+              "final": {
+                "Jenny": "A",
+                "Alex": "C",
+                "Chris": "B"
+              },
+              "outcome": "unchanged"
+            },
+            {
+              "pid": "problem_002",
+              "speaker": "Alex",
+              "gold": "A",
+              "before": {
+                "Jenny": "A",
+                "Alex": "C",
+                "Chris": "B"
+              },
+              "final": {
+                "Jenny": "A",
+                "Alex": "C",
+                "Chris": "B"
+              },
+              "outcome": "unchanged"
+            },
+            {
+              "pid": "problem_004",
+              "speaker": "Jenny",
+              "gold": "B",
+              "before": {
+                "Jenny": "B",
+                "Alex": "D",
+                "Chris": "B"
+              },
+              "final": {
+                "Jenny": "B",
+                "Alex": "D",
+                "Chris": "B"
+              },
+              "outcome": "unchanged"
+            },
+            {
+              "pid": "problem_004",
+              "speaker": "Alex",
+              "gold": "B",
+              "before": {
+                "Jenny": "B",
+                "Alex": "D",
+                "Chris": "B"
+              },
+              "final": {
+                "Jenny": "B",
+                "Alex": "D",
+                "Chris": "B"
+              },
+              "outcome": "unchanged"
+            },
+            {
+              "pid": "problem_004",
+              "speaker": "Chris",
+              "gold": "B",
+              "before": {
+                "Jenny": "B",
+                "Alex": "D",
+                "Chris": "B"
+              },
+              "final": {
+                "Jenny": "B",
+                "Alex": "D",
+                "Chris": "B"
+              },
+              "outcome": "unchanged"
+            },
+            {
+              "pid": "problem_005",
+              "speaker": "Chris",
+              "gold": "A",
+              "before": {
+                "Jenny": "A",
+                "Alex": "D",
+                "Chris": "A"
+              },
+              "final": {
+                "Jenny": "A",
+                "Alex": "D",
+                "Chris": "A"
+              },
+              "outcome": "unchanged"
+            },
+            {
+              "pid": "problem_006",
+              "speaker": "Jenny",
+              "gold": "C",
+              "before": {
+                "Jenny": "C",
+                "Alex": "C",
+                "Chris": "C"
+              },
+              "final": {
+                "Jenny": "C",
+                "Alex": "C",
+                "Chris": "C"
+              },
+              "outcome": "unchanged"
+            },
+            {
+              "pid": "problem_006",
+              "speaker": "Chris",
+              "gold": "C",
+              "before": {
+                "Jenny": "C",
+                "Alex": "C",
+                "Chris": "C"
+              },
+              "final": {
+                "Jenny": "C",
+                "Alex": "C",
+                "Chris": "C"
+              },
+              "outcome": "unchanged"
+            },
+            {
+              "pid": "problem_008",
+              "speaker": "Jenny",
+              "gold": "A",
+              "before": {
+                "Jenny": "A",
+                "Alex": "B",
+                "Chris": "A"
+              },
+              "final": {
+                "Jenny": "A",
+                "Alex": "A",
+                "Chris": "A"
+              },
+              "outcome": "improved"
+            },
+            {
+              "pid": "problem_009",
+              "speaker": "Jenny",
+              "gold": "A",
+              "before": {
+                "Jenny": "A",
+                "Alex": "D",
+                "Chris": "A"
+              },
+              "final": {
+                "Jenny": "D",
+                "Alex": "D",
+                "Chris": "A"
+              },
+              "outcome": "worsened"
+            },
+            {
+              "pid": "problem_009",
+              "speaker": "Chris",
+              "gold": "A",
+              "before": {
+                "Jenny": "A",
+                "Alex": "D",
+                "Chris": "A"
+              },
+              "final": {
+                "Jenny": "D",
+                "Alex": "D",
+                "Chris": "A"
+              },
+              "outcome": "worsened"
+            },
+            {
+              "pid": "problem_009",
+              "speaker": "Alex",
+              "gold": "A",
+              "before": {
+                "Jenny": "D",
+                "Alex": "D",
+                "Chris": "A"
+              },
+              "final": {
+                "Jenny": "D",
+                "Alex": "D",
+                "Chris": "A"
+              },
+              "outcome": "unchanged"
+            },
+            {
+              "pid": "problem_010",
+              "speaker": "Chris",
+              "gold": "A",
+              "before": {
+                "Jenny": "A",
+                "Alex": "B",
+                "Chris": "A"
+              },
+              "final": {
+                "Jenny": "A",
+                "Alex": "B",
+                "Chris": "A"
+              },
+              "outcome": "unchanged"
+            },
+            {
+              "pid": "problem_010",
+              "speaker": "Jenny",
+              "gold": "A",
+              "before": {
+                "Jenny": "A",
+                "Alex": "B",
+                "Chris": "A"
+              },
+              "final": {
+                "Jenny": "A",
+                "Alex": "B",
+                "Chris": "A"
+              },
+              "outcome": "unchanged"
+            },
+            {
+              "pid": "problem_016",
+              "speaker": "Jenny",
+              "gold": "D",
+              "before": {
+                "Jenny": "D",
+                "Alex": "D",
+                "Chris": "D"
+              },
+              "final": {
+                "Jenny": "D",
+                "Alex": "D",
+                "Chris": "D"
+              },
+              "outcome": "unchanged"
+            },
+            {
+              "pid": "problem_016",
+              "speaker": "Alex",
+              "gold": "D",
+              "before": {
+                "Jenny": "D",
+                "Alex": "D",
+                "Chris": "D"
+              },
+              "final": {
+                "Jenny": "D",
+                "Alex": "D",
+                "Chris": "D"
+              },
+              "outcome": "unchanged"
+            },
+            {
+              "pid": "problem_019",
+              "speaker": "Jenny",
+              "gold": "D",
+              "before": {
+                "Jenny": "D",
+                "Alex": "A",
+                "Chris": "D"
+              },
+              "final": {
+                "Jenny": "D",
+                "Alex": "A",
+                "Chris": "D"
+              },
+              "outcome": "unchanged"
+            },
+            {
+              "pid": "problem_019",
+              "speaker": "Chris",
+              "gold": "D",
+              "before": {
+                "Jenny": "D",
+                "Alex": "A",
+                "Chris": "D"
+              },
+              "final": {
+                "Jenny": "D",
+                "Alex": "A",
+                "Chris": "D"
+              },
+              "outcome": "unchanged"
+            },
+            {
+              "pid": "problem_020",
+              "speaker": "Jenny",
+              "gold": "A",
+              "before": {
+                "Jenny": "A",
+                "Alex": "C",
+                "Chris": "A"
+              },
+              "final": {
+                "Jenny": "A",
+                "Alex": "C",
+                "Chris": "A"
+              },
+              "outcome": "unchanged"
+            },
+            {
+              "pid": "problem_020",
+              "speaker": "Chris",
+              "gold": "A",
+              "before": {
+                "Jenny": "A",
+                "Alex": "C",
+                "Chris": "C"
+              },
+              "final": {
+                "Jenny": "A",
+                "Alex": "C",
+                "Chris": "A"
+              },
+              "outcome": "improved"
+            },
+            {
+              "pid": "problem_020",
+              "speaker": "Alex",
+              "gold": "A",
+              "before": {
+                "Jenny": "A",
+                "Alex": "C",
+                "Chris": "C"
+              },
+              "final": {
+                "Jenny": "A",
+                "Alex": "C",
+                "Chris": "A"
+              },
+              "outcome": "improved"
+            },
+            {
+              "pid": "problem_021",
+              "speaker": "Jenny",
+              "gold": "A",
+              "before": {
+                "Jenny": "A",
+                "Alex": "B",
+                "Chris": "A"
+              },
+              "final": {
+                "Jenny": "A",
+                "Alex": "B",
+                "Chris": "B"
+              },
+              "outcome": "worsened"
+            },
+            {
+              "pid": "problem_021",
+              "speaker": "Chris",
+              "gold": "A",
+              "before": {
+                "Jenny": "A",
+                "Alex": "B",
+                "Chris": "B"
+              },
+              "final": {
+                "Jenny": "A",
+                "Alex": "B",
+                "Chris": "B"
+              },
+              "outcome": "unchanged"
+            },
+            {
+              "pid": "problem_022",
+              "speaker": "Chris",
+              "gold": "D",
+              "before": {
+                "Jenny": "D",
+                "Alex": "B",
+                "Chris": "D"
+              },
+              "final": {
+                "Jenny": "D",
+                "Alex": "D",
+                "Chris": "D"
+              },
+              "outcome": "improved"
+            },
+            {
+              "pid": "problem_023",
+              "speaker": "Jenny",
+              "gold": "C",
+              "before": {
+                "Jenny": "C",
+                "Alex": "A",
+                "Chris": "C"
+              },
+              "final": {
+                "Jenny": "C",
+                "Alex": "A",
+                "Chris": "C"
+              },
+              "outcome": "unchanged"
+            },
+            {
+              "pid": "problem_023",
+              "speaker": "Chris",
+              "gold": "C",
+              "before": {
+                "Jenny": "C",
+                "Alex": "A",
+                "Chris": "C"
+              },
+              "final": {
+                "Jenny": "C",
+                "Alex": "A",
+                "Chris": "C"
+              },
+              "outcome": "unchanged"
+            },
+            {
+              "pid": "problem_024",
+              "speaker": "Chris",
+              "gold": "A",
+              "before": {
+                "Jenny": "B",
+                "Alex": "B",
+                "Chris": "B"
+              },
+              "final": {
+                "Jenny": "A",
+                "Alex": "B",
+                "Chris": "B"
+              },
+              "outcome": "improved"
+            },
+            {
+              "pid": "problem_025",
+              "speaker": "Chris",
+              "gold": "C",
+              "before": {
+                "Jenny": "C",
+                "Alex": "D",
+                "Chris": "C"
+              },
+              "final": {
+                "Jenny": "C",
+                "Alex": "C",
+                "Chris": "C"
+              },
+              "outcome": "improved"
+            },
+            {
+              "pid": "problem_026",
+              "speaker": "Chris",
+              "gold": "D",
+              "before": {
+                "Jenny": "D",
+                "Alex": "A",
+                "Chris": "D"
+              },
+              "final": {
+                "Jenny": "D",
+                "Alex": "A",
+                "Chris": "D"
+              },
+              "outcome": "unchanged"
+            },
+            {
+              "pid": "problem_027",
+              "speaker": "Chris",
+              "gold": "C",
+              "before": {
+                "Jenny": "C",
+                "Alex": "B",
+                "Chris": "C"
+              },
+              "final": {
+                "Jenny": "C",
+                "Alex": "B",
+                "Chris": "C"
+              },
+              "outcome": "unchanged"
+            },
+            {
+              "pid": "problem_028",
+              "speaker": "Jenny",
+              "gold": "A",
+              "before": {
+                "Jenny": "A",
+                "Alex": "D",
+                "Chris": "A"
+              },
+              "final": {
+                "Jenny": "A",
+                "Alex": "D",
+                "Chris": "A"
+              },
+              "outcome": "unchanged"
+            },
+            {
+              "pid": "problem_031",
+              "speaker": "Jenny",
+              "gold": "D",
+              "before": {
+                "Jenny": "D",
+                "Alex": "A",
+                "Chris": "D"
+              },
+              "final": {
+                "Jenny": "D",
+                "Alex": "A",
+                "Chris": "D"
+              },
+              "outcome": "unchanged"
+            },
+            {
+              "pid": "problem_031",
+              "speaker": "Alex",
+              "gold": "D",
+              "before": {
+                "Jenny": "D",
+                "Alex": "A",
+                "Chris": "D"
+              },
+              "final": {
+                "Jenny": "D",
+                "Alex": "A",
+                "Chris": "D"
+              },
+              "outcome": "unchanged"
+            },
+            {
+              "pid": "problem_032",
+              "speaker": "Chris",
+              "gold": "D",
+              "before": {
+                "Jenny": "D",
+                "Alex": "C",
+                "Chris": "D"
+              },
+              "final": {
+                "Jenny": "D",
+                "Alex": "C",
+                "Chris": "D"
+              },
+              "outcome": "unchanged"
+            },
+            {
+              "pid": "problem_032",
+              "speaker": "Jenny",
+              "gold": "D",
+              "before": {
+                "Jenny": "D",
+                "Alex": "C",
+                "Chris": "D"
+              },
+              "final": {
+                "Jenny": "D",
+                "Alex": "C",
+                "Chris": "D"
+              },
+              "outcome": "unchanged"
+            },
+            {
+              "pid": "problem_033",
+              "speaker": "Jenny",
+              "gold": "C",
+              "before": {
+                "Jenny": "D",
+                "Alex": "D",
+                "Chris": "C"
+              },
+              "final": {
+                "Jenny": "C",
+                "Alex": "D",
+                "Chris": "C"
+              },
+              "outcome": "improved"
+            },
+            {
+              "pid": "problem_033",
+              "speaker": "Chris",
+              "gold": "C",
+              "before": {
+                "Jenny": "D",
+                "Alex": "D",
+                "Chris": "D"
+              },
+              "final": {
+                "Jenny": "C",
+                "Alex": "D",
+                "Chris": "C"
+              },
+              "outcome": "improved"
+            },
+            {
+              "pid": "problem_034",
+              "speaker": "Chris",
+              "gold": "A",
+              "before": {
+                "Jenny": "A",
+                "Alex": "A",
+                "Chris": "B"
+              },
+              "final": {
+                "Jenny": "A",
+                "Alex": "B",
+                "Chris": "B"
+              },
+              "outcome": "worsened"
+            },
+            {
+              "pid": "problem_035",
+              "speaker": "Chris",
+              "gold": "D",
+              "before": {
+                "Jenny": "D",
+                "Alex": "C",
+                "Chris": "D"
+              },
+              "final": {
+                "Jenny": "D",
+                "Alex": "C",
+                "Chris": "D"
+              },
+              "outcome": "unchanged"
+            },
+            {
+              "pid": "problem_036",
+              "speaker": "Chris",
+              "gold": "C",
+              "before": {
+                "Jenny": "C",
+                "Alex": "A",
+                "Chris": "C"
+              },
+              "final": {
+                "Jenny": "C",
+                "Alex": "C",
+                "Chris": "C"
+              },
+              "outcome": "improved"
+            },
+            {
+              "pid": "problem_036",
+              "speaker": "Jenny",
+              "gold": "C",
+              "before": {
+                "Jenny": "C",
+                "Alex": "C",
+                "Chris": "C"
+              },
+              "final": {
+                "Jenny": "C",
+                "Alex": "C",
+                "Chris": "C"
+              },
+              "outcome": "unchanged"
+            },
+            {
+              "pid": "problem_037",
+              "speaker": "Jenny",
+              "gold": "C",
+              "before": {
+                "Jenny": "C",
+                "Alex": "C",
+                "Chris": "D"
+              },
+              "final": {
+                "Jenny": "D",
+                "Alex": "D",
+                "Chris": "D"
+              },
+              "outcome": "worsened"
+            },
+            {
+              "pid": "problem_038",
+              "speaker": "Alex",
+              "gold": "C",
+              "before": {
+                "Jenny": "C",
+                "Alex": "C",
+                "Chris": "C"
+              },
+              "final": {
+                "Jenny": "C",
+                "Alex": "C",
+                "Chris": "C"
+              },
+              "outcome": "unchanged"
+            },
+            {
+              "pid": "problem_038",
+              "speaker": "Chris",
+              "gold": "C",
+              "before": {
+                "Jenny": "C",
+                "Alex": "C",
+                "Chris": "C"
+              },
+              "final": {
+                "Jenny": "C",
+                "Alex": "C",
+                "Chris": "C"
+              },
+              "outcome": "unchanged"
+            },
+            {
+              "pid": "problem_038",
+              "speaker": "Jenny",
+              "gold": "C",
+              "before": {
+                "Jenny": "C",
+                "Alex": "C",
+                "Chris": "C"
+              },
+              "final": {
+                "Jenny": "C",
+                "Alex": "C",
+                "Chris": "C"
+              },
+              "outcome": "unchanged"
+            },
+            {
+              "pid": "problem_039",
+              "speaker": "Chris",
+              "gold": "D",
+              "before": {
+                "Jenny": "D",
+                "Alex": "B",
+                "Chris": "D"
+              },
+              "final": {
+                "Jenny": "D",
+                "Alex": "B",
+                "Chris": "D"
+              },
+              "outcome": "unchanged"
+            },
+            {
+              "pid": "problem_040",
+              "speaker": "Jenny",
+              "gold": "C",
+              "before": {
+                "Jenny": "C",
+                "Alex": "C",
+                "Chris": "C"
+              },
+              "final": {
+                "Jenny": "C",
+                "Alex": "C",
+                "Chris": "C"
+              },
+              "outcome": "unchanged"
+            },
+            {
+              "pid": "problem_040",
+              "speaker": "Chris",
+              "gold": "C",
+              "before": {
+                "Jenny": "C",
+                "Alex": "C",
+                "Chris": "C"
+              },
+              "final": {
+                "Jenny": "C",
+                "Alex": "C",
+                "Chris": "C"
+              },
+              "outcome": "unchanged"
+            }
+          ]
+        },
+        "interrupt_effects_common": {
+          "total_interrupts": 130,
+          "evaluated": 66,
+          "improved": 13,
+          "worsened": 7,
+          "unchanged": 46,
+          "unchanged_correct_to_correct": 46,
+          "unchanged_wrong_to_wrong": 0,
+          "details": [
+            {
+              "pid": "problem_001",
+              "speaker": "Jenny",
+              "gold": "C",
+              "before": {
+                "Jenny": "C",
+                "Alex": "C",
+                "Chris": "C"
+              },
+              "final": {
+                "Jenny": "B",
+                "Alex": "C",
+                "Chris": "C"
+              },
+              "outcome": "worsened"
+            },
+            {
+              "pid": "problem_002",
+              "speaker": "Jenny",
+              "gold": "A",
+              "before": {
+                "Jenny": "A",
+                "Alex": "C",
+                "Chris": "B"
+              },
+              "final": {
+                "Jenny": "A",
+                "Alex": "C",
+                "Chris": "B"
+              },
+              "outcome": "unchanged"
+            },
+            {
+              "pid": "problem_002",
+              "speaker": "Chris",
+              "gold": "A",
+              "before": {
+                "Jenny": "A",
+                "Alex": "C",
+                "Chris": "B"
+              },
+              "final": {
+                "Jenny": "A",
+                "Alex": "C",
+                "Chris": "B"
+              },
+              "outcome": "unchanged"
+            },
+            {
+              "pid": "problem_002",
+              "speaker": "Alex",
+              "gold": "A",
+              "before": {
+                "Jenny": "A",
+                "Alex": "C",
+                "Chris": "B"
+              },
+              "final": {
+                "Jenny": "A",
+                "Alex": "C",
+                "Chris": "B"
+              },
+              "outcome": "unchanged"
+            },
+            {
+              "pid": "problem_004",
+              "speaker": "Jenny",
+              "gold": "B",
+              "before": {
+                "Jenny": "B",
+                "Alex": "D",
+                "Chris": "B"
+              },
+              "final": {
+                "Jenny": "B",
+                "Alex": "D",
+                "Chris": "B"
+              },
+              "outcome": "unchanged"
+            },
+            {
+              "pid": "problem_004",
+              "speaker": "Alex",
+              "gold": "B",
+              "before": {
+                "Jenny": "B",
+                "Alex": "D",
+                "Chris": "B"
+              },
+              "final": {
+                "Jenny": "B",
+                "Alex": "D",
+                "Chris": "B"
+              },
+              "outcome": "unchanged"
+            },
+            {
+              "pid": "problem_004",
+              "speaker": "Chris",
+              "gold": "B",
+              "before": {
+                "Jenny": "B",
+                "Alex": "D",
+                "Chris": "B"
+              },
+              "final": {
+                "Jenny": "B",
+                "Alex": "D",
+                "Chris": "B"
+              },
+              "outcome": "unchanged"
+            },
+            {
+              "pid": "problem_005",
+              "speaker": "Chris",
+              "gold": "A",
+              "before": {
+                "Jenny": "A",
+                "Alex": "D",
+                "Chris": "A"
+              },
+              "final": {
+                "Jenny": "A",
+                "Alex": "D",
+                "Chris": "A"
+              },
+              "outcome": "unchanged"
+            },
+            {
+              "pid": "problem_006",
+              "speaker": "Jenny",
+              "gold": "C",
+              "before": {
+                "Jenny": "C",
+                "Alex": "C",
+                "Chris": "C"
+              },
+              "final": {
+                "Jenny": "C",
+                "Alex": "C",
+                "Chris": "C"
+              },
+              "outcome": "unchanged"
+            },
+            {
+              "pid": "problem_006",
+              "speaker": "Chris",
+              "gold": "C",
+              "before": {
+                "Jenny": "C",
+                "Alex": "C",
+                "Chris": "C"
+              },
+              "final": {
+                "Jenny": "C",
+                "Alex": "C",
+                "Chris": "C"
+              },
+              "outcome": "unchanged"
+            },
+            {
+              "pid": "problem_008",
+              "speaker": "Jenny",
+              "gold": "A",
+              "before": {
+                "Jenny": "A",
+                "Alex": "B",
+                "Chris": "A"
+              },
+              "final": {
+                "Jenny": "A",
+                "Alex": "A",
+                "Chris": "A"
+              },
+              "outcome": "improved"
+            },
+            {
+              "pid": "problem_009",
+              "speaker": "Jenny",
+              "gold": "A",
+              "before": {
+                "Jenny": "A",
+                "Alex": "D",
+                "Chris": "A"
+              },
+              "final": {
+                "Jenny": "D",
+                "Alex": "D",
+                "Chris": "A"
+              },
+              "outcome": "worsened"
+            },
+            {
+              "pid": "problem_009",
+              "speaker": "Chris",
+              "gold": "A",
+              "before": {
+                "Jenny": "A",
+                "Alex": "D",
+                "Chris": "A"
+              },
+              "final": {
+                "Jenny": "D",
+                "Alex": "D",
+                "Chris": "A"
+              },
+              "outcome": "worsened"
+            },
+            {
+              "pid": "problem_009",
+              "speaker": "Alex",
+              "gold": "A",
+              "before": {
+                "Jenny": "D",
+                "Alex": "D",
+                "Chris": "A"
+              },
+              "final": {
+                "Jenny": "D",
+                "Alex": "D",
+                "Chris": "A"
+              },
+              "outcome": "unchanged"
+            },
+            {
+              "pid": "problem_010",
+              "speaker": "Chris",
+              "gold": "A",
+              "before": {
+                "Jenny": "A",
+                "Alex": "B",
+                "Chris": "A"
+              },
+              "final": {
+                "Jenny": "A",
+                "Alex": "B",
+                "Chris": "A"
+              },
+              "outcome": "unchanged"
+            },
+            {
+              "pid": "problem_010",
+              "speaker": "Jenny",
+              "gold": "A",
+              "before": {
+                "Jenny": "A",
+                "Alex": "B",
+                "Chris": "A"
+              },
+              "final": {
+                "Jenny": "A",
+                "Alex": "B",
+                "Chris": "A"
+              },
+              "outcome": "unchanged"
+            },
+            {
+              "pid": "problem_016",
+              "speaker": "Jenny",
+              "gold": "D",
+              "before": {
+                "Jenny": "D",
+                "Alex": "D",
+                "Chris": "D"
+              },
+              "final": {
+                "Jenny": "D",
+                "Alex": "D",
+                "Chris": "D"
+              },
+              "outcome": "unchanged"
+            },
+            {
+              "pid": "problem_016",
+              "speaker": "Alex",
+              "gold": "D",
+              "before": {
+                "Jenny": "D",
+                "Alex": "D",
+                "Chris": "D"
+              },
+              "final": {
+                "Jenny": "D",
+                "Alex": "D",
+                "Chris": "D"
+              },
+              "outcome": "unchanged"
+            },
+            {
+              "pid": "problem_019",
+              "speaker": "Jenny",
+              "gold": "D",
+              "before": {
+                "Jenny": "D",
+                "Alex": "A",
+                "Chris": "D"
+              },
+              "final": {
+                "Jenny": "D",
+                "Alex": "A",
+                "Chris": "D"
+              },
+              "outcome": "unchanged"
+            },
+            {
+              "pid": "problem_019",
+              "speaker": "Chris",
+              "gold": "D",
+              "before": {
+                "Jenny": "D",
+                "Alex": "A",
+                "Chris": "D"
+              },
+              "final": {
+                "Jenny": "D",
+                "Alex": "A",
+                "Chris": "D"
+              },
+              "outcome": "unchanged"
+            },
+            {
+              "pid": "problem_020",
+              "speaker": "Jenny",
+              "gold": "A",
+              "before": {
+                "Jenny": "A",
+                "Alex": "C",
+                "Chris": "A"
+              },
+              "final": {
+                "Jenny": "A",
+                "Alex": "C",
+                "Chris": "A"
+              },
+              "outcome": "unchanged"
+            },
+            {
+              "pid": "problem_020",
+              "speaker": "Chris",
+              "gold": "A",
+              "before": {
+                "Jenny": "A",
+                "Alex": "C",
+                "Chris": "C"
+              },
+              "final": {
+                "Jenny": "A",
+                "Alex": "C",
+                "Chris": "A"
+              },
+              "outcome": "improved"
+            },
+            {
+              "pid": "problem_020",
+              "speaker": "Alex",
+              "gold": "A",
+              "before": {
+                "Jenny": "A",
+                "Alex": "C",
+                "Chris": "C"
+              },
+              "final": {
+                "Jenny": "A",
+                "Alex": "C",
+                "Chris": "A"
+              },
+              "outcome": "improved"
+            },
+            {
+              "pid": "problem_021",
+              "speaker": "Jenny",
+              "gold": "A",
+              "before": {
+                "Jenny": "A",
+                "Alex": "B",
+                "Chris": "A"
+              },
+              "final": {
+                "Jenny": "A",
+                "Alex": "B",
+                "Chris": "B"
+              },
+              "outcome": "worsened"
+            },
+            {
+              "pid": "problem_021",
+              "speaker": "Chris",
+              "gold": "A",
+              "before": {
+                "Jenny": "A",
+                "Alex": "B",
+                "Chris": "B"
+              },
+              "final": {
+                "Jenny": "A",
+                "Alex": "B",
+                "Chris": "B"
+              },
+              "outcome": "unchanged"
+            },
+            {
+              "pid": "problem_022",
+              "speaker": "Chris",
+              "gold": "D",
+              "before": {
+                "Jenny": "D",
+                "Alex": "B",
+                "Chris": "D"
+              },
+              "final": {
+                "Jenny": "D",
+                "Alex": "D",
+                "Chris": "D"
+              },
+              "outcome": "improved"
+            },
+            {
+              "pid": "problem_023",
+              "speaker": "Jenny",
+              "gold": "C",
+              "before": {
+                "Jenny": "C",
+                "Alex": "A",
+                "Chris": "C"
+              },
+              "final": {
+                "Jenny": "C",
+                "Alex": "A",
+                "Chris": "C"
+              },
+              "outcome": "unchanged"
+            },
+            {
+              "pid": "problem_023",
+              "speaker": "Chris",
+              "gold": "C",
+              "before": {
+                "Jenny": "C",
+                "Alex": "A",
+                "Chris": "C"
+              },
+              "final": {
+                "Jenny": "C",
+                "Alex": "A",
+                "Chris": "C"
+              },
+              "outcome": "unchanged"
+            },
+            {
+              "pid": "problem_024",
+              "speaker": "Chris",
+              "gold": "A",
+              "before": {
+                "Jenny": "B",
+                "Alex": "B",
+                "Chris": "B"
+              },
+              "final": {
+                "Jenny": "A",
+                "Alex": "B",
+                "Chris": "B"
+              },
+              "outcome": "improved"
+            },
+            {
+              "pid": "problem_025",
+              "speaker": "Chris",
+              "gold": "C",
+              "before": {
+                "Jenny": "C",
+                "Alex": "D",
+                "Chris": "C"
+              },
+              "final": {
+                "Jenny": "C",
+                "Alex": "C",
+                "Chris": "C"
+              },
+              "outcome": "improved"
+            },
+            {
+              "pid": "problem_026",
+              "speaker": "Chris",
+              "gold": "D",
+              "before": {
+                "Jenny": "D",
+                "Alex": "A",
+                "Chris": "D"
+              },
+              "final": {
+                "Jenny": "D",
+                "Alex": "A",
+                "Chris": "D"
+              },
+              "outcome": "unchanged"
+            },
+            {
+              "pid": "problem_027",
+              "speaker": "Chris",
+              "gold": "C",
+              "before": {
+                "Jenny": "C",
+                "Alex": "B",
+                "Chris": "C"
+              },
+              "final": {
+                "Jenny": "C",
+                "Alex": "B",
+                "Chris": "C"
+              },
+              "outcome": "unchanged"
+            },
+            {
+              "pid": "problem_028",
+              "speaker": "Jenny",
+              "gold": "A",
+              "before": {
+                "Jenny": "A",
+                "Alex": "D",
+                "Chris": "A"
+              },
+              "final": {
+                "Jenny": "A",
+                "Alex": "D",
+                "Chris": "A"
+              },
+              "outcome": "unchanged"
+            },
+            {
+              "pid": "problem_031",
+              "speaker": "Jenny",
+              "gold": "D",
+              "before": {
+                "Jenny": "D",
+                "Alex": "A",
+                "Chris": "D"
+              },
+              "final": {
+                "Jenny": "D",
+                "Alex": "A",
+                "Chris": "D"
+              },
+              "outcome": "unchanged"
+            },
+            {
+              "pid": "problem_031",
+              "speaker": "Alex",
+              "gold": "D",
+              "before": {
+                "Jenny": "D",
+                "Alex": "A",
+                "Chris": "D"
+              },
+              "final": {
+                "Jenny": "D",
+                "Alex": "A",
+                "Chris": "D"
+              },
+              "outcome": "unchanged"
+            },
+            {
+              "pid": "problem_032",
+              "speaker": "Chris",
+              "gold": "D",
+              "before": {
+                "Jenny": "D",
+                "Alex": "C",
+                "Chris": "D"
+              },
+              "final": {
+                "Jenny": "D",
+                "Alex": "C",
+                "Chris": "D"
+              },
+              "outcome": "unchanged"
+            },
+            {
+              "pid": "problem_032",
+              "speaker": "Jenny",
+              "gold": "D",
+              "before": {
+                "Jenny": "D",
+                "Alex": "C",
+                "Chris": "D"
+              },
+              "final": {
+                "Jenny": "D",
+                "Alex": "C",
+                "Chris": "D"
+              },
+              "outcome": "unchanged"
+            },
+            {
+              "pid": "problem_033",
+              "speaker": "Jenny",
+              "gold": "C",
+              "before": {
+                "Jenny": "D",
+                "Alex": "D",
+                "Chris": "C"
+              },
+              "final": {
+                "Jenny": "C",
+                "Alex": "D",
+                "Chris": "C"
+              },
+              "outcome": "improved"
+            },
+            {
+              "pid": "problem_033",
+              "speaker": "Chris",
+              "gold": "C",
+              "before": {
+                "Jenny": "D",
+                "Alex": "D",
+                "Chris": "D"
+              },
+              "final": {
+                "Jenny": "C",
+                "Alex": "D",
+                "Chris": "C"
+              },
+              "outcome": "improved"
+            },
+            {
+              "pid": "problem_034",
+              "speaker": "Chris",
+              "gold": "A",
+              "before": {
+                "Jenny": "A",
+                "Alex": "A",
+                "Chris": "B"
+              },
+              "final": {
+                "Jenny": "A",
+                "Alex": "B",
+                "Chris": "B"
+              },
+              "outcome": "worsened"
+            },
+            {
+              "pid": "problem_035",
+              "speaker": "Chris",
+              "gold": "D",
+              "before": {
+                "Jenny": "D",
+                "Alex": "C",
+                "Chris": "D"
+              },
+              "final": {
+                "Jenny": "D",
+                "Alex": "C",
+                "Chris": "D"
+              },
+              "outcome": "unchanged"
+            },
+            {
+              "pid": "problem_036",
+              "speaker": "Chris",
+              "gold": "C",
+              "before": {
+                "Jenny": "C",
+                "Alex": "A",
+                "Chris": "C"
+              },
+              "final": {
+                "Jenny": "C",
+                "Alex": "C",
+                "Chris": "C"
+              },
+              "outcome": "improved"
+            },
+            {
+              "pid": "problem_036",
+              "speaker": "Jenny",
+              "gold": "C",
+              "before": {
+                "Jenny": "C",
+                "Alex": "C",
+                "Chris": "C"
+              },
+              "final": {
+                "Jenny": "C",
+                "Alex": "C",
+                "Chris": "C"
+              },
+              "outcome": "unchanged"
+            },
+            {
+              "pid": "problem_037",
+              "speaker": "Jenny",
+              "gold": "C",
+              "before": {
+                "Jenny": "C",
+                "Alex": "C",
+                "Chris": "D"
+              },
+              "final": {
+                "Jenny": "D",
+                "Alex": "D",
+                "Chris": "D"
+              },
+              "outcome": "worsened"
+            },
+            {
+              "pid": "problem_038",
+              "speaker": "Alex",
+              "gold": "C",
+              "before": {
+                "Jenny": "C",
+                "Alex": "C",
+                "Chris": "C"
+              },
+              "final": {
+                "Jenny": "C",
+                "Alex": "C",
+                "Chris": "C"
+              },
+              "outcome": "unchanged"
+            },
+            {
+              "pid": "problem_038",
+              "speaker": "Chris",
+              "gold": "C",
+              "before": {
+                "Jenny": "C",
+                "Alex": "C",
+                "Chris": "C"
+              },
+              "final": {
+                "Jenny": "C",
+                "Alex": "C",
+                "Chris": "C"
+              },
+              "outcome": "unchanged"
+            },
+            {
+              "pid": "problem_038",
+              "speaker": "Jenny",
+              "gold": "C",
+              "before": {
+                "Jenny": "C",
+                "Alex": "C",
+                "Chris": "C"
+              },
+              "final": {
+                "Jenny": "C",
+                "Alex": "C",
+                "Chris": "C"
+              },
+              "outcome": "unchanged"
+            },
+            {
+              "pid": "problem_039",
+              "speaker": "Chris",
+              "gold": "D",
+              "before": {
+                "Jenny": "D",
+                "Alex": "B",
+                "Chris": "D"
+              },
+              "final": {
+                "Jenny": "D",
+                "Alex": "B",
+                "Chris": "D"
+              },
+              "outcome": "unchanged"
+            },
+            {
+              "pid": "problem_040",
+              "speaker": "Jenny",
+              "gold": "C",
+              "before": {
+                "Jenny": "C",
+                "Alex": "C",
+                "Chris": "C"
+              },
+              "final": {
+                "Jenny": "C",
+                "Alex": "C",
+                "Chris": "C"
+              },
+              "outcome": "unchanged"
+            },
+            {
+              "pid": "problem_040",
+              "speaker": "Chris",
+              "gold": "C",
+              "before": {
+                "Jenny": "C",
+                "Alex": "C",
+                "Chris": "C"
+              },
+              "final": {
+                "Jenny": "C",
+                "Alex": "C",
+                "Chris": "C"
+              },
+              "outcome": "unchanged"
+            }
+          ]
+        },
+        "speak_effects_all": {
+          "total_speak": 0,
+          "evaluated": 0,
+          "improved": 0,
+          "worsened": 0,
+          "unchanged": 0,
+          "unchanged_correct_to_correct": 0,
+          "unchanged_wrong_to_wrong": 0,
+          "details": []
+        },
+        "speak_effects_common": {
+          "total_speak": 0,
+          "evaluated": 0,
+          "improved": 0,
+          "worsened": 0,
+          "unchanged": 0,
+          "unchanged_correct_to_correct": 0,
+          "unchanged_wrong_to_wrong": 0,
+          "details": []
+        }
+      }
+    },
+    "dynamic order without interruption": {
+      "dir": "/home/a-kimura/dynamic_debate/logs/run_20260131_151004",
+      "target_scenarios": [
+        {
+          "pid": "problem_001",
+          "index": 1
+        },
+        {
+          "pid": "problem_002",
+          "index": 2
+        },
+        {
+          "pid": "problem_003",
+          "index": 3
+        },
+        {
+          "pid": "problem_004",
+          "index": 4
+        },
+        {
+          "pid": "problem_005",
+          "index": 5
+        },
+        {
+          "pid": "problem_006",
+          "index": 6
+        },
+        {
+          "pid": "problem_007",
+          "index": 7
+        },
+        {
+          "pid": "problem_008",
+          "index": 8
+        },
+        {
+          "pid": "problem_009",
+          "index": 9
+        },
+        {
+          "pid": "problem_010",
+          "index": 10
+        },
+        {
+          "pid": "problem_011",
+          "index": 11
+        },
+        {
+          "pid": "problem_012",
+          "index": 12
+        },
+        {
+          "pid": "problem_013",
+          "index": 13
+        },
+        {
+          "pid": "problem_014",
+          "index": 14
+        },
+        {
+          "pid": "problem_015",
+          "index": 15
+        },
+        {
+          "pid": "problem_016",
+          "index": 16
+        },
+        {
+          "pid": "problem_017",
+          "index": 17
+        },
+        {
+          "pid": "problem_018",
+          "index": 18
+        },
+        {
+          "pid": "problem_019",
+          "index": 19
+        },
+        {
+          "pid": "problem_020",
+          "index": 20
+        },
+        {
+          "pid": "problem_021",
+          "index": 21
+        },
+        {
+          "pid": "problem_022",
+          "index": 22
+        },
+        {
+          "pid": "problem_023",
+          "index": 23
+        },
+        {
+          "pid": "problem_024",
+          "index": 24
+        },
+        {
+          "pid": "problem_025",
+          "index": 25
+        },
+        {
+          "pid": "problem_026",
+          "index": 26
+        },
+        {
+          "pid": "problem_027",
+          "index": 27
+        },
+        {
+          "pid": "problem_028",
+          "index": 28
+        },
+        {
+          "pid": "problem_029",
+          "index": 29
+        },
+        {
+          "pid": "problem_030",
+          "index": 30
+        },
+        {
+          "pid": "problem_031",
+          "index": 31
+        },
+        {
+          "pid": "problem_032",
+          "index": 32
+        },
+        {
+          "pid": "problem_033",
+          "index": 33
+        },
+        {
+          "pid": "problem_034",
+          "index": 34
+        },
+        {
+          "pid": "problem_035",
+          "index": 35
+        },
+        {
+          "pid": "problem_036",
+          "index": 36
+        },
+        {
+          "pid": "problem_037",
+          "index": 37
+        },
+        {
+          "pid": "problem_038",
+          "index": 38
+        },
+        {
+          "pid": "problem_039",
+          "index": 39
+        },
+        {
+          "pid": "problem_040",
+          "index": 40
+        },
+        {
+          "pid": "problem_041",
+          "index": 41
+        },
+        {
+          "pid": "problem_042",
+          "index": 42
+        },
+        {
+          "pid": "problem_043",
+          "index": 43
+        },
+        {
+          "pid": "problem_044",
+          "index": 44
+        },
+        {
+          "pid": "problem_045",
+          "index": 45
+        },
+        {
+          "pid": "problem_046",
+          "index": 46
+        },
+        {
+          "pid": "problem_047",
+          "index": 47
+        },
+        {
+          "pid": "problem_048",
+          "index": 48
+        },
+        {
+          "pid": "problem_049",
+          "index": 49
+        },
+        {
+          "pid": "problem_050",
+          "index": 50
+        },
+        {
+          "pid": "problem_051",
+          "index": 51
+        },
+        {
+          "pid": "problem_052",
+          "index": 52
+        },
+        {
+          "pid": "problem_053",
+          "index": 53
+        },
+        {
+          "pid": "problem_054",
+          "index": 54
+        }
+      ],
+      "metrics": {
+        "final_accuracy_all_target": 0.6296296296296297,
+        "final_accuracy_common": 0.6346153846153846,
+        "token_majority_accuracy_all": [
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          0.9814814814814815,
+          0.8888888888888888,
+          0.8148148148148148,
+          0.8148148148148148,
+          0.7962962962962963,
+          0.8148148148148148,
+          0.7962962962962963,
+          0.7777777777777778,
+          0.7962962962962963,
+          0.7962962962962963,
+          0.7962962962962963,
+          0.7962962962962963,
+          0.7962962962962963,
+          0.7777777777777778,
+          0.7962962962962963,
+          0.8148148148148148,
+          0.7222222222222222
+        ],
+        "token_majority_accuracy_common": [
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          0.9807692307692307,
+          0.8846153846153846,
+          0.8076923076923077,
+          0.8076923076923077,
+          0.7884615384615384,
+          0.8076923076923077,
+          0.7884615384615384,
+          0.7692307692307693,
+          0.7884615384615384,
+          0.7884615384615384,
+          0.7884615384615384,
+          0.7884615384615384,
+          0.7884615384615384,
+          0.7692307692307693,
+          0.7884615384615384,
+          0.8076923076923077,
+          0.7115384615384616
+        ],
+        "token_majority_tokens_all": [
+          0,
+          25,
+          50,
+          75,
+          100,
+          125,
+          150,
+          175,
+          200,
+          225,
+          250,
+          275,
+          300,
+          325,
+          350,
+          375,
+          400,
+          425,
+          450,
+          475,
+          500
+        ],
+        "token_majority_tokens_common": [
+          0,
+          25,
+          50,
+          75,
+          100,
+          125,
+          150,
+          175,
+          200,
+          225,
+          250,
+          275,
+          300,
+          325,
+          350,
+          375,
+          400,
+          425,
+          450,
+          475,
+          500
+        ],
+        "per_agent_token_accuracy_all": {
+          "Alex": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.05555555555555555,
+            0.12962962962962962,
+            0.2037037037037037,
+            0.25925925925925924,
+            0.2777777777777778,
+            0.2777777777777778,
+            0.25925925925925924,
+            0.2777777777777778,
+            0.3888888888888889,
+            0.3888888888888889,
+            0.3888888888888889,
+            0.4074074074074074,
+            0.4074074074074074,
+            0.37037037037037035,
+            0.37037037037037035,
+            0.4074074074074074,
+            0.46296296296296297
+          ],
+          "Chris": [
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            0.9814814814814815,
+            0.9444444444444444,
+            0.8888888888888888,
+            0.8888888888888888,
+            0.8888888888888888,
+            0.9074074074074074,
+            0.8888888888888888,
+            0.8703703703703703,
+            0.8703703703703703,
+            0.8703703703703703,
+            0.8888888888888888,
+            0.8888888888888888,
+            0.8888888888888888,
+            0.8703703703703703,
+            0.8148148148148148,
+            0.8148148148148148,
+            0.8148148148148148
+          ],
+          "Jenny": [
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            0.9074074074074074,
+            0.8888888888888888,
+            0.8888888888888888,
+            0.8703703703703703,
+            0.8888888888888888,
+            0.8703703703703703,
+            0.8518518518518519,
+            0.8518518518518519,
+            0.8518518518518519,
+            0.8518518518518519,
+            0.8703703703703703,
+            0.8888888888888888,
+            0.8703703703703703,
+            0.9074074074074074,
+            0.8888888888888888,
+            0.8333333333333334
+          ]
+        },
+        "per_agent_token_accuracy_common": {
+          "Alex": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.057692307692307696,
+            0.1346153846153846,
+            0.21153846153846154,
+            0.2692307692307692,
+            0.28846153846153844,
+            0.28846153846153844,
+            0.2692307692307692,
+            0.28846153846153844,
+            0.40384615384615385,
+            0.40384615384615385,
+            0.40384615384615385,
+            0.4230769230769231,
+            0.4230769230769231,
+            0.38461538461538464,
+            0.38461538461538464,
+            0.40384615384615385,
+            0.46153846153846156
+          ],
+          "Chris": [
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            0.9807692307692307,
+            0.9423076923076923,
+            0.8846153846153846,
+            0.8846153846153846,
+            0.8846153846153846,
+            0.9038461538461539,
+            0.8846153846153846,
+            0.8653846153846154,
+            0.8653846153846154,
+            0.8653846153846154,
+            0.8846153846153846,
+            0.8846153846153846,
+            0.8846153846153846,
+            0.8653846153846154,
+            0.8076923076923077,
+            0.8076923076923077,
+            0.8076923076923077
+          ],
+          "Jenny": [
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            0.9038461538461539,
+            0.8846153846153846,
+            0.8846153846153846,
+            0.8653846153846154,
+            0.8846153846153846,
+            0.8653846153846154,
+            0.8461538461538461,
+            0.8461538461538461,
+            0.8461538461538461,
+            0.8461538461538461,
+            0.8653846153846154,
+            0.8846153846153846,
+            0.8653846153846154,
+            0.9038461538461539,
+            0.8846153846153846,
+            0.8269230769230769
+          ]
+        },
+        "per_agent_tokens_all": [
+          0,
+          25,
+          50,
+          75,
+          100,
+          125,
+          150,
+          175,
+          200,
+          225,
+          250,
+          275,
+          300,
+          325,
+          350,
+          375,
+          400,
+          425,
+          450,
+          475,
+          500
+        ],
+        "per_agent_tokens_common": [
+          0,
+          25,
+          50,
+          75,
+          100,
+          125,
+          150,
+          175,
+          200,
+          225,
+          250,
+          275,
+          300,
+          325,
+          350,
+          375,
+          400,
+          425,
+          450,
+          475,
+          500
+        ],
+        "action_distribution_all": {
+          "Alex": {
+            "listen": 72,
+            "speak": 195
+          },
+          "Chris": {
+            "speak": 185,
+            "listen": 53
+          },
+          "Jenny": {
+            "listen": 52,
+            "speak": 174
+          }
+        },
+        "action_distribution_common": {
+          "Alex": {
+            "listen": 69,
+            "speak": 187
+          },
+          "Chris": {
+            "speak": 180,
+            "listen": 49
+          },
+          "Jenny": {
+            "listen": 49,
+            "speak": 167
+          }
+        },
+        "action_distribution_by_ctx_all": {
+          "talk": {
+            "Alex": {
+              "speak": 156,
+              "listen": 38
+            },
+            "Chris": {
+              "speak": 150,
+              "listen": 15
+            },
+            "Jenny": {
+              "speak": 138,
+              "listen": 15
+            }
+          },
+          "silence": {
+            "Alex": {
+              "listen": 7,
+              "speak": 12
+            },
+            "Chris": {
+              "listen": 10,
+              "speak": 9
+            },
+            "Jenny": {
+              "listen": 15,
+              "speak": 4
+            }
+          }
+        },
+        "action_distribution_by_ctx_common": {
+          "talk": {
+            "Alex": {
+              "speak": 150,
+              "listen": 37
+            },
+            "Chris": {
+              "speak": 145,
+              "listen": 15
+            },
+            "Jenny": {
+              "speak": 132,
+              "listen": 15
+            }
+          },
+          "silence": {
+            "Alex": {
+              "listen": 6,
+              "speak": 11
+            },
+            "Chris": {
+              "listen": 8,
+              "speak": 9
+            },
+            "Jenny": {
+              "listen": 13,
+              "speak": 4
+            }
+          }
+        },
+        "realized_speaker_distribution_all": {
+          "Alex": {
+            "speak": 62
+          },
+          "Chris": {
+            "speak": 91
+          },
+          "Jenny": {
+            "speak": 103
+          }
+        },
+        "realized_speaker_distribution_common": {
+          "Alex": {
+            "speak": 60
+          },
+          "Chris": {
+            "speak": 87
+          },
+          "Jenny": {
+            "speak": 100
+          }
+        },
+        "interrupt_effects_all": {
+          "total_interrupts": 0,
+          "evaluated": 0,
+          "improved": 0,
+          "worsened": 0,
+          "unchanged": 0,
+          "unchanged_correct_to_correct": 0,
+          "unchanged_wrong_to_wrong": 0,
+          "details": []
+        },
+        "interrupt_effects_common": {
+          "total_interrupts": 0,
+          "evaluated": 0,
+          "improved": 0,
+          "worsened": 0,
+          "unchanged": 0,
+          "unchanged_correct_to_correct": 0,
+          "unchanged_wrong_to_wrong": 0,
+          "details": []
+        },
+        "speak_effects_all": {
+          "total_speak": 0,
+          "evaluated": 0,
+          "improved": 0,
+          "worsened": 0,
+          "unchanged": 0,
+          "unchanged_correct_to_correct": 0,
+          "unchanged_wrong_to_wrong": 0,
+          "details": []
+        },
+        "speak_effects_common": {
+          "total_speak": 0,
+          "evaluated": 0,
+          "improved": 0,
+          "worsened": 0,
+          "unchanged": 0,
+          "unchanged_correct_to_correct": 0,
+          "unchanged_wrong_to_wrong": 0,
+          "details": []
+        }
+      }
+    },
+    "fixed order": {
+      "dir": "/home/a-kimura/dynamic_debate/logs/run_20260131_152708_roundrobin",
+      "target_scenarios": [
+        {
+          "pid": "problem_001",
+          "index": 1
+        },
+        {
+          "pid": "problem_002",
+          "index": 2
+        },
+        {
+          "pid": "problem_003",
+          "index": 3
+        },
+        {
+          "pid": "problem_004",
+          "index": 4
+        },
+        {
+          "pid": "problem_005",
+          "index": 5
+        },
+        {
+          "pid": "problem_006",
+          "index": 6
+        },
+        {
+          "pid": "problem_007",
+          "index": 7
+        },
+        {
+          "pid": "problem_008",
+          "index": 8
+        },
+        {
+          "pid": "problem_009",
+          "index": 9
+        },
+        {
+          "pid": "problem_010",
+          "index": 10
+        },
+        {
+          "pid": "problem_011",
+          "index": 11
+        },
+        {
+          "pid": "problem_012",
+          "index": 12
+        },
+        {
+          "pid": "problem_013",
+          "index": 13
+        },
+        {
+          "pid": "problem_014",
+          "index": 14
+        },
+        {
+          "pid": "problem_015",
+          "index": 15
+        },
+        {
+          "pid": "problem_016",
+          "index": 16
+        },
+        {
+          "pid": "problem_017",
+          "index": 17
+        },
+        {
+          "pid": "problem_018",
+          "index": 18
+        },
+        {
+          "pid": "problem_019",
+          "index": 19
+        },
+        {
+          "pid": "problem_020",
+          "index": 20
+        },
+        {
+          "pid": "problem_021",
+          "index": 21
+        },
+        {
+          "pid": "problem_022",
+          "index": 22
+        },
+        {
+          "pid": "problem_023",
+          "index": 23
+        },
+        {
+          "pid": "problem_024",
+          "index": 24
+        },
+        {
+          "pid": "problem_025",
+          "index": 25
+        },
+        {
+          "pid": "problem_026",
+          "index": 26
+        },
+        {
+          "pid": "problem_027",
+          "index": 27
+        },
+        {
+          "pid": "problem_028",
+          "index": 28
+        },
+        {
+          "pid": "problem_029",
+          "index": 29
+        },
+        {
+          "pid": "problem_030",
+          "index": 30
+        },
+        {
+          "pid": "problem_031",
+          "index": 31
+        },
+        {
+          "pid": "problem_032",
+          "index": 32
+        },
+        {
+          "pid": "problem_033",
+          "index": 33
+        },
+        {
+          "pid": "problem_034",
+          "index": 34
+        },
+        {
+          "pid": "problem_035",
+          "index": 35
+        },
+        {
+          "pid": "problem_036",
+          "index": 36
+        },
+        {
+          "pid": "problem_037",
+          "index": 37
+        },
+        {
+          "pid": "problem_038",
+          "index": 38
+        },
+        {
+          "pid": "problem_039",
+          "index": 39
+        },
+        {
+          "pid": "problem_040",
+          "index": 40
+        },
+        {
+          "pid": "problem_041",
+          "index": 41
+        },
+        {
+          "pid": "problem_042",
+          "index": 42
+        },
+        {
+          "pid": "problem_043",
+          "index": 43
+        },
+        {
+          "pid": "problem_044",
+          "index": 44
+        },
+        {
+          "pid": "problem_045",
+          "index": 45
+        },
+        {
+          "pid": "problem_046",
+          "index": 46
+        },
+        {
+          "pid": "problem_047",
+          "index": 47
+        },
+        {
+          "pid": "problem_048",
+          "index": 48
+        },
+        {
+          "pid": "problem_049",
+          "index": 49
+        },
+        {
+          "pid": "problem_050",
+          "index": 50
+        },
+        {
+          "pid": "problem_051",
+          "index": 51
+        },
+        {
+          "pid": "problem_052",
+          "index": 52
+        }
+      ],
+      "metrics": {
+        "final_accuracy_all_target": 0.8076923076923077,
+        "final_accuracy_common": 0.8076923076923077,
+        "token_majority_accuracy_all": [
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          0.9423076923076923,
+          0.7884615384615384,
+          0.6538461538461539,
+          0.6538461538461539,
+          0.6346153846153846,
+          0.6538461538461539,
+          0.7692307692307693,
+          0.7692307692307693,
+          0.7692307692307693,
+          0.7884615384615384,
+          0.8076923076923077,
+          0.7884615384615384,
+          0.8076923076923077,
+          0.8076923076923077,
+          0.8076923076923077,
+          0.8076923076923077,
+          0.7884615384615384
+        ],
+        "token_majority_accuracy_common": [
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          0.9423076923076923,
+          0.7884615384615384,
+          0.6538461538461539,
+          0.6538461538461539,
+          0.6346153846153846,
+          0.6538461538461539,
+          0.7692307692307693,
+          0.7692307692307693,
+          0.7692307692307693,
+          0.7884615384615384,
+          0.8076923076923077,
+          0.7884615384615384,
+          0.8076923076923077,
+          0.8076923076923077,
+          0.8076923076923077,
+          0.8076923076923077,
+          0.7884615384615384
+        ],
+        "token_majority_tokens_all": [
+          0,
+          25,
+          50,
+          75,
+          100,
+          125,
+          150,
+          175,
+          200,
+          225,
+          250,
+          275,
+          300,
+          325,
+          350,
+          375,
+          400,
+          425,
+          450,
+          475,
+          500
+        ],
+        "token_majority_tokens_common": [
+          0,
+          25,
+          50,
+          75,
+          100,
+          125,
+          150,
+          175,
+          200,
+          225,
+          250,
+          275,
+          300,
+          325,
+          350,
+          375,
+          400,
+          425,
+          450,
+          475,
+          500
+        ],
+        "per_agent_token_accuracy_all": {
+          "Alex": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.019230769230769232,
+            0.019230769230769232,
+            0.057692307692307696,
+            0.17307692307692307,
+            0.23076923076923078,
+            0.2692307692307692,
+            0.3269230769230769,
+            0.3076923076923077,
+            0.3076923076923077,
+            0.3076923076923077,
+            0.28846153846153844,
+            0.28846153846153844,
+            0.28846153846153844,
+            0.3269230769230769
+          ],
+          "Chris": [
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            0.9423076923076923,
+            0.8846153846153846,
+            0.8269230769230769,
+            0.8269230769230769,
+            0.8076923076923077,
+            0.8076923076923077,
+            0.8076923076923077,
+            0.8076923076923077,
+            0.8076923076923077,
+            0.8076923076923077,
+            0.8269230769230769,
+            0.8269230769230769,
+            0.8269230769230769,
+            0.8269230769230769,
+            0.8076923076923077,
+            0.8269230769230769,
+            0.8269230769230769
+          ],
+          "Jenny": [
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            0.9615384615384616,
+            0.8269230769230769,
+            0.7115384615384616,
+            0.7115384615384616,
+            0.6923076923076923,
+            0.7115384615384616,
+            0.8461538461538461,
+            0.8461538461538461,
+            0.8461538461538461,
+            0.8653846153846154,
+            0.8846153846153846,
+            0.8846153846153846,
+            0.8846153846153846,
+            0.8846153846153846,
+            0.8653846153846154,
+            0.8846153846153846,
+            0.8846153846153846
+          ]
+        },
+        "per_agent_token_accuracy_common": {
+          "Alex": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.019230769230769232,
+            0.019230769230769232,
+            0.057692307692307696,
+            0.17307692307692307,
+            0.23076923076923078,
+            0.2692307692307692,
+            0.3269230769230769,
+            0.3076923076923077,
+            0.3076923076923077,
+            0.3076923076923077,
+            0.28846153846153844,
+            0.28846153846153844,
+            0.28846153846153844,
+            0.3269230769230769
+          ],
+          "Chris": [
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            0.9423076923076923,
+            0.8846153846153846,
+            0.8269230769230769,
+            0.8269230769230769,
+            0.8076923076923077,
+            0.8076923076923077,
+            0.8076923076923077,
+            0.8076923076923077,
+            0.8076923076923077,
+            0.8076923076923077,
+            0.8269230769230769,
+            0.8269230769230769,
+            0.8269230769230769,
+            0.8269230769230769,
+            0.8076923076923077,
+            0.8269230769230769,
+            0.8269230769230769
+          ],
+          "Jenny": [
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            0.9615384615384616,
+            0.8269230769230769,
+            0.7115384615384616,
+            0.7115384615384616,
+            0.6923076923076923,
+            0.7115384615384616,
+            0.8461538461538461,
+            0.8461538461538461,
+            0.8461538461538461,
+            0.8653846153846154,
+            0.8846153846153846,
+            0.8846153846153846,
+            0.8846153846153846,
+            0.8846153846153846,
+            0.8653846153846154,
+            0.8846153846153846,
+            0.8846153846153846
+          ]
+        },
+        "per_agent_tokens_all": [
+          0,
+          25,
+          50,
+          75,
+          100,
+          125,
+          150,
+          175,
+          200,
+          225,
+          250,
+          275,
+          300,
+          325,
+          350,
+          375,
+          400,
+          425,
+          450,
+          475,
+          500
+        ],
+        "per_agent_tokens_common": [
+          0,
+          25,
+          50,
+          75,
+          100,
+          125,
+          150,
+          175,
+          200,
+          225,
+          250,
+          275,
+          300,
+          325,
+          350,
+          375,
+          400,
+          425,
+          450,
+          475,
+          500
+        ],
+        "action_distribution_all": {},
+        "action_distribution_common": {},
+        "action_distribution_by_ctx_all": {},
+        "action_distribution_by_ctx_common": {},
+        "realized_speaker_distribution_all": {},
+        "realized_speaker_distribution_common": {},
+        "interrupt_effects_all": {},
+        "interrupt_effects_common": {},
+        "speak_effects_all": {
+          "total_speak": 0,
+          "evaluated": 0,
+          "improved": 0,
+          "worsened": 0,
+          "unchanged": 0,
+          "unchanged_correct_to_correct": 0,
+          "unchanged_wrong_to_wrong": 0,
+          "details": []
+        },
+        "speak_effects_common": {
+          "total_speak": 0,
+          "evaluated": 0,
+          "improved": 0,
+          "worsened": 0,
+          "unchanged": 0,
+          "unchanged_correct_to_correct": 0,
+          "unchanged_wrong_to_wrong": 0,
+          "details": []
+        }
+      }
+    }
+  },
+  "common": {
+    "scenarios": [
+      {
+        "pid": "problem_001",
+        "index": 1
+      },
+      {
+        "pid": "problem_002",
+        "index": 2
+      },
+      {
+        "pid": "problem_003",
+        "index": 3
+      },
+      {
+        "pid": "problem_004",
+        "index": 4
+      },
+      {
+        "pid": "problem_005",
+        "index": 5
+      },
+      {
+        "pid": "problem_006",
+        "index": 6
+      },
+      {
+        "pid": "problem_007",
+        "index": 7
+      },
+      {
+        "pid": "problem_008",
+        "index": 8
+      },
+      {
+        "pid": "problem_009",
+        "index": 9
+      },
+      {
+        "pid": "problem_010",
+        "index": 10
+      },
+      {
+        "pid": "problem_011",
+        "index": 11
+      },
+      {
+        "pid": "problem_012",
+        "index": 12
+      },
+      {
+        "pid": "problem_013",
+        "index": 13
+      },
+      {
+        "pid": "problem_014",
+        "index": 14
+      },
+      {
+        "pid": "problem_015",
+        "index": 15
+      },
+      {
+        "pid": "problem_016",
+        "index": 16
+      },
+      {
+        "pid": "problem_017",
+        "index": 17
+      },
+      {
+        "pid": "problem_018",
+        "index": 18
+      },
+      {
+        "pid": "problem_019",
+        "index": 19
+      },
+      {
+        "pid": "problem_020",
+        "index": 20
+      },
+      {
+        "pid": "problem_021",
+        "index": 21
+      },
+      {
+        "pid": "problem_022",
+        "index": 22
+      },
+      {
+        "pid": "problem_023",
+        "index": 23
+      },
+      {
+        "pid": "problem_024",
+        "index": 24
+      },
+      {
+        "pid": "problem_025",
+        "index": 25
+      },
+      {
+        "pid": "problem_026",
+        "index": 26
+      },
+      {
+        "pid": "problem_027",
+        "index": 27
+      },
+      {
+        "pid": "problem_028",
+        "index": 28
+      },
+      {
+        "pid": "problem_029",
+        "index": 29
+      },
+      {
+        "pid": "problem_030",
+        "index": 30
+      },
+      {
+        "pid": "problem_031",
+        "index": 31
+      },
+      {
+        "pid": "problem_032",
+        "index": 32
+      },
+      {
+        "pid": "problem_033",
+        "index": 33
+      },
+      {
+        "pid": "problem_034",
+        "index": 34
+      },
+      {
+        "pid": "problem_035",
+        "index": 35
+      },
+      {
+        "pid": "problem_036",
+        "index": 36
+      },
+      {
+        "pid": "problem_037",
+        "index": 37
+      },
+      {
+        "pid": "problem_038",
+        "index": 38
+      },
+      {
+        "pid": "problem_039",
+        "index": 39
+      },
+      {
+        "pid": "problem_040",
+        "index": 40
+      },
+      {
+        "pid": "problem_041",
+        "index": 41
+      },
+      {
+        "pid": "problem_042",
+        "index": 42
+      },
+      {
+        "pid": "problem_043",
+        "index": 43
+      },
+      {
+        "pid": "problem_044",
+        "index": 44
+      },
+      {
+        "pid": "problem_045",
+        "index": 45
+      },
+      {
+        "pid": "problem_046",
+        "index": 46
+      },
+      {
+        "pid": "problem_047",
+        "index": 47
+      },
+      {
+        "pid": "problem_048",
+        "index": 48
+      },
+      {
+        "pid": "problem_049",
+        "index": 49
+      },
+      {
+        "pid": "problem_050",
+        "index": 50
+      },
+      {
+        "pid": "problem_051",
+        "index": 51
+      },
+      {
+        "pid": "problem_052",
+        "index": 52
+      }
+    ]
+  }
+}

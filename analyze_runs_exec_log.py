@@ -29,6 +29,9 @@
 - per_agent_token_accuracy_<run>.png : token-wise 各エージェント正解率（1図）
 - action_distribution_<run>.png      : action_plan.action 分布（1図）
 - realized_speaker_distribution_<run>.png : 実現発話（speak/interrupt）分布（1図）
+- interrupt_purpose_distribution_<run>.png : interrupt 選択時 purpose の分布
+- interrupt_turn_distribution_<run>.png    : interrupt を選択した turn の分布
+- interrupt_thought_wordcloud_<run>.png    : interrupt 選択時 thought のワードクラウド（wordcloud 未導入なら棒グラフを併産）
 - analysis_results.json         : 集計結果（JSON）
 
 使い方
@@ -361,6 +364,8 @@ def load_exec_logs(run_dir: str) -> Dict[str, Dict[str, Any]]:
         )
         # 実現された発話分布（roundrobin では利用しない）
         realized_speaker_dist: Optional[Dict[str, Counter]] = {a: Counter() for a in agents} if not is_roundrobin else None
+        # interrupt 選択時のメタ情報を貯める
+        interrupt_actions: List[Dict[str, Any]] = []
 
         # forward-fill 用の回答状態
         current_answers: Dict[str, str] = dict(initial_answers)
@@ -455,6 +460,17 @@ def load_exec_logs(run_dir: str) -> Dict[str, Dict[str, Any]]:
                                 action_dist_by_ctx[ctx_for_action][agent][act] += 1
                             if act in ("speak", "interrupt"):
                                 planned_speaker_actions[agent] = act
+                            if act == "interrupt":
+                                interrupt_actions.append(
+                                    {
+                                        "agent": agent,
+                                        "turn": turn,
+                                        "turn_sort": turn_sort,
+                                        "tokens": tokens_used,
+                                        "purpose": ap.get("purpose"),
+                                        "thought": ap.get("thought"),
+                                    }
+                                )
 
             # speaker 実現分布（roundrobinでは集計しない）
             if not is_roundrobin and realized_speaker_dist is not None:
@@ -538,6 +554,7 @@ def load_exec_logs(run_dir: str) -> Dict[str, Dict[str, Any]]:
             ),
             "realized_speaker_dist": {a: dict(realized_speaker_dist[a]) for a in agents} if realized_speaker_dist is not None else {},
             "final_answers": final_answers_map,
+            "interrupt_actions": interrupt_actions,
         }
 
     return result
@@ -798,7 +815,7 @@ def analyze_interrupt_effects(
 ) -> Dict[str, Any]:
     """
     interrupt が発生したターンで、割り込みを行ったエージェントの回答が
-    直前からどう変化したかを評価する。
+    直前から「最終ターン（final の直前ターン）」までにどう変化したかを評価する。
     戻り値:
       {
         "total_interrupts": int,
@@ -824,9 +841,6 @@ def analyze_interrupt_effects(
         if not isinstance(gold, str):
             continue
         snaps = pdata.get("snapshots", [])
-        final_answers_map = pdata.get("final_answers", {}) or {}
-        if not isinstance(final_answers_map, dict):
-            final_answers_map = {}
         processed_agents = set()  # 同一問題・同一エージェントの割り込みは1回にまとめる
         for i, snap in enumerate(snaps):
             if snap.get("event_type_fixed") != "interrupt":
@@ -846,13 +860,13 @@ def analyze_interrupt_effects(
             elif snaps:
                 answers_before = snaps[0].get("answers", {}) or {}
 
-            # 最終回答（全員）。final_answers_map が空なら最後の snapshot を代用。
-            answers_final = final_answers_map if final_answers_map else (snaps[-1].get("answers", {}) if snaps else {})
-            if not isinstance(answers_final, dict):
-                answers_final = {}
+            # 最終ターン（final の直前）の回答を採用
+            answers_final_turn = snaps[-1].get("answers", {}) if snaps else {}
+            if not isinstance(answers_final_turn, dict):
+                answers_final_turn = {}
 
             # 評価対象のエージェント集合：割り込み実施者＋その他
-            agent_names = set(answers_final.keys()) | set(answers_before.keys())
+            agent_names = set(answers_final_turn.keys()) | set(answers_before.keys())
             if not agent_names:
                 continue
 
@@ -863,7 +877,7 @@ def analyze_interrupt_effects(
             worsened_flag = False
             for ag in agent_names:
                 before = answers_before.get(ag)
-                after = answers_final.get(ag)
+                after = answers_final_turn.get(ag)
                 cb = is_correct(before)
                 ca = is_correct(after)
                 if cb is None or ca is None:
@@ -890,7 +904,7 @@ def analyze_interrupt_effects(
                 w2w = True  # 一人でも正解していれば False にする
                 for ag in agent_names:
                     before = answers_before.get(ag)
-                    after = answers_final.get(ag)
+                    after = answers_final_turn.get(ag)
                     cb = is_correct(before)
                     ca = is_correct(after)
                     if cb is True and ca is True:
@@ -909,7 +923,7 @@ def analyze_interrupt_effects(
                     "speaker": speaker,
                     "gold": gold,
                     "before": {ag: answers_before.get(ag) for ag in agent_names},
-                    "final": {ag: answers_final.get(ag) for ag in agent_names},
+                    "final_turn": {ag: answers_final_turn.get(ag) for ag in agent_names},
                     "outcome": outcome,
                 })
 
@@ -1119,6 +1133,72 @@ def aggregate_realized_speaker_distribution(
     return dist
 
 
+def _tokenize_for_word_stats(text: str) -> List[str]:
+    """簡易トークナイズ（英数字/アンダーバーを単語として扱い、3文字未満は除外）。"""
+    if not isinstance(text, str):
+        return []
+    tokens = re.findall(r"[\\w']+", text.lower())
+    return [t for t in tokens if len(t) >= 3]
+
+
+def aggregate_interrupt_actions(
+    pids: List[str],
+    problems: Dict[str, Dict[str, Any]],
+) -> Dict[str, Any]:
+    """
+    interrupt を選択した action_plan から purpose 分布・turn 分布・thought 集計を行う。
+    return: {
+      "total": int,
+      "purpose_dist": Counter,
+      "turn_dist": Counter,
+      "agent_dist": Counter,
+      "top_words": Counter,   # thought から抽出した単語頻度
+      "sample_thoughts": List[str],
+    }
+    """
+    purpose_dist: Counter = Counter()
+    turn_dist: Counter = Counter()
+    agent_dist: Counter = Counter()
+    word_counter: Counter = Counter()
+    sample_thoughts: List[str] = []
+
+    for pid in pids:
+        pdata = problems.get(pid)
+        if not pdata:
+            continue
+        actions = pdata.get("interrupt_actions", [])
+        if not isinstance(actions, list):
+            continue
+        for act in actions:
+            purpose = act.get("purpose")
+            if isinstance(purpose, str) and purpose.strip():
+                purpose_dist[purpose.strip()] += 1
+            turn_val = act.get("turn_sort")
+            if isinstance(turn_val, int):
+                turn_dist[turn_val] += 1
+            elif isinstance(act.get("turn"), int):
+                turn_dist[act["turn"]] += 1
+            agent = act.get("agent")
+            if isinstance(agent, str):
+                agent_dist[agent] += 1
+            thought = act.get("thought")
+            if isinstance(thought, str) and thought.strip():
+                if len(sample_thoughts) < 50:
+                    sample_thoughts.append(thought.strip())
+                for w in _tokenize_for_word_stats(thought):
+                    word_counter[w] += 1
+
+    total = sum(purpose_dist.values()) if purpose_dist else sum(agent_dist.values())
+    return {
+        "total": total,
+        "purpose_dist": purpose_dist,
+        "turn_dist": turn_dist,
+        "agent_dist": agent_dist,
+        "top_words": word_counter,
+        "sample_thoughts": sample_thoughts,
+    }
+
+
 # =========================
 # プロット
 # =========================
@@ -1271,6 +1351,76 @@ def plot_action_distribution_grouped(
     print(f"[INFO] Saved plot: {out_path}")
 
 
+def plot_counter_bar_simple(
+    counter: Counter,
+    title: str,
+    xlabel: str,
+    out_path: str,
+    sort_by_key: bool = False,
+) -> None:
+    """Counter を棒グラフ化（キー昇順）。"""
+    if not counter:
+        print(f"[INFO] No data to plot: {out_path}")
+        return
+    if sort_by_key:
+        items = sorted(counter.items(), key=lambda x: x[0])
+    else:
+        items = counter.most_common()
+    labels = [k for k, _ in items]
+    values = [v for _, v in items]
+    x = list(range(len(labels)))
+    plt.figure(figsize=(8, 4))
+    plt.bar(x, values, color="#5b8ff9")
+    plt.xticks(x, labels, rotation=45, ha="right")
+    plt.ylabel("Count")
+    plt.xlabel(xlabel)
+    plt.title(title)
+    plt.grid(True, axis="y", alpha=0.3, linestyle=":")
+    plt.tight_layout()
+    plt.savefig(out_path, dpi=300)
+    plt.close()
+    print(f"[INFO] Saved plot: {out_path}")
+
+
+def plot_wordcloud_from_texts(
+    texts: List[str],
+    title: str,
+    out_path: str,
+    fallback_counter: Optional[Counter] = None,
+) -> None:
+    """
+    thought などのテキストリストから WordCloud を生成。
+    wordcloud 未インストールの場合は Counter から棒グラフを生成して代替。
+    """
+    if not texts:
+        print(f"[INFO] No texts to plot wordcloud: {out_path}")
+        return
+    try:
+        from wordcloud import WordCloud
+    except Exception:
+        print("[WARN] wordcloud not installed; fallback to bar plot.")
+        if fallback_counter:
+            plot_counter_bar_simple(
+                fallback_counter,
+                title + " (top words)",
+                xlabel="word",
+                out_path=out_path.replace(".png", "_bar.png"),
+            )
+        return
+
+    joined = " ".join(texts)
+    wc = WordCloud(width=800, height=400, background_color="white", collocations=False)
+    wc.generate(joined)
+    plt.figure(figsize=(10, 5))
+    plt.imshow(wc, interpolation="bilinear")
+    plt.axis("off")
+    plt.title(title)
+    plt.tight_layout()
+    plt.savefig(out_path, dpi=300)
+    plt.close()
+    print(f"[INFO] Saved plot: {out_path}")
+
+
 def make_comparison_out_dir(base_out_dir: str, run_dirs: List[str], max_idx: Optional[int], scenario: str) -> str:
     tags = [os.path.basename(r.rstrip(os.sep)) for r in run_dirs]
     dir_name = "__vs__".join(tags)
@@ -1357,6 +1507,11 @@ def main():
         realized_speaker_dist_all = aggregate_realized_speaker_distribution(scenarios, probs) if not run_is_roundrobin else {}
         interrupt_effects_all = analyze_interrupt_effects(scenarios, probs, acc) if not run_is_roundrobin else {}
         speak_effects_all = analyze_speak_effects(scenarios, probs, acc)
+        interrupt_action_stats_all = aggregate_interrupt_actions(scenarios, probs) if not run_is_roundrobin else {}
+
+        top_words_ctr_all = interrupt_action_stats_all.get("top_words") if interrupt_action_stats_all else Counter()
+        if not isinstance(top_words_ctr_all, Counter):
+            top_words_ctr_all = Counter(top_words_ctr_all or {})
 
         all_runs_data.append({
             "dir": r_dir,
@@ -1377,6 +1532,14 @@ def main():
                 },
                 "realized_speaker_distribution_all": {a: dict(realized_speaker_dist_all[a]) for a in realized_speaker_dist_all},
                 "interrupt_effects_all": interrupt_effects_all,
+                "interrupt_action_stats_all": {
+                    "total": interrupt_action_stats_all.get("total"),
+                    "purpose_dist": dict(interrupt_action_stats_all.get("purpose_dist", {})),
+                    "turn_dist": dict(interrupt_action_stats_all.get("turn_dist", {})),
+                    "agent_dist": dict(interrupt_action_stats_all.get("agent_dist", {})),
+                    "top_words": dict(top_words_ctr_all.most_common(50)),
+                    "sample_thoughts": interrupt_action_stats_all.get("sample_thoughts", []) if interrupt_action_stats_all else [],
+                } if interrupt_action_stats_all else {},
                 "speak_effects_all": speak_effects_all,
                 "is_roundrobin": run_is_roundrobin,
             },
@@ -1429,6 +1592,10 @@ def main():
         realized_speaker_dist_common = aggregate_realized_speaker_distribution(common_pids, r_data["probs"]) if not run_is_roundrobin else {}
         interrupt_effects_common = analyze_interrupt_effects(common_pids, r_data["probs"], r_data["acc"]) if not run_is_roundrobin else {}
         speak_effects_common = analyze_speak_effects(common_pids, r_data["probs"], r_data["acc"])
+        interrupt_action_stats_common = aggregate_interrupt_actions(common_pids, r_data["probs"]) if not run_is_roundrobin else {}
+        top_words_ctr_common = interrupt_action_stats_common.get("top_words") if interrupt_action_stats_common else Counter()
+        if not isinstance(top_words_ctr_common, Counter):
+            top_words_ctr_common = Counter(top_words_ctr_common or {})
 
         r_data["metrics"]["final_accuracy_common"] = acc_final_common
         r_data["metrics"]["token_majority_accuracy_common"] = token_majority_common
@@ -1442,6 +1609,14 @@ def main():
         }
         r_data["metrics"]["realized_speaker_distribution_common"] = {a: dict(realized_speaker_dist_common[a]) for a in realized_speaker_dist_common}
         r_data["metrics"]["interrupt_effects_common"] = interrupt_effects_common
+        r_data["metrics"]["interrupt_action_stats_common"] = {
+            "total": interrupt_action_stats_common.get("total"),
+            "purpose_dist": dict(interrupt_action_stats_common.get("purpose_dist", {})),
+            "turn_dist": dict(interrupt_action_stats_common.get("turn_dist", {})),
+            "agent_dist": dict(interrupt_action_stats_common.get("agent_dist", {})),
+            "top_words": dict(top_words_ctr_common.most_common(50)),
+            "sample_thoughts": interrupt_action_stats_common.get("sample_thoughts", []) if interrupt_action_stats_common else [],
+        } if interrupt_action_stats_common else {}
         r_data["metrics"]["speak_effects_common"] = speak_effects_common
 
         print(f"[RESULT] {tag} | Final Acc (All Target): {r_data['metrics']['final_accuracy_all_target']:.3f}")
@@ -1497,6 +1672,39 @@ def main():
                 out_path=out_rs,
             )
 
+            # interrupt 選択時の purpose / turn / thought
+            interrupt_stats_plot = aggregate_interrupt_actions(r_data["scenarios"], r_data["probs"])
+            if interrupt_stats_plot:
+                purpose_ctr = interrupt_stats_plot.get("purpose_dist", Counter())
+                turn_ctr = interrupt_stats_plot.get("turn_dist", Counter())
+                thoughts = interrupt_stats_plot.get("sample_thoughts", [])
+                top_words_ctr = interrupt_stats_plot.get("top_words", Counter())
+
+                out_purpose = os.path.join(pair_out_dir, f"interrupt_purpose_distribution_{tag}.png")
+                plot_counter_bar_simple(
+                    purpose_ctr,
+                    title=f"{tag} - Interrupt purpose distribution (all target)",
+                    xlabel="purpose",
+                    out_path=out_purpose,
+                )
+
+                out_turn = os.path.join(pair_out_dir, f"interrupt_turn_distribution_{tag}.png")
+                plot_counter_bar_simple(
+                    turn_ctr,
+                    title=f"{tag} - Interrupt turn distribution (all target)",
+                    xlabel="turn",
+                    out_path=out_turn,
+                    sort_by_key=True,
+                )
+
+                out_wc = os.path.join(pair_out_dir, f"interrupt_thought_wordcloud_{tag}.png")
+                plot_wordcloud_from_texts(
+                    thoughts,
+                    title=f"{tag} - Interrupt thoughts wordcloud (sampled, all target)",
+                    out_path=out_wc,
+                    fallback_counter=top_words_ctr,
+                )
+
         json_output["runs"][tag] = {
             "dir": r_data["dir"],
             "target_scenarios": scenario_list_with_index(r_data["scenarios"]),
@@ -1519,6 +1727,8 @@ def main():
                 "realized_speaker_distribution_common": r_data["metrics"]["realized_speaker_distribution_common"],
                 "interrupt_effects_all": r_data["metrics"]["interrupt_effects_all"],
                 "interrupt_effects_common": r_data["metrics"]["interrupt_effects_common"],
+                "interrupt_action_stats_all": r_data["metrics"].get("interrupt_action_stats_all", {}),
+                "interrupt_action_stats_common": r_data["metrics"].get("interrupt_action_stats_common", {}),
                 "speak_effects_all": r_data["metrics"]["speak_effects_all"],
                 "speak_effects_common": r_data["metrics"]["speak_effects_common"],
             }
