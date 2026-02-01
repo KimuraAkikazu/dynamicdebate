@@ -32,9 +32,8 @@ plan_action_schema: Dict[str, Any] = {
         "urgency": {"type": "integer", "minimum": 0, "maximum": 9},
         "purpose": {"type": "string", "maxLength": 50},
         "answer": {"type": "string", "enum": ["A", "B", "C", "D", "none"]},
-        "consensus": {"type": "boolean"},
     },
-    "required": ["thought", "action", "urgency", "purpose", "answer", "consensus"],
+    "required": ["thought", "action", "urgency", "purpose", "answer"],
     "additionalProperties": False,
 }
 

@@ -32,7 +32,7 @@ You have conducted a debate to arrive at the correct answer to question. Based o
 {topic}
 
 # Debate Information
-## The initial answers provided by all members before the debate began
+## Initial answers before debate begins (subject to change)
 {initial_answer}
 ## Debate history
 {debate_history}
@@ -41,7 +41,7 @@ You have conducted a debate to arrive at the correct answer to question. Based o
 
 # Instructions
 - Taking the debate information into account, please provide your final answer choice for the question and the reasons for them.
-- Provide your response in the following output format.
+- Provide your response as {name} in the following output format.
 
 # Output format
 Return strictly a JSON object only.
@@ -55,7 +55,6 @@ Return strictly a JSON object only.
 # System prompt
 # -------------------------------------------------- #
 SYSTEM_PROMPT = """
-You are {name}.
 You are participating in a rigorous debate with {peer1}, {peer2}.
 Your goal is to exchange opinions, and collectively determine the correct answer to the question within the available public token budget.
 
@@ -67,7 +66,7 @@ Your goal is to exchange opinions, and collectively determine the correct answer
 # Plan-action prompt (normal turn) - WITH INTERRUPTION
 # -------------------------------------------------- #
 PLAN_ACTION_PROMPT_TEMPLATE = """
-You are debating to arrive at the correct answer to the question. Based on the debate information, generate a response to the instructions.
+You are {name}. You are debating to arrive at the correct answer to the question. Based on the debate information, generate a response to the instructions.
 
 ## Question
 {topic}
@@ -79,7 +78,7 @@ You are debating to arrive at the correct answer to the question. Based on the d
 - Only one member can speak per turn. The next speaker is selected from the highest urgency level.
 - Each turn, one chunk at a time from the speaker's generated statement is revealed to all members. The current speaker may have more statement prepared and not yet revealed.
 
-## The initial answers provided by all members before the debate began
+## Initial answers before debate begins (subject to change)
 {initial_answer}
 
 ## Debate history
@@ -106,8 +105,7 @@ You can take the following actions:
   - While considering the possibility that someone may be mid-sentence, decide whether to interrupt and respond immediately to this turn's statement or listen to its completion.
 4. Select the purpose of the action you have chosen.
 5. Based on the debate information, output the currently most supported answer to the question.
-6. Set "consensus" to true ONLY if you believe all members have effectively converged to one answer choice. Otherwise set false.
-   If the anticipated continuation of statement may resolve your concern, choose listen. 
+- If the anticipated continuation of statement may resolve your concern, choose listen. 
 
 # Constraints for Interruption
 - You shouldn't interrupt if the current speaker has only stated their stance but has not yet provided the reason or evidence.
@@ -120,7 +118,7 @@ Return strictly a JSON object only.
  "urgency": 0-9, 
  "action": "listen or interrupt", 
  "purpose": "agree|disagree|summarize|confirmation|proposal|conclusion|think", 
- "answer": "Your most supported answer.one of 'A', 'B', 'C', or 'D'",
+ "answer": "one of 'A', 'B', 'C', or 'D'",
   }}
 """.strip()
 
@@ -128,7 +126,7 @@ Return strictly a JSON object only.
 # Plan-action prompt - NO INTERRUPTION (Normal)
 # -------------------------------------------------- #
 PLAN_ACTION_NO_INTERRUPT_PROMPT_TEMPLATE = """
-You are debating to arrive at the correct answer to the question. Based on the debate information, generate a response to the instructions.
+You are {name}. You are debating to arrive at the correct answer to the question. Based on the debate information, generate a response to the instructions.
 
 # Question
 {topic}
@@ -139,7 +137,7 @@ You are debating to arrive at the correct answer to the question. Based on the d
 - Remaining public tokens available to all agents: {tokens_left} / {token_budget}.
 - Only one member can speak per turn. The next speaker is selected from the highest urgency level.
 
-## The initial answers provided by all members before the debate began
+## Initial answers before debate begins (subject to change)
 {initial_answer}
 
 ## Debate history
@@ -165,7 +163,7 @@ You can take the following actions:
 3. Refer to the provided information and your thought, decide your next turn action as {name}.
 4. Select the purpose of the action you have chosen.
 5. Based on the debate information, output the currently most supported answer to the question.
-Be careful not to stray into debate that are not necessary for answering the question.
+- Be careful not to stray into debate that are not necessary for answering the question.
 
 # Output format
 Return strictly a JSON object only.
@@ -174,7 +172,7 @@ Return strictly a JSON object only.
  "urgency": 0-9,  
  "action": "listen or speak", 
  "purpose": "agree|disagree|summarize|confirmation|proposal|conclusion|think", 
- "answer": "Your most supported answer.one of 'A', 'B', 'C', or 'D'",
+ "answer": "one of 'A', 'B', 'C', or 'D'",
   }}
 """.strip()
 
@@ -182,7 +180,7 @@ Return strictly a JSON object only.
 # Plan-action prompt (silence turn)
 # --------------------------------------------------
 SILENCE_PLAN_PROMPT_TEMPLATE = """
-You are debating to arrive at the correct answer to the question. Based on the debate information, generate a response to the instructions.
+You are {name}. You are debating to arrive at the correct answer to the question. Based on the debate information, generate a response to the instructions.
 
 # Question
 {topic}
@@ -194,7 +192,7 @@ You are debating to arrive at the correct answer to the question. Based on the d
 - Only one member can speak per turn. The next speaker is selected from the highest urgency level.
 - Each turn, one chunk at a time from the speaker's generated statement is revealed to all members. The current speaker may have more statement prepared and not yet revealed.
 
-## The initial answers provided by all members before the debate began
+## Initial answers before debate begins (subject to change)
 {initial_answer}
 
 ## Debate history
@@ -221,7 +219,7 @@ You can take the following actions:
   - Please bear in mind that prolonged silence hinders progress in debate.
 4. Select the purpose of the action you have chosen.
 5. Based on the debate information, output the currently most supported answer to the question.
-Be careful not to stray into debate that are not necessary for answering the question.
+- Be careful not to stray into debate that are not necessary for answering the question.
 
 # Output format
 Return strictly a JSON object only.
@@ -230,7 +228,7 @@ Return strictly a JSON object only.
  "urgency": 0-9,  
  "action": "listen or speak", 
  "purpose": "agree|disagree|summarize|confirmation|proposal|conclusion|think", 
- "answer": "Your most supported answer.one of 'A', 'B', 'C', or 'D'",
+ "answer": "one of 'A', 'B', 'C', or 'D'",
   }}
 """.strip()
 
@@ -238,7 +236,7 @@ Return strictly a JSON object only.
 # Utterance-generation prompt
 # --------------------------------------------------
 GENERATE_UTTERANCE_PROMPT_TEMPLATE = """
-You are debating to arrive at the correct answer to the question. Based on the debate information, generate a response to the instructions.
+You are {name}. You are debating to arrive at the correct answer to the question. Based on the debate information, generate a response to the instructions.
 
 # Question
 {topic}
@@ -249,7 +247,7 @@ You are debating to arrive at the correct answer to the question. Based on the d
 - Remaining public tokens available to all agents: {tokens_left} / {token_budget}.
 - Only one member can speak per turn. The next speaker is selected from the highest urgency level.
 
-## The initial answers provided by all members before the debate began
+## Initial answers before debate begins (subject to change)
 {initial_answer}
 
 ## Debate history
@@ -261,7 +259,6 @@ Turn{turn}({event_type})
 {latest_thoughts}
 
 ## State
-- You are {name}.
 - This is turn {turn}. Use the remaining public tokens efficiently to reach the correct answer.
 
 ## Your purpose
@@ -275,12 +272,12 @@ Turn{turn}({event_type})
   - If you disagree with previous speakers, explicitly point out their logical flaws.
   - If you agree, make constructive statements toward reaching an agreement.
   - Keep your utterance concise and impactful so as not to waste tokens_left.
-- Provide your response in the following output format.
+- Provide your response as {name} (turn {turn}) in the following output format.
 
 # Output format
 Return strictly a JSON object only.
 {{
-"utterance": "Your public statement in the debate. Be concise and persuasive within {tokens_left} tokens. "
+"utterance": "string" // Within {tokens_left} tokens.
 }}
 """.strip()
 
@@ -324,7 +321,7 @@ You are conducting a debate to arrive at the correct answer to question. Based o
 {topic}
 
 # Debate Information
-## The initial answers provided by all members before the debate began
+## Initial answers before debate begins (subject to change)
 {initial_answer}
 ## Debate history
 {debate_history}
@@ -333,7 +330,7 @@ You are conducting a debate to arrive at the correct answer to question. Based o
 
 # Instructions
 - Based on debate information, please provide your final answer choice for the question and the reasoning behind it.
-- Provide your response in the following output format.
+- Provide your response as {name} in the following output format.
 
 # Output format
 Return strictly a JSON object only.
@@ -344,7 +341,7 @@ Return strictly a JSON object only.
 """.strip()
 
 ADVERSARY_PLAN_ACTION_PROMPT_TEMPLATE = """
-You are debating to arrive at the correct answer to the question. Based on the debate information, generate a response to the instructions.
+You are {name}. You are debating to arrive at the correct answer to the question. Based on the debate information, generate a response to the instructions.
 
 ## Question
 {topic}
@@ -356,7 +353,7 @@ You are debating to arrive at the correct answer to the question. Based on the d
 - Only one member can speak per turn. The next speaker is selected from the highest urgency level.
 - Each turn, one chunk at a time from the speaker's generated statement is revealed to all members. The current speaker may have more statement prepared and not yet revealed.
 
-## The initial answers provided by all members before the debate began
+## Initial answers before debate begins (subject to change)
 {initial_answer}
 
 ## Debate history
@@ -393,11 +390,11 @@ You can take the following actions:
 # Output format
 Return strictly a JSON object only.
 {{ 
- "thought": "Your brief internal thought regarding the debate information.",
+ "thought": "Your brief internal thought regarding the debate information in one or two sentences.",
  "urgency": 0-9, 
  "action": "listen or interrupt", 
  "purpose": "agree|disagree|summarize|confirmation|proposal|conclusion|think", 
- "answer": "Your most supported answer.one of 'A', 'B', 'C', or 'D'",
+ "answer": "one of 'A', 'B', 'C', or 'D'",
   }}
 """.strip()
 
@@ -405,7 +402,7 @@ Return strictly a JSON object only.
 # Plan-action prompt - NO INTERRUPTION (Adversary)
 # -------------------------------------------------- #
 ADVERSARY_PLAN_ACTION_NO_INTERRUPT_PROMPT_TEMPLATE = """
-You are debating to arrive at the correct answer to the question. Based on the debate information, generate a response to the instructions.
+You are {name}. You are debating to arrive at the correct answer to the question. Based on the debate information, generate a response to the instructions.
 
 # Question
 {topic}
@@ -417,7 +414,7 @@ You are debating to arrive at the correct answer to the question. Based on the d
 - Only one member can speak per turn. The next speaker is selected from the highest urgency level.
 
 
-## The initial answers provided by all members before the debate began
+## Initial answers before debate begins (subject to change)
 {initial_answer}
 
 ## Debate history
@@ -443,7 +440,7 @@ You can take the following actions:
 3. Refer to the provided information and your thought, decide your next turn action as {name}.
 4. Select the purpose of the action you have chosen.
 5. Based on the debate information, output the currently most supported answer to the question.
-Be careful not to stray into debate that are not necessary for answering the question.
+- Be careful not to stray into debate that are not necessary for answering the question.
 
 # Output format
 Return strictly a JSON object only.
@@ -452,12 +449,12 @@ Return strictly a JSON object only.
  "urgency": 0-9,  
  "action": "listen or speak", 
  "purpose": "agree|disagree|summarize|confirmation|proposal|conclusion|think", 
- "answer": "Your most supported answer.one of 'A', 'B', 'C', or 'D'",
+ "answer": "one of 'A', 'B', 'C', or 'D'",
   }}
 """.strip()
 
 ADVERSARY_SILENCE_PLAN_PROMPT_TEMPLATE = """
-You are debating to arrive at the correct answer to the question. Based on the debate information, generate a response to the instructions.
+You are {name}. You are debating to arrive at the correct answer to the question. Based on the debate information, generate a response to the instructions.
 
 # Question
 {topic}
@@ -469,7 +466,7 @@ You are debating to arrive at the correct answer to the question. Based on the d
 - Only one member can speak per turn. The next speaker is selected from the highest urgency level.
 - Each turn, one chunk at a time from the speaker's generated statement is revealed to all members. The current speaker may have more statement prepared and not yet revealed.
 
-## The initial answers provided by all members before the debate began
+## Initial answers before debate begins (subject to change)
 {initial_answer}
 
 ## Debate history
@@ -496,7 +493,7 @@ You can take the following actions:
   - Please bear in mind that prolonged silence hinders progress in debate.
 4. Select the purpose of the action you have chosen.
 5. Based on the debate information, output the currently most supported answer to the question.
-Be careful not to stray into debate that are not necessary for answering the question.
+- Be careful not to stray into debate that are not necessary for answering the question.
 
 # Output format
 Return strictly a JSON object only.
@@ -505,12 +502,12 @@ Return strictly a JSON object only.
  "urgency": 0-9,  
  "action": "listen or speak", 
  "purpose": "agree|disagree|summarize|confirmation|proposal|conclusion|think", 
- "answer": "Your most supported answer.one of 'A', 'B', 'C', or 'D'",
+ "answer": "one of 'A', 'B', 'C', or 'D'",
   }}
 """.strip()
 
 ADVERSARY_GENERATE_UTTERANCE_PROMPT_TEMPLATE = """
-You are debating to arrive at the correct answer to the question. Based on the debate information, generate a response to the instructions.
+You are {name}. You are debating to arrive at the correct answer to the question. Based on the debate information, generate a response to the instructions.
 
 # Question
 {topic}
@@ -521,7 +518,7 @@ You are debating to arrive at the correct answer to the question. Based on the d
 - Remaining public tokens available to all agents: {tokens_left} / {token_budget}.
 - Only one member can speak per turn. The next speaker is selected from the highest urgency level.
 
-## The initial answers provided by all members before the debate began
+## Initial answers before debate begins (subject to change)
 {initial_answer}
 
 ## Debate history
@@ -533,7 +530,6 @@ Turn{turn}({event_type})
 {latest_thoughts}
 
 ## State
-- You are {name}.
 - This is turn {turn}. Use the remaining public tokens efficiently to reach the correct answer.
 
 ## Your purpose
@@ -547,11 +543,11 @@ Turn{turn}({event_type})
   - If you disagree with previous speakers, explicitly point out their logical flaws.
   - If you agree, make constructive statements toward reaching an agreement.
   - Keep your utterance concise and impactful so as not to waste tokens_left.
-- Provide your response in the following output format.
+- Provide your response as {name} (turn {turn}) in the following output format.
 
 # Output format
 Return strictly a JSON object only.
 {{
-"utterance": "Your public statement in the debate. Be concise and persuasive within {tokens_left} tokens. "
+"utterance": "string" // Within {tokens_left} tokens. 
 }}
 """.strip()
