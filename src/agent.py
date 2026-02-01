@@ -33,11 +33,12 @@ class Agent:
         )
 
     # ──────────────────── 最終回答 ──────────────────── #
-    def generate_final_answer(self, topic: str, debate_history: str) -> dict[str, str]:
+    def generate_final_answer(self, topic: str, debate_history: str, latest_thoughts: str) -> dict[str, str]:
         return self.llm_handler.generate_final_answer(
             topic,
             self.initial_answer_str,
             debate_history,
+            latest_thoughts,
             agent_name=self.name,
             persona=self.persona,
         )

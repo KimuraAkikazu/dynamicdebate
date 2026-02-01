@@ -23,6 +23,7 @@ class DiscussionManager:
         self.agents = agents
         self.topic: str = config["discussion"]["topic"]
         self.max_turns: int = config["discussion"]["max_turns"]
+        self._thought_window: int = int(config.get("discussion", {}).get("thought_window", 5))
 
         # ---------- ログ用ディレクトリ ----------
         if log_dir is None:
@@ -99,13 +100,14 @@ class DiscussionManager:
                 silence=True,
                 peer_names=peers,
                 # ★ 自分の最新 thought のみを渡す
-                latest_thoughts=self._get_latest_thought_for(ag.name),
+                latest_thoughts=self.__format_recent_thoughts(ag.name, current_turn=0),
             )
             # 初期planを保存
             self.last_plan_by_agent[ag.name] = self.current_actions[ag.name]
             th0 = self.current_actions[ag.name].get("thought")
             if isinstance(th0, str) and th0.strip():
                 self.latest_thought_by_agent[ag.name] = th0.strip()
+                self.__trim_thoughts(ag)  # ★ K件上限で保持
 
         # 初期ログ行
         init_record: Dict[str, Any] = {
@@ -178,13 +180,14 @@ class DiscussionManager:
                 silence=(event_type == "silence"),
                 peer_names=peers,
                 # ★ 自分の最新 thought のみを渡す
-                latest_thoughts=self._get_latest_thought_for(ag.name),
+                latest_thoughts=self.__format_recent_thoughts(ag.name, current_turn=turn),
             )
             # 直近planを更新
             self.last_plan_by_agent[ag.name] = self.current_actions[ag.name]
             th0 = self.current_actions[ag.name].get("thought")
             if isinstance(th0, str) and th0.strip():
                 self.latest_thought_by_agent[ag.name] = th0.strip()
+                self.__trim_thoughts(ag)  # ★ K件上限で保持
 
         # ---------- ログ ----------
         record: Dict[str, Any] = {
@@ -246,17 +249,14 @@ class DiscussionManager:
     # ──────────────────── consensus スナップショット ──────────────────── #
     def _build_consensus_state_snapshot(self) -> Dict[str, Dict[str, Any]]:
         """
-        各エージェントについて、直近 plan の consensus を抜き出して
+        各エージェントについて、直近 plan の合意状態を抜き出して
         { agent_name: { "agreed": bool, "answer": "A|B|C|D" or None } } を返す
+        - 新形式（トップレベル agreed/answer）と旧形式（consensus 辞書）を両対応
         """
         snap: Dict[str, Dict[str, Any]] = {}
         for ag in self.agents:
-            plan = self.last_plan_by_agent.get(ag.name, {})
-            c = plan.get("consensus", {}) if isinstance(plan, dict) else {}
-            agreed = bool(c.get("agreed", False)) if isinstance(c, dict) else False
-            answer = c.get("answer") if isinstance(c, dict) else None
-            if isinstance(answer, str):
-                answer = answer.strip().upper() or None
+            plan = self.last_plan_by_agent.get(ag.name, {}) or {}
+            agreed, answer = self._extract_agreement(plan)
             snap[ag.name] = {"agreed": agreed, "answer": answer}
         return snap
 
@@ -269,6 +269,31 @@ class DiscussionManager:
             "answer_if_all": answers[0] if all_agreed else None,
             "streak": self.consensus_streak,
         }
+
+    # ★ 新規: plan から合意状態を抽出（新旧両方のスキーマに対応）
+    def _extract_agreement(self, plan: Dict[str, Any]) -> Tuple[bool, Optional[str]]:
+        """
+        Returns: (agreed: bool, answer: Optional[str in {'A','B','C','D'}])
+        - 新形式: plan['agreed'], plan['answer']
+        - 旧形式: plan['consensus'] = {'agreed': ..., 'answer': ...}
+        - answer が A-D 以外（例: 'none' や無効値）の場合は None を返す
+        """
+        agreed = False
+        answer_val: Any = None
+
+        if isinstance(plan, dict) and "consensus" in plan and isinstance(plan.get("consensus"), dict):
+            c = plan["consensus"]
+            agreed = bool(c.get("agreed", False))
+            answer_val = c.get("answer")
+        else:
+            agreed = bool(plan.get("agreed", False)) if isinstance(plan, dict) else False
+            answer_val = plan.get("answer") if isinstance(plan, dict) else None
+
+        if isinstance(answer_val, str):
+            ans = answer_val.strip().upper()
+            if ans in {"A", "B", "C", "D"}:
+                return agreed, ans
+        return agreed, None
 
     # ──────────────────── 早期終了判定 ──────────────────── #
     def _early_stop_check(self, turn: int) -> bool:
@@ -284,15 +309,11 @@ class DiscussionManager:
             self.consensus_streak = 0
             return False
 
-        # consensus.agreed==True かつ answer が全員一致
+        # 合意状態と回答の一致を確認（新旧スキーマ両対応）
         answers: List[str] = []
         for p in plans:
-            c = p.get("consensus", {})
-            if not isinstance(c, dict) or not c.get("agreed", False):
-                self.consensus_streak = 0
-                return False
-            ans = (c.get("answer") or "").strip().upper()
-            if ans not in {"A", "B", "C", "D"}:
+            agreed, ans = self._extract_agreement(p if isinstance(p, dict) else {})
+            if not agreed or ans is None:
                 self.consensus_streak = 0
                 return False
             answers.append(ans)
@@ -333,7 +354,7 @@ class DiscussionManager:
         else:
             # 通常フロー
             for ag in self.agents:
-                ans = ag.generate_final_answer(self.topic, debate_history)
+                ans = ag.generate_final_answer(self.topic, debate_history, latest_thoughts=self.__format_recent_thoughts(ag.name, current_turn=self.max_turns+1))
                 self.final_answers[ag.name] = ans
                 print(f"[FINAL] {ag.name} -> {ans}")
             self.log_data.append(
@@ -379,7 +400,7 @@ class DiscussionManager:
             self.max_turns,
             peer_names=peers,
             # ★ 自分の最新 thought のみを渡す
-            latest_thoughts=self._get_latest_thought_for(self.speaker.name),
+            latest_thoughts=self.__format_recent_thoughts(self.speaker.name, current_turn=current_turn+1),
         )
         mode = "interrupt" if self._interrupt_once else "speak"
         print(f"[Manager] 👉 Next speaker: {self.speaker.name} ({mode})")
@@ -390,3 +411,46 @@ class DiscussionManager:
         self.log_path.parent.mkdir(parents=True, exist_ok=True)
         with open(self.log_path, "w", encoding="utf-8") as f:
             json.dump(self.log_data, f, ensure_ascii=False, indent=2)
+
+    def __trim_thoughts(self, ag: Agent) -> None:
+        """
+        Agent.thought_history (List[Tuple[int,str]]) を thought_window 件に収める。
+        超過時は古いものから捨てる。
+        """
+        try:
+            k = self._thought_window
+            if k <= 0:
+                return
+            if len(ag.thought_history) > k:
+                ag.thought_history[:] = ag.thought_history[-k:]
+        except Exception:
+            pass
+
+    def __format_recent_thoughts(self, agent_name: str, current_turn: int) -> str:
+        """
+        “Your thoughts up until the previous turn:” に差し込む本文を生成。
+        - 直近 thought を古い順に最大K件
+        - 現在ターン以前（< current_turn）のものだけ
+        - 形式:
+            Turn X
+            Thought: ...
+            Turn Y
+            Thought: ...
+        """
+        try:
+            ag = next(a for a in self.agents if a.name == agent_name)
+        except StopIteration:
+            return "(none)"
+
+        hist = [(t, txt) for (t, txt) in ag.thought_history
+                if isinstance(t, int) and t < current_turn and isinstance(txt, str) and txt.strip()]
+        if not hist:
+            return "(none)"
+
+        # 直近K件を古い順
+        k = max(1, self._thought_window)
+        subset = hist[-k:]
+        lines = []
+        for t, txt in subset:
+            lines.append(f"Turn {t}\nThought:{txt.strip()}")
+        return "\n".join(lines)
