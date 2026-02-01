@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import json
 import re
+import threading
 from pathlib import Path
 from typing import Any, Dict, Optional, Sequence, Tuple, List
 from json_repair import repair_json
@@ -62,6 +63,8 @@ class LLMHandler:
         self._initialized = True
 
         self.logger = prompt_logger
+        self.model_lock = threading.Lock()
+        self.state_cache: Dict[str, bytes] = {}
         self.model_path = (
             Path(__file__).resolve().parents[1] / "models" / config["filename"]
         )
@@ -77,6 +80,8 @@ class LLMHandler:
             max_tokens=config.get("max_tokens", 512),
             chat_format="llama-3",
         )
+        self.default_temperature = float(config.get("temperature", 0.0))
+        self.default_max_tokens = int(config.get("max_tokens", 512))
         print("[LLMHandler] ✅ モデル読み込み完了")
 
     # ──────────────────── 内部ユーティリティ ──────────────────── #
@@ -540,3 +545,133 @@ class LLMHandler:
                 token_stats=usage,
             )
         return utterance_text, raw_text, usage
+
+    # ======================  Streaming utilities ====================== #
+    def save_state(self, context_id: str) -> None:
+        """
+        Save the current KV-cache of the model with a key.
+        """
+        with self.model_lock:
+            self.state_cache[context_id] = self.model.save_state()
+
+    def load_state(self, context_id: str) -> None:
+        """
+        Restore KV-cache for the given key if present.
+        """
+        state = self.state_cache.get(context_id)
+        if state is None:
+            return
+        with self.model_lock:
+            self.model.load_state(state)
+
+    def clear_state(self, context_id: str) -> None:
+        self.state_cache.pop(context_id, None)
+
+    def stream_until_sentence(
+        self,
+        messages: Sequence[Dict[str, str]],
+        *,
+        stop_event: Optional["threading.Event"] = None,
+        context_id: Optional[str] = None,
+        sbd: Any = None,
+        temperature: Optional[float] = None,
+        max_tokens: Optional[int] = None,
+    ) -> Tuple[Optional[str], str, Optional[bytes]]:
+        """
+        Stream tokens until a sentence boundary is detected.
+
+        Returns: (sentence or None, raw_generated_text, saved_state_bytes or None)
+        If stop_event is set mid-stream, the partial buffer is returned without saving state.
+        """
+        if sbd is None:
+            try:
+                from .sbd import StreamSBD
+                sbd = StreamSBD()
+            except Exception:
+                sbd = None
+
+        collected: list[str] = []
+        saved_state: Optional[bytes] = None
+        temp = self.default_temperature if temperature is None else temperature
+        mx = self.default_max_tokens if max_tokens is None else max_tokens
+
+        with self.model_lock:
+            if context_id and context_id in self.state_cache:
+                self.model.load_state(self.state_cache[context_id])
+
+            stream = self.model.create_chat_completion(
+                messages=list(messages),
+                max_tokens=mx,
+                temperature=temp,
+                stream=True,
+            )
+            for chunk in stream:
+                if stop_event is not None and stop_event.is_set():
+                    break
+                choice = chunk["choices"][0]
+                delta = choice.get("delta") or {}
+                token_piece = delta.get("content") or choice.get("text") or ""
+                if not token_piece:
+                    continue
+                collected.append(token_piece)
+
+                if sbd:
+                    sentence = sbd.push(token_piece)
+                    if sentence:
+                        saved_state = self.model.save_state()
+                        return sentence, "".join(collected), saved_state
+            # stream ended without boundary
+            if sbd:
+                tail = sbd.flush()
+                if tail:
+                    collected.append(tail)
+            try:
+                saved_state = self.model.save_state()
+            except Exception:
+                saved_state = None
+        return None, "".join(collected), saved_state
+
+    def judge_interrupt(
+        self,
+        prompt: str,
+        *,
+        agent_name: str,
+        persona: str,
+        max_tokens: int = 64,
+    ) -> Tuple[Dict[str, Any], Dict[str, int]]:
+        """
+        Lightweight binary interruption classifier.
+        """
+        messages = [{"role": "user", "content": prompt}]
+        resp = self.model.create_chat_completion(
+            messages=messages,
+            response_format={
+                "type": "json_object",
+                "schema": {
+                    "type": "object",
+                    "properties": {
+                        "interrupt": {"type": "boolean"},
+                        "reason": {"type": "string"},
+                    },
+                    "required": ["interrupt"],
+                    "additionalProperties": False,
+                },
+            },
+            max_tokens=max_tokens,
+            temperature=0.0,
+        )
+        content = resp["choices"][0]["message"]["content"]
+        usage = resp.get("usage", {})
+        parsed = content if isinstance(content, dict) else self._safe_load_json(str(content))
+        parsed.setdefault("interrupt", False)
+        parsed.setdefault("reason", "")
+
+        if self.logger:
+            self.logger.log_generated(
+                agent_name=agent_name,
+                turn=-1,
+                full_text=str(content),
+                phase="interrupt_judge",
+                token_stats=usage,
+            )
+        return parsed, usage

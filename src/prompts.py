@@ -1,5 +1,60 @@
 """Prompt templates (English version, per-agent name aware)."""
 
+
+
+
+
+# =======================================================================
+#                      Streaming debate prompts
+# =======================================================================
+
+STREAM_SYSTEM_PROMPT = """
+You are {name}.
+Do NOT output JSON or code fences. Output plain text only.
+Persona hint: {persona}
+""".strip()
+
+STREAM_UTTERANCE_PROMPT_TEMPLATE = """
+# Question
+{topic}
+
+# Conversation so far (most recent first)
+{turn_log}
+
+# initial answers
+{initial_answer}
+
+# Instructions
+- Continue the debate by saying 1-2 short sentences.
+- Be decisive and informative, but keep each sentence under 40 words if possible.
+- Avoid markdown, bullet points, or JSON.
+
+Begin speaking now as {name} (turn {turn}).
+""".strip()
+
+INTERRUPT_DECISION_PROMPT = """
+You are {listener}, listening to {speaker}'s latest sentence in a debate.
+
+# Question
+{topic}
+
+# Latest sentence
+\"{sentence}\"
+
+# Recent log
+{turn_log}
+
+# Task
+Decide if you should immediately interrupt to correct, clarify, or steer the discussion.
+Respond ONLY with JSON:
+{{
+  "interrupt": true or false,
+  "reason": "very short reason (<=20 words)"
+}}
+""".strip()
+
+
+
 # -------------------------------------------------- #
 # Initial answer prompt (before the debate)
 # -------------------------------------------------- #
@@ -46,7 +101,7 @@ You have conducted a debate to arrive at the correct answer to question. Based o
 # Output format
 Return strictly a JSON object only.
 {{  
-    "reason": "Explain the reason for choosing that answer. (within 100 words).",
+    "reason": "Explain the reason for choosing that answer. (within 300 words).",
     "answer": "Your final answer to the question.one of 'A', 'B', 'C', or 'D'"
 }}
 """.strip()

@@ -9,6 +9,7 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
 from .agent import Agent
+from .sbd import StreamSBD
 
 HISTORY_WINDOW = 30  # エージェントに渡す履歴行数
 
@@ -53,6 +54,8 @@ class DiscussionManager:
         self.public_token_budget: int = int(config.get("discussion", {}).get("public_token_budget", 8000))
         self.public_tokens_used: int = 0
         self.log_data: List[Dict[str, Any]] = []
+        self.async_log_data: List[Dict[str, Any]] = []
+        self.async_log_path: Path = (log_dir / "async_discussion_log.jsonl")
         
         # トークン使用量管理
         self.total_token_usage: Dict[str, int] = {
@@ -87,6 +90,114 @@ class DiscussionManager:
         print("=== Debate End ===")
         self._collect_final_answers()
         return self.final_answers
+
+    # ───────────────────────── 非同期ストリーミング版 ───────────────────────── #
+    def run_debate_async(self, *, max_sentences: Optional[int] = None) -> Dict[str, Any]:
+        """
+        Event-driven streaming debate with barge-in and rollback.
+
+        - Speaker generates sentence-by-sentence via llama.cpp streaming.
+        - After each sentence, all listeners judge interrupt (YES/NO).
+        - If interrupted: pending sentence is discarded (rollback) and floor switches.
+        - If not: sentence is committed to log and speaker may continue.
+        """
+        print(f"=== Async Debate Start: {self.topic} ===")
+        self._initialize_discussion()
+
+        # reset async-only state
+        self.async_log_data = []
+        self.async_log_path = self.log_dir / "async_discussion_log.jsonl"
+        max_sent = max_sentences or self.max_turns
+
+        sbds = {ag.name: StreamSBD() for ag in self.agents}
+        context_ids = {ag.name: f"async:{ag.name}" for ag in self.agents}
+        current_speaker = self.agents[0] if self.agents else None
+        turn = 1
+
+        while (
+            current_speaker
+            and turn <= max_sent
+            and self.tokens_left() > 0
+        ):
+            turn_log = self._build_turn_log_text(HISTORY_WINDOW)
+            sentence, raw_text, state_after = current_speaker.stream_sentence(
+                turn_log=turn_log,
+                topic=self.topic,
+                turn=turn,
+                sbd=sbds[current_speaker.name],
+                context_id=context_ids[current_speaker.name],
+            )
+
+            if sentence is None:
+                print(f"[Async] {current_speaker.name}: (no further output)")
+                break
+
+            # Listener interruption check
+            interrupt_by = None
+            interrupt_reason = ""
+            for listener in self.agents:
+                if listener is current_speaker:
+                    continue
+                decision, usage = listener.judge_interrupt(
+                    sentence=sentence,
+                    speaker_name=current_speaker.name,
+                    turn_log=turn_log,
+                    topic=self.topic,
+                )
+                self._accumulate_token_usage(usage)
+                if decision.get("interrupt"):
+                    interrupt_by = listener
+                    interrupt_reason = decision.get("reason", "")
+                    break
+
+            if interrupt_by:
+                # rollback: do not commit generated sentence/state
+                event = {
+                    "turn": turn,
+                    "event_type": "interrupt",
+                    "speaker": current_speaker.name,
+                    "content": sentence,
+                    "status": "interrupted",
+                    "interrupt_by": interrupt_by.name,
+                    "reason": interrupt_reason,
+                    "public_tokens_used": self.public_tokens_used,
+                    "public_tokens_left": self.tokens_left(),
+                }
+                self.async_log_data.append(event)
+                print(f"[Async] 🚫 Interrupt by {interrupt_by.name}: {interrupt_reason}")
+                # reset partial state/buffer
+                sbds[current_speaker.name] = StreamSBD()
+                turn += 1
+                current_speaker = interrupt_by
+                continue
+
+            # commit sentence
+            self.history.append((current_speaker.name, sentence))
+            self.public_tokens_used += self._count_tokens(sentence)
+            if state_after is not None:
+                self.llm_handler.state_cache[context_ids[current_speaker.name]] = state_after
+
+            event = {
+                "turn": turn,
+                "event_type": "utterance",
+                "speaker": current_speaker.name,
+                "content": sentence,
+                "status": "completed",
+                "public_tokens_used": self.public_tokens_used,
+                "public_tokens_left": self.tokens_left(),
+            }
+            self.async_log_data.append(event)
+            print(f"[Async] {current_speaker.name}: {sentence}")
+
+            if self.tokens_left() <= 0:
+                print("[Async] Token budget exhausted")
+                break
+
+            turn += 1
+
+        self._write_async_log()
+        print("=== Async Debate End ===")
+        return {"log_path": str(self.async_log_path)}
 
     # ───────────────────────── 内部ユーティリティ ───────────────────────── #
     def _accumulate_token_usage(self, usage: Optional[Dict[str, int]]) -> None:
@@ -415,6 +526,15 @@ class DiscussionManager:
         return False
 
     # ──────────────────── Turn-log 生成 ──────────────────── #
+    def _build_turn_log_text(self, limit: int) -> str:
+        """
+        Build a simple text log from the committed history (used in async mode).
+        """
+        lines: List[str] = []
+        for speaker, content in self.history[-limit:]:
+            lines.append(f"{speaker}: {content}")
+        return "\n".join(lines)
+
     def _build_turn_log(self, agent_name: str, limit: int) -> str:
         lines: List[str] = []
         for e in self.log_data[-limit:]:
@@ -605,6 +725,12 @@ class DiscussionManager:
         self.log_path.parent.mkdir(parents=True, exist_ok=True)
         with open(self.log_path, "w", encoding="utf-8") as f:
             json.dump(self.log_data, f, ensure_ascii=False, indent=2)
+
+    def _write_async_log(self) -> None:
+        self.async_log_path.parent.mkdir(parents=True, exist_ok=True)
+        with open(self.async_log_path, "w", encoding="utf-8") as f:
+            for rec in self.async_log_data:
+                f.write(json.dumps(rec, ensure_ascii=False) + "\n")
 
     # ──────────────────── thought の整形/保持 ──────────────────── #
     def __trim_thoughts(self, ag: Agent) -> None:

@@ -4,10 +4,12 @@ from __future__ import annotations
 
 import re
 from collections import deque
-from typing import Any, Deque, List, Optional, Sequence, Tuple, Dict
+import threading
+from typing import Any, Deque, Dict, List, Optional, Sequence, Tuple
 
 from . import prompts
 from .llm_handler import LLMHandler
+from .sbd import StreamSBD
 
 
 class Agent:
@@ -270,3 +272,63 @@ class Agent:
     
     def get_next_chunk(self) -> Optional[str]:
         return self.utterance_queue.popleft() if self.utterance_queue else None
+
+    # ───────────────────── Streaming (async debate) ─────────────────── #
+    def stream_sentence(
+        self,
+        *,
+        turn_log: str,
+        topic: str,
+        turn: int,
+        sbd: StreamSBD,
+        context_id: str,
+        stop_event: Optional["threading.Event"] = None,
+    ) -> Tuple[Optional[str], str, Optional[bytes]]:
+        """
+        Generate a single sentence via streaming.
+        Returns (sentence or None, raw_text, saved_state)
+        """
+        system_prompt = prompts.STREAM_SYSTEM_PROMPT.format(
+            name=self.name,
+            persona=self.persona,
+        )
+        user_prompt = prompts.STREAM_UTTERANCE_PROMPT_TEMPLATE.format(
+            event_type="interrupt" if self.role == "adversary" else "speak",
+            topic=topic,
+            turn_log=turn_log,
+            name=self.name,
+            turn=turn,
+            initial_answer=self.all_initial_answers_str,
+            latest_thoughts="",
+        )
+        messages = [
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": user_prompt},
+        ]
+        return self.llm_handler.stream_until_sentence(
+            messages,
+            stop_event=stop_event,
+            context_id=context_id,
+            sbd=sbd,
+        )
+
+    def judge_interrupt(
+        self,
+        *,
+        sentence: str,
+        speaker_name: str,
+        turn_log: str,
+        topic: str,
+    ) -> Tuple[Dict[str, Any], Dict[str, int]]:
+        prompt = prompts.INTERRUPT_DECISION_PROMPT.format(
+            listener=self.name,
+            speaker=speaker_name,
+            sentence=sentence,
+            turn_log=turn_log,
+            topic=topic,
+        )
+        return self.llm_handler.judge_interrupt(
+            prompt,
+            agent_name=self.name,
+            persona=self.persona,
+        )
