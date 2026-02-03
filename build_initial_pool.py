@@ -14,7 +14,7 @@ from typing import Any, Dict, List, Tuple, Optional
 JSON_SCHEMA = {
     "type": "object",
     "properties": {
-        "reason": {"type": "string"},
+        "reason": {"type": "string", "maxLength": 2000},
         "answer": {"type": "string", "enum": ["A", "B", "C", "D"]},
     },
     "required": ["reason", "answer"],
@@ -45,7 +45,10 @@ def format_messages(question: str, choices: list[str]) -> list[dict[str, str]]:
 
     user = {
         "role": "user",
-        "content": f"""# Question
+        "content": f"""
+Follow the instructions strictly and return only valid JSON that matches the provided schema.
+
+# Question
 {topic}
 
 # Instructions
@@ -56,7 +59,7 @@ def format_messages(question: str, choices: list[str]) -> list[dict[str, str]]:
 # Output format
 Return strictly a JSON object only.
 {{
-    "reason": "Detailed reasoning for your choice (within 300 words).",
+    "reason": "Detailed reasoning for your choice (within 150 words).",
     "answer": "one of 'A', 'B', 'C', or 'D'"
 }}"""
     }
@@ -182,7 +185,7 @@ def main():
     # Model
     parser.add_argument("--model_path", type=str, required=True, help="Path to gguf model")
     parser.add_argument("--n_gpu_layers", type=int, default=-1)
-    parser.add_argument("--n_ctx", type=int, default=2000)
+    parser.add_argument("--n_ctx", type=int, default=1000)
 
     args = parser.parse_args()
 
