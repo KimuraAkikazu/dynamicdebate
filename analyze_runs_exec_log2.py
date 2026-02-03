@@ -32,8 +32,12 @@
 - interrupt_purpose_distribution_<run>.png : interrupt 選択時 purpose の分布
 - interrupt_turn_distribution_<run>.png    : interrupt を選択した turn の分布
 - interrupt_thought_wordcloud_<run>.png    : interrupt 選択時 thought のワードクラウド（wordcloud 未導入なら棒グラフを併産）
-- interrupt_token_distribution_<run>.png   : interrupt 発生トークン分布
-- silence_token_distribution_<run>.png     : silence 発生トークン分布
+- interrupt_turn_distribution_<run>.png    : interrupt 発生ターン分布
+ - interrupt_turn_distribution_<run>.png    : interrupt 発生ターン分布
+ - interrupt_token_effects_<run>.png       : interrupt 効果（改善/改悪 成否）のトークン分布
+ - interrupt_turn_effects_<run>.png        : interrupt 効果（改善/改悪 成否）のターン分布
+ - silence_token_distribution_<run>.png     : silence 発生トークン分布
+ - interrupt_turn_success_rate_<run>.png   : interrupt 改善/改悪の成功確率（ターン別）
 - analysis_results.json         : 集計結果（JSON）
 
 使い方
@@ -370,9 +374,13 @@ def load_exec_logs(run_dir: str) -> Dict[str, Dict[str, Any]]:
         interrupt_actions: List[Dict[str, Any]] = []
         # silence の発生トークン
         silence_tokens: List[int] = []
+        # 行動別の urgency 合計・件数
+        urgency_sum: Dict[str, float] = defaultdict(float)
+        urgency_cnt: Dict[str, int] = defaultdict(int)
 
         # forward-fill 用の回答状態
         current_answers: Dict[str, str] = dict(initial_answers)
+        last_tokens_used: Optional[int] = None
 
         snapshots: List[Dict[str, Any]] = []
 
@@ -406,12 +414,23 @@ def load_exec_logs(run_dir: str) -> Dict[str, Dict[str, Any]]:
             # token 使用量（累積）
             tokens_budget = rec.get("public_token_budget")
             tokens_left = rec.get("public_tokens_left")
-            tokens_used = tokens_budget - tokens_left if (isinstance(tokens_budget, int) and isinstance(tokens_left, int)) else None
-
+            tokens_used: Optional[int] = None
+            if isinstance(tokens_budget, int) and isinstance(tokens_left, int):
+                tokens_used = tokens_budget - tokens_left
+            # fallback: 直接 public_tokens_used がある場合
             if tokens_used is None:
-                if turn == 0:
-                    tokens_used = 0
-            if not isinstance(tokens_used, int):
+                tu = rec.get("public_tokens_used")
+                if isinstance(tu, int):
+                    tokens_used = tu
+            # turn==0 は 0 扱い
+            if tokens_used is None and turn == 0:
+                tokens_used = 0
+            # さらに fallback: 直前の値を引き継ぎ
+            if tokens_used is None:
+                tokens_used = last_tokens_used
+            if isinstance(tokens_used, int):
+                last_tokens_used = tokens_used
+            else:
                 tokens_used = None
 
             # interrupt 推定を先に行う（ctx 判定にも使う）
@@ -456,6 +475,7 @@ def load_exec_logs(run_dir: str) -> Dict[str, Dict[str, Any]]:
 
                         act = _norm_action(ap.get("action"))
                         ans = ap.get("answer")
+                        urg = ap.get("urgency")
                         if (not freeze_answers) and isinstance(ans, str):
                             current_answers[agent] = ans.strip()
                         if act and action_dist is not None:
@@ -464,17 +484,9 @@ def load_exec_logs(run_dir: str) -> Dict[str, Dict[str, Any]]:
                                 action_dist_by_ctx[ctx_for_action][agent][act] += 1
                             if act in ("speak", "interrupt"):
                                 planned_speaker_actions[agent] = act
-                            if act == "interrupt":
-                                interrupt_actions.append(
-                                    {
-                                        "agent": agent,
-                                        "turn": turn,
-                                        "turn_sort": turn_sort,
-                                        "tokens": tokens_used,
-                                        "purpose": ap.get("purpose"),
-                                        "thought": ap.get("thought"),
-                                    }
-                                )
+                        if act and isinstance(urg, (int, float)):
+                            urgency_sum[act] += float(urg)
+                            urgency_cnt[act] += 1
 
             # speaker 実現分布（roundrobinでは集計しない）
             if not is_roundrobin and realized_speaker_dist is not None:
@@ -500,6 +512,29 @@ def load_exec_logs(run_dir: str) -> Dict[str, Dict[str, Any]]:
                     "speaker": speaker,
                     "event_type_fixed": event_type_fixed,
                 })
+            # interrupt 発生ターンで記録（推定結果ベース）
+            if (not is_roundrobin) and event_type_fixed == "interrupt":
+                purpose = None
+                thought = None
+                if isinstance(rec.get("agent_actions"), list):
+                    for aa in rec.get("agent_actions"):
+                        if not isinstance(aa, dict):
+                            continue
+                        if aa.get("agent_name") == speaker and _norm_action(aa.get("action_plan", {}).get("action")) == "interrupt":
+                            ap = aa.get("action_plan", {})
+                            purpose = ap.get("purpose")
+                            thought = ap.get("thought")
+                            break
+                interrupt_actions.append(
+                    {
+                        "agent": speaker,
+                        "turn": turn,
+                        "turn_sort": turn_sort,
+                        "tokens": tokens_used,
+                        "purpose": purpose,
+                        "thought": thought,
+                    }
+                )
             # silence 発生トークン記録
             if event_type_fixed == "silence" and isinstance(tokens_used, int):
                 silence_tokens.append(tokens_used)
@@ -563,6 +598,8 @@ def load_exec_logs(run_dir: str) -> Dict[str, Dict[str, Any]]:
             "final_answers": final_answers_map,
             "interrupt_actions": interrupt_actions,
             "silence_tokens": silence_tokens,
+            "urgency_sum_by_action": dict(urgency_sum),
+            "urgency_cnt_by_action": dict(urgency_cnt),
         }
 
     return result
@@ -839,9 +876,33 @@ def analyze_interrupt_effects(
     """
     details: List[Dict[str, Any]] = []
     total = 0
-    evaluated = improved = worsened = unchanged = 0
-    unchanged_correct_to_correct = 0
-    unchanged_wrong_to_wrong = 0
+    # 主要判定は「割り込んだエージェントの発話が終わる直前のターン」の途中解答で行う
+    primary_horizon = "segment_end"
+    horizons = [primary_horizon, "final"]
+    per_horizon = {
+        h: {
+            "evaluated": 0,
+            "improved": 0,
+            "worsened": 0,
+            "unchanged": 0,
+            "unchanged_correct_to_correct": 0,
+            "unchanged_wrong_to_wrong": 0,
+        }
+        for h in horizons
+    }
+    token_improve: Counter = Counter()
+    token_improve_fail: Counter = Counter()
+    token_worsen: Counter = Counter()
+    token_worsen_fail: Counter = Counter()
+    turn_improve: Counter = Counter()
+    turn_improve_fail: Counter = Counter()
+    turn_worsen: Counter = Counter()
+    turn_worsen_fail: Counter = Counter()
+    # 割り込み回数（話者が正答/誤答別）とそのトークン分布
+    interrupt_count_correct = 0
+    interrupt_count_wrong = 0
+    interrupt_token_correct: Counter = Counter()
+    interrupt_token_wrong: Counter = Counter()
 
     for pid in pids:
         pdata = problems.get(pid)
@@ -897,49 +958,111 @@ def analyze_interrupt_effects(
             def is_correct(ans: Any) -> Optional[bool]:
                 return ans == gold if isinstance(ans, str) else None
 
-            improved_flag = False
-            worsened_flag = False
-            for ag in agent_names:
-                before = answers_before.get(ag)
-                after = answers_after.get(ag)
-                cb = is_correct(before)
-                ca = is_correct(after)
-                if cb is None or ca is None:
-                    continue
-                if (not cb) and ca:
-                    improved_flag = True
-                if cb and (not ca):
-                    worsened_flag = True
+            speaker_before_correct = is_correct(answers_before.get(speaker)) is True
+            # 話者の正誤でカウント
+            tok_for_count = snap.get("tokens")
+            if isinstance(tok_for_count, int):
+                if speaker_before_correct:
+                    interrupt_count_correct += 1
+                    interrupt_token_correct[tok_for_count] += 1
+                else:
+                    interrupt_count_wrong += 1
+                    interrupt_token_wrong[tok_for_count] += 1
 
-            evaluated += 1
-            if improved_flag:
-                improved += 1
-                outcome = "improved"
-            elif worsened_flag:
-                worsened += 1
-                outcome = "worsened"
-            else:
-                # unchanged: 分類する
-                unchanged += 1
-                # unchanged の内訳判定（任意のエージェントで正解->正解 or 不正解->不正解が維持されたかを見る）
-                # 判定は、全員の before/after を調べ、少なくとも1人が正解を維持していれば c2c、
-                # 全員が不正解を維持なら w2w、それ以外は0
-                c2c = False
-                w2w = True  # 一人でも正解していれば False にする
+            def evaluate_outcome(after_map: Dict[str, Any]) -> Tuple[str, bool, bool]:
+                improved_flag = False
+                worsened_flag = False
                 for ag in agent_names:
-                    before = answers_before.get(ag)
-                    after = answers_after.get(ag)
-                    cb = is_correct(before)
-                    ca = is_correct(after)
-                    if cb is True and ca is True:
-                        c2c = True
-                    if ca is True:
-                        w2w = False
-                if c2c:
-                    unchanged_correct_to_correct += 1
-                elif w2w:
-                    unchanged_wrong_to_wrong += 1
-                outcome = "unchanged"
+                    if ag == speaker:
+                        continue
+                    cb = is_correct(answers_before.get(ag))
+                    ca = is_correct(after_map.get(ag))
+                    if cb is None or ca is None:
+                        continue
+                    if speaker_before_correct and (cb is False) and (ca is True):
+                        improved_flag = True
+                    if (speaker_before_correct is False) and (cb is True) and (ca is False):
+                        worsened_flag = True
+                if improved_flag:
+                    return "improved", True, False
+                if worsened_flag:
+                    return "worsened", False, True
+                return "unchanged", False, False
+
+            # horizon 別 after を取得
+            def get_after_for_h(h):
+                if h == "segment_end":
+                    return answers_after
+                if h == "final":
+                    return snaps[-1].get("answers", {}) if snaps else {}
+                return answers_after  # fallback
+
+            outcome_main = "unchanged"
+            main_imp = False
+            main_wors = False
+            outcome_final = "unchanged"
+            final_imp = False
+            final_wors = False
+            for h in horizons:
+                after_map = get_after_for_h(h)
+                if not isinstance(after_map, dict):
+                    after_map = {}
+                outcome, imp, wors = evaluate_outcome(after_map)
+                ph = per_horizon[h]
+                ph["evaluated"] += 1
+                if outcome == "improved":
+                    ph["improved"] += 1
+                elif outcome == "worsened":
+                    ph["worsened"] += 1
+                else:
+                    ph["unchanged"] += 1
+                    c2c = False
+                    w2w = True
+                    for ag in agent_names:
+                        cb = is_correct(answers_before.get(ag))
+                        ca = is_correct(after_map.get(ag))
+                        if cb is True and ca is True:
+                            c2c = True
+                        if ca is True:
+                            w2w = False
+                    if c2c:
+                        ph["unchanged_correct_to_correct"] += 1
+                    elif w2w:
+                        ph["unchanged_wrong_to_wrong"] += 1
+                if h == primary_horizon:
+                    outcome_main = outcome
+                    main_imp, main_wors = imp, wors
+                if h == "final":
+                    outcome_final = outcome
+                    final_imp, final_wors = imp, wors
+
+            tok_val = snap.get("tokens")
+            if isinstance(tok_val, int):
+                if speaker_before_correct:
+                    if main_imp:
+                        token_improve[tok_val] += 1
+                    else:
+                        token_improve_fail[tok_val] += 1
+                else:
+                    if main_wors:
+                        token_worsen[tok_val] += 1
+                    else:
+                        token_worsen_fail[tok_val] += 1
+
+            turn_val = snap.get("turn_sort")
+            if not isinstance(turn_val, int):
+                turn_val = snap.get("turn")
+            if isinstance(turn_val, int):
+                if speaker_before_correct:
+                    if main_imp:
+                        turn_improve[turn_val] += 1
+                    else:
+                        turn_improve_fail[turn_val] += 1
+                else:
+                    if main_wors:
+                        turn_worsen[turn_val] += 1
+                    else:
+                        turn_worsen_fail[turn_val] += 1
 
             if len(details) < 50:
                 details.append({
@@ -949,18 +1072,76 @@ def analyze_interrupt_effects(
                     "before": {ag: answers_before.get(ag) for ag in agent_names},
                     "after": {ag: answers_after.get(ag) for ag in agent_names},
                     "end_index": end_idx,
-                    "outcome": outcome,
+                    "outcome_primary": outcome_main,
+                    "outcome_final": outcome_final,
                 })
+
+    # 互換用に final の集計をトップにも置く
+    primary_stats = per_horizon[primary_horizon]
+    final_stats = per_horizon["final"]
+    improve_total = sum(token_improve.values())
+    improve_fail_total = sum(token_improve_fail.values())
+    worsen_total = sum(token_worsen.values())
+    worsen_fail_total = sum(token_worsen_fail.values())
+    def safe_rate(num, den):
+        return (num / den) if den else None
+
+    def build_rate_by_key(success_cnt: Counter, fail_cnt: Counter) -> Dict[int, Optional[float]]:
+        keys = sorted(set(success_cnt.keys()) | set(fail_cnt.keys()))
+        return {k: safe_rate(success_cnt.get(k, 0), success_cnt.get(k, 0) + fail_cnt.get(k, 0)) for k in keys}
+
+    def bin_counter(cnt: Counter, bin_size: int = 50) -> Dict[int, int]:
+        b = Counter()
+        for tok, v in cnt.items():
+            if not isinstance(tok, int):
+                continue
+            b[(tok // bin_size) * bin_size] += v
+        return dict(b)
 
     return {
         "total_interrupts": total,
-        "evaluated": evaluated,
-        "improved": improved,
-        "worsened": worsened,
-        "unchanged": unchanged,
-        "unchanged_correct_to_correct": unchanged_correct_to_correct,
-        "unchanged_wrong_to_wrong": unchanged_wrong_to_wrong,
+        "evaluated": primary_stats["evaluated"],
+        "improved": primary_stats["improved"],
+        "worsened": primary_stats["worsened"],
+        "unchanged": primary_stats["unchanged"],
+        "unchanged_correct_to_correct": primary_stats["unchanged_correct_to_correct"],
+        "unchanged_wrong_to_wrong": primary_stats["unchanged_wrong_to_wrong"],
+        "per_horizon": per_horizon,
         "details": details,
+        "token_effects": {
+            "improve": dict(token_improve),
+            "improve_fail": dict(token_improve_fail),
+            "worsen": dict(token_worsen),
+            "worsen_fail": dict(token_worsen_fail),
+        },
+        "turn_effects": {
+            "improve": dict(turn_improve),
+            "improve_fail": dict(turn_improve_fail),
+            "worsen": dict(turn_worsen),
+            "worsen_fail": dict(turn_worsen_fail),
+            "success_rate": {
+                "improve": build_rate_by_key(turn_improve, turn_improve_fail),
+                "worsen": build_rate_by_key(turn_worsen, turn_worsen_fail),
+            },
+        },
+        "success_rate": {
+            "improve": safe_rate(improve_total, improve_total + improve_fail_total),
+            "worsen": safe_rate(worsen_total, worsen_total + worsen_fail_total),
+        },
+        "interrupt_counts": {
+            "speaker_correct": interrupt_count_correct,
+            "speaker_incorrect": interrupt_count_wrong,
+            "total": interrupt_count_correct + interrupt_count_wrong,
+        },
+        "interrupt_tokens": {
+            "speaker_correct": dict(interrupt_token_correct),
+            "speaker_incorrect": dict(interrupt_token_wrong),
+            "bin50": {
+                "speaker_correct": bin_counter(interrupt_token_correct, 50),
+                "speaker_incorrect": bin_counter(interrupt_token_wrong, 50),
+            },
+        },
+        "primary_horizon": primary_horizon,
     }
 
 
@@ -1034,18 +1215,21 @@ def analyze_speak_effects(
             def is_correct(ans: Any) -> Optional[bool]:
                 return ans == gold if isinstance(ans, str) else None
 
+            speaker_before_correct = is_correct(answers_before.get(speaker)) is True
             improved_flag = False
             worsened_flag = False
             for ag in agent_names:
+                if ag == speaker:
+                    continue
                 before = answers_before.get(ag)
                 after = answers_after.get(ag)
                 cb = is_correct(before)
                 ca = is_correct(after)
                 if cb is None or ca is None:
                     continue
-                if (not cb) and ca:
+                if speaker_before_correct and (cb is False) and (ca is True):
                     improved_flag = True
-                if cb and (not ca):
+                if (speaker_before_correct is False) and (cb is True) and (ca is False):
                     worsened_flag = True
 
             evaluated += 1
@@ -1114,6 +1298,36 @@ def aggregate_action_distribution(
                 if isinstance(m, dict):
                     dist[agent].update(m)
     return dist
+
+
+def aggregate_action_urgency_mean(
+    pids: List[str],
+    problems: Dict[str, Dict[str, Any]],
+) -> Tuple[Dict[str, float], Dict[str, int]]:
+    """
+    行動ごとの urgency 平均を集計する。
+    return: ({action: mean}, {action: count})
+    """
+    sum_all: Dict[str, float] = defaultdict(float)
+    cnt_all: Dict[str, int] = defaultdict(int)
+    for pid in pids:
+        pdata = problems.get(pid)
+        if not pdata:
+            continue
+        us = pdata.get("urgency_sum_by_action", {})
+        uc = pdata.get("urgency_cnt_by_action", {})
+        if not isinstance(us, dict) or not isinstance(uc, dict):
+            continue
+        for act, s in us.items():
+            if act not in uc:
+                continue
+            c = uc[act]
+            if not isinstance(s, (int, float)) or not isinstance(c, int):
+                continue
+            sum_all[act] += float(s)
+            cnt_all[act] += c
+    mean = {a: (sum_all[a] / cnt_all[a]) for a in sum_all if cnt_all[a]}
+    return mean, dict(cnt_all)
 
 
 def aggregate_action_distribution_by_context(
@@ -1190,6 +1404,32 @@ def aggregate_silence_stats(
     return {"total": total, "token_dist": token_dist}
 
 
+def aggregate_interrupt_pairs(
+    pids: List[str],
+    problems: Dict[str, Dict[str, Any]],
+) -> Dict[str, Dict[str, int]]:
+    """
+    誰が誰を割り込んだかの頻度。
+    event_type_fixed == interrupt のスナップショットで、直前のスピーカーを割り込まれた対象とみなす。
+    return: {interrupter: {target: count}}
+    """
+    pair_counter: Dict[str, Counter] = defaultdict(Counter)
+    for pid in pids:
+        pdata = problems.get(pid)
+        if not pdata:
+            continue
+        snaps = pdata.get("snapshots", [])
+        prev_speaker = None
+        for snap in snaps:
+            speaker = snap.get("speaker")
+            ev = snap.get("event_type_fixed")
+            if ev == "interrupt" and isinstance(speaker, str) and isinstance(prev_speaker, str) and speaker != prev_speaker:
+                pair_counter[speaker][prev_speaker] += 1
+            if isinstance(speaker, str):
+                prev_speaker = speaker
+    return {k: dict(v) for k, v in pair_counter.items()}
+
+
 def _tokenize_for_word_stats(text: str) -> List[str]:
     """簡易トークナイズ（英数字/アンダーバーを単語として扱い、3文字未満は除外）。"""
     if not isinstance(text, str):
@@ -1209,7 +1449,7 @@ def aggregate_interrupt_actions(
       "purpose_dist": Counter,
       "turn_dist": Counter,
       "agent_dist": Counter,
-      "token_dist": Counter,
+      "turn_dist": Counter,
       "top_words": Counter,   # thought から抽出した単語頻度
       "sample_thoughts": List[str],
     }
@@ -1217,7 +1457,6 @@ def aggregate_interrupt_actions(
     purpose_dist: Counter = Counter()
     turn_dist: Counter = Counter()
     agent_dist: Counter = Counter()
-    token_dist: Counter = Counter()
     word_counter: Counter = Counter()
     sample_thoughts: List[str] = []
 
@@ -1240,9 +1479,11 @@ def aggregate_interrupt_actions(
             agent = act.get("agent")
             if isinstance(agent, str):
                 agent_dist[agent] += 1
-            tok = act.get("tokens")
-            if isinstance(tok, int):
-                token_dist[tok] += 1
+            tval = act.get("turn_sort")
+            if not isinstance(tval, int):
+                tval = act.get("turn")
+            if isinstance(tval, int):
+                turn_dist[tval] += 1
             thought = act.get("thought")
             if isinstance(thought, str) and thought.strip():
                 if len(sample_thoughts) < 50:
@@ -1256,7 +1497,6 @@ def aggregate_interrupt_actions(
         "purpose_dist": purpose_dist,
         "turn_dist": turn_dist,
         "agent_dist": agent_dist,
-        "token_dist": token_dist,
         "top_words": word_counter,
         "sample_thoughts": sample_thoughts,
     }
@@ -1449,7 +1689,7 @@ def plot_token_counter(
     counter: Counter,
     title: str,
     out_path: str,
-    bin_size: int = 25,
+    bin_size: int = 50,
 ) -> None:
     """
     token (int) Counter をヒストグラム風にまとめて棒グラフ化。
@@ -1474,6 +1714,263 @@ def plot_token_counter(
     plt.xlabel(f"Public tokens used (bins of {bin_size})")
     plt.title(title)
     plt.grid(True, axis="y", alpha=0.3, linestyle=":")
+    plt.tight_layout()
+    plt.savefig(out_path, dpi=300)
+    plt.close()
+    print(f"[INFO] Saved plot: {out_path}")
+
+
+def plot_interrupt_token_effects(
+    improve: Counter,
+    improve_fail: Counter,
+    worsen: Counter,
+    worsen_fail: Counter,
+    title: str,
+    out_path: str,
+    bin_size: int = 25,
+) -> None:
+    """割り込み効果をトークン（public_tokens_used）単位で可視化。"""
+    if not (improve or improve_fail or worsen or worsen_fail):
+        print(f"[INFO] No interrupt token effects to plot: {out_path}")
+        return
+
+    def bin_counter(cnt: Counter) -> Counter:
+        b = Counter()
+        for tok, v in cnt.items():
+            if not isinstance(tok, int):
+                continue
+            b[(tok // bin_size) * bin_size] += v
+        return b
+
+    b_improve = bin_counter(improve)
+    b_improve_fail = bin_counter(improve_fail)
+    b_worsen = bin_counter(worsen)
+    b_worsen_fail = bin_counter(worsen_fail)
+
+    bins = sorted(set(b_improve.keys()) | set(b_improve_fail.keys()) | set(b_worsen.keys()) | set(b_worsen_fail.keys()))
+    if not bins:
+        print(f"[INFO] No interrupt token effects to plot: {out_path}")
+        return
+
+    x = list(range(len(bins)))
+    labels = [f"{b}-{b+bin_size-1}" for b in bins]
+
+    def vals(bcnt): return [bcnt.get(b, 0) for b in bins]
+
+    plt.figure(figsize=(10, 5))
+    plt.plot(x, vals(b_improve), label="improve (speaker correct)", marker="o", color="#2b8cbe")
+    plt.plot(x, vals(b_improve_fail), label="improve_fail", marker="o", linestyle="--", color="#a6cee3")
+    plt.plot(x, vals(b_worsen), label="worsen (speaker incorrect)", marker="o", color="#e31a1c")
+    plt.plot(x, vals(b_worsen_fail), label="worsen_fail", marker="o", linestyle="--", color="#fb9a99")
+
+    plt.xticks(x, labels, rotation=45, ha="right")
+    plt.ylabel("Count")
+    plt.xlabel(f"Public tokens used (bins of {bin_size})")
+    plt.title(title)
+    plt.grid(True, linestyle=":", alpha=0.4)
+    plt.legend()
+    plt.tight_layout()
+    plt.savefig(out_path, dpi=300)
+    plt.close()
+    print(f"[INFO] Saved plot: {out_path}")
+
+
+def _collect_keys_from_counters(*counters: Counter) -> List[int]:
+    keys: set = set()
+    for c in counters:
+        keys |= {k for k in c.keys() if isinstance(k, int)}
+    return sorted(keys)
+
+
+def plot_interrupt_turn_effects(
+    improve: Counter,
+    improve_fail: Counter,
+    worsen: Counter,
+    worsen_fail: Counter,
+    title: str,
+    out_path: str,
+) -> None:
+    """割り込み効果をターン番号ごとに可視化（カウント）。"""
+    keys = _collect_keys_from_counters(improve, improve_fail, worsen, worsen_fail)
+    if not keys:
+        print(f"[INFO] No interrupt turn effects to plot: {out_path}")
+        return
+
+    x = list(range(len(keys)))
+    labels = [str(k) for k in keys]
+
+    def vals(cnt: Counter) -> List[int]:
+        return [cnt.get(k, 0) for k in keys]
+
+    plt.figure(figsize=(10, 5))
+    plt.plot(x, vals(improve), label="improve (speaker correct)", marker="o", color="#2b8cbe")
+    plt.plot(x, vals(improve_fail), label="improve_fail", marker="o", linestyle="--", color="#a6cee3")
+    plt.plot(x, vals(worsen), label="worsen (speaker incorrect)", marker="o", color="#e31a1c")
+    plt.plot(x, vals(worsen_fail), label="worsen_fail", marker="o", linestyle="--", color="#fb9a99")
+
+    plt.xticks(x, labels, rotation=45, ha="right")
+    plt.ylabel("Count")
+    plt.xlabel("Turn index")
+    plt.title(title)
+    plt.grid(True, linestyle=":", alpha=0.4)
+    plt.legend()
+    plt.tight_layout()
+    plt.savefig(out_path, dpi=300)
+    plt.close()
+    print(f"[INFO] Saved plot: {out_path}")
+
+
+def plot_interrupt_turn_success_rate(
+    improve: Counter,
+    improve_fail: Counter,
+    worsen: Counter,
+    worsen_fail: Counter,
+    title: str,
+    out_path: str,
+) -> None:
+    """割り込み改善/改悪の成功確率をターンごとにプロット。"""
+    keys = _collect_keys_from_counters(improve, improve_fail, worsen, worsen_fail)
+    if not keys:
+        print(f"[INFO] No interrupt turn success data to plot: {out_path}")
+        return
+
+    x = list(range(len(keys)))
+    labels = [str(k) for k in keys]
+
+    def rate(num, den):
+        return (num / den) if den else None
+
+    improve_rates = []
+    worsen_rates = []
+    for k in keys:
+        imp = improve.get(k, 0)
+        imp_d = imp + improve_fail.get(k, 0)
+        wor = worsen.get(k, 0)
+        wor_d = wor + worsen_fail.get(k, 0)
+        improve_rates.append(rate(imp, imp_d))
+        worsen_rates.append(rate(wor, wor_d))
+
+    plt.figure(figsize=(10, 5))
+    plt.plot(x, improve_rates, marker="o", color="#2b8cbe", label="improve success rate")
+    plt.plot(x, worsen_rates, marker="o", color="#e31a1c", label="worsen success rate")
+    plt.xticks(x, labels, rotation=45, ha="right")
+    plt.ylim(-0.05, 1.05)
+    plt.ylabel("Success rate")
+    plt.xlabel("Turn index")
+    plt.title(title)
+    plt.grid(True, linestyle=":", alpha=0.4)
+    plt.legend()
+    plt.tight_layout()
+    plt.savefig(out_path, dpi=300)
+    plt.close()
+    print(f"[INFO] Saved plot: {out_path}")
+
+
+def plot_interrupt_token_counts_by_correctness(
+    correct_counter: Counter,
+    wrong_counter: Counter,
+    title: str,
+    out_path: str,
+    bin_size: int = 50,
+) -> None:
+    """割り込みスピーカーが正答/誤答だった場合のトークン分布（bin）を比較表示。"""
+    if not (correct_counter or wrong_counter):
+        print(f"[INFO] No interrupt token data to plot: {out_path}")
+        return
+
+    def bin_counts(cnt: Counter) -> Counter:
+        b = Counter()
+        for tok, v in cnt.items():
+            if not isinstance(tok, int):
+                continue
+            b[(tok // bin_size) * bin_size] += v
+        return b
+
+    b_correct = bin_counts(correct_counter)
+    b_wrong = bin_counts(wrong_counter)
+    bins = sorted(set(b_correct.keys()) | set(b_wrong.keys()))
+    if not bins:
+        print(f"[INFO] No interrupt token data to plot: {out_path}")
+        return
+
+    labels = [f"{b}-{b+bin_size-1}" for b in bins]
+    x = list(range(len(bins)))
+    width = 0.4
+
+    plt.figure(figsize=(10, 5))
+    plt.bar([xi - width / 2 for xi in x], [b_correct.get(b, 0) for b in bins], width=width, label="speaker correct", color="#4daf4a")
+    plt.bar([xi + width / 2 for xi in x], [b_wrong.get(b, 0) for b in bins], width=width, label="speaker incorrect", color="#e41a1c")
+
+    plt.xticks(x, labels, rotation=45, ha="right")
+    plt.ylabel("Interrupt count")
+    plt.xlabel(f"Public tokens used (bins of {bin_size})")
+    plt.title(title)
+    plt.grid(True, axis="y", linestyle=":", alpha=0.4)
+    plt.legend()
+    plt.tight_layout()
+    plt.savefig(out_path, dpi=300)
+    plt.close()
+    print(f"[INFO] Saved plot: {out_path}")
+
+
+def plot_interrupt_token_success_rate(
+    improve: Counter,
+    improve_fail: Counter,
+    worsen: Counter,
+    worsen_fail: Counter,
+    title: str,
+    out_path: str,
+    bin_size: int = 50,
+) -> None:
+    """割り込み改善/改悪の成功確率をトークンbinごとにプロット。"""
+    if not (improve or improve_fail or worsen or worsen_fail):
+        print(f"[INFO] No interrupt token success data to plot: {out_path}")
+        return
+
+    def bin_counts(cnt: Counter) -> Counter:
+        b = Counter()
+        for tok, v in cnt.items():
+            if not isinstance(tok, int):
+                continue
+            b[(tok // bin_size) * bin_size] += v
+        return b
+
+    b_improve = bin_counts(improve)
+    b_improve_fail = bin_counts(improve_fail)
+    b_worsen = bin_counts(worsen)
+    b_worsen_fail = bin_counts(worsen_fail)
+
+    bins = sorted(set(b_improve.keys()) | set(b_improve_fail.keys()) | set(b_worsen.keys()) | set(b_worsen_fail.keys()))
+    if not bins:
+        print(f"[INFO] No interrupt token success data to plot: {out_path}")
+        return
+
+    def rate(num, den):
+        return (num / den) if den else None
+
+    improve_rates = []
+    worsen_rates = []
+    labels = []
+    for b in bins:
+        imp = b_improve.get(b, 0)
+        imp_d = imp + b_improve_fail.get(b, 0)
+        wor = b_worsen.get(b, 0)
+        wor_d = wor + b_worsen_fail.get(b, 0)
+        improve_rates.append(rate(imp, imp_d))
+        worsen_rates.append(rate(wor, wor_d))
+        labels.append(f"{b}-{b+bin_size-1}")
+
+    x = list(range(len(bins)))
+    plt.figure(figsize=(10, 5))
+    plt.plot(x, improve_rates, marker="o", color="#2b8cbe", label="improve success rate")
+    plt.plot(x, worsen_rates, marker="o", color="#e31a1c", label="worsen success rate")
+    plt.xticks(x, labels, rotation=45, ha="right")
+    plt.ylim(-0.05, 1.05)
+    plt.ylabel("Success rate")
+    plt.xlabel(f"Public tokens used (bins of {bin_size})")
+    plt.title(title)
+    plt.grid(True, linestyle=":", alpha=0.4)
+    plt.legend()
     plt.tight_layout()
     plt.savefig(out_path, dpi=300)
     plt.close()
@@ -1603,10 +2100,23 @@ def main():
         action_dist_all = aggregate_action_distribution(scenarios, probs) if not run_is_roundrobin else {}
         action_dist_ctx_all = aggregate_action_distribution_by_context(scenarios, probs) if not run_is_roundrobin else {}
         realized_speaker_dist_all = aggregate_realized_speaker_distribution(scenarios, probs) if not run_is_roundrobin else {}
+        action_urgency_mean_all, action_urgency_cnt_all = aggregate_action_urgency_mean(scenarios, probs) if not run_is_roundrobin else ({}, {})
         interrupt_effects_all = analyze_interrupt_effects(scenarios, probs, acc) if not run_is_roundrobin else {}
         speak_effects_all = analyze_speak_effects(scenarios, probs, acc)
         interrupt_action_stats_all = aggregate_interrupt_actions(scenarios, probs) if not run_is_roundrobin else {}
         silence_stats_all = aggregate_silence_stats(scenarios, probs) if not run_is_roundrobin else {"total": 0, "token_dist": Counter()}
+        interrupt_pairs_all = aggregate_interrupt_pairs(scenarios, probs) if not run_is_roundrobin else {}
+        # 誤答側（worsen）と正答側（improve）の成功率比較
+        succ_all = interrupt_effects_all.get("success_rate", {}) if interrupt_effects_all else {}
+        compare_success_all = {
+            "improve_success_rate": succ_all.get("improve"),
+            "worsen_success_rate": succ_all.get("worsen"),
+            "delta_improve_minus_worsen": (
+                succ_all.get("improve") - succ_all.get("worsen")
+                if isinstance(succ_all.get("improve"), (int, float)) and isinstance(succ_all.get("worsen"), (int, float))
+                else None
+            ),
+        }
 
         top_words_ctr_all = interrupt_action_stats_all.get("top_words") if interrupt_action_stats_all else Counter()
         if not isinstance(top_words_ctr_all, Counter):
@@ -1630,21 +2140,24 @@ def main():
                     for ctx in action_dist_ctx_all
                 },
                 "realized_speaker_distribution_all": {a: dict(realized_speaker_dist_all[a]) for a in realized_speaker_dist_all},
-                "interrupt_effects_all": interrupt_effects_all,
-                "interrupt_action_stats_all": {
-                    "total": interrupt_action_stats_all.get("total"),
-                    "purpose_dist": dict(interrupt_action_stats_all.get("purpose_dist", {})),
-                    "turn_dist": dict(interrupt_action_stats_all.get("turn_dist", {})),
-                    "agent_dist": dict(interrupt_action_stats_all.get("agent_dist", {})),
-                    "token_dist": dict(interrupt_action_stats_all.get("token_dist", {})),
-                    "top_words": dict(top_words_ctr_all.most_common(50)),
-                    "sample_thoughts": interrupt_action_stats_all.get("sample_thoughts", []) if interrupt_action_stats_all else [],
-                } if interrupt_action_stats_all else {},
+                "action_urgency_mean_all": action_urgency_mean_all,
+                "action_urgency_count_all": action_urgency_cnt_all,
+            "interrupt_effects_all": interrupt_effects_all,
+            "interrupt_success_compare_all": compare_success_all,
+            "interrupt_action_stats_all": {
+                "total": interrupt_action_stats_all.get("total"),
+                "purpose_dist": dict(interrupt_action_stats_all.get("purpose_dist", {})),
+                "turn_dist": dict(interrupt_action_stats_all.get("turn_dist", {})),
+                "agent_dist": dict(interrupt_action_stats_all.get("agent_dist", {})),
+                "top_words": dict(top_words_ctr_all.most_common(50)),
+                "sample_thoughts": interrupt_action_stats_all.get("sample_thoughts", []) if interrupt_action_stats_all else [],
+            } if interrupt_action_stats_all else {},
                 "speak_effects_all": speak_effects_all,
                 "silence_stats_all": {
                     "total": silence_stats_all.get("total", 0),
                     "token_dist": dict(silence_stats_all.get("token_dist", {})),
                 },
+                "interrupt_pairs_all": interrupt_pairs_all,
                 "is_roundrobin": run_is_roundrobin,
             },
         })
@@ -1694,10 +2207,22 @@ def main():
         action_dist_common = aggregate_action_distribution(common_pids, r_data["probs"]) if not run_is_roundrobin else {}
         action_dist_ctx_common = aggregate_action_distribution_by_context(common_pids, r_data["probs"]) if not run_is_roundrobin else {}
         realized_speaker_dist_common = aggregate_realized_speaker_distribution(common_pids, r_data["probs"]) if not run_is_roundrobin else {}
+        action_urgency_mean_common, action_urgency_cnt_common = aggregate_action_urgency_mean(common_pids, r_data["probs"]) if not run_is_roundrobin else ({}, {})
         interrupt_effects_common = analyze_interrupt_effects(common_pids, r_data["probs"], r_data["acc"]) if not run_is_roundrobin else {}
         speak_effects_common = analyze_speak_effects(common_pids, r_data["probs"], r_data["acc"])
         interrupt_action_stats_common = aggregate_interrupt_actions(common_pids, r_data["probs"]) if not run_is_roundrobin else {}
         silence_stats_common = aggregate_silence_stats(common_pids, r_data["probs"]) if not run_is_roundrobin else {"total": 0, "token_dist": Counter()}
+        interrupt_pairs_common = aggregate_interrupt_pairs(common_pids, r_data["probs"]) if not run_is_roundrobin else {}
+        succ_common = interrupt_effects_common.get("success_rate", {}) if interrupt_effects_common else {}
+        compare_success_common = {
+            "improve_success_rate": succ_common.get("improve"),
+            "worsen_success_rate": succ_common.get("worsen"),
+            "delta_improve_minus_worsen": (
+                succ_common.get("improve") - succ_common.get("worsen")
+                if isinstance(succ_common.get("improve"), (int, float)) and isinstance(succ_common.get("worsen"), (int, float))
+                else None
+            ),
+        }
         top_words_ctr_common = interrupt_action_stats_common.get("top_words") if interrupt_action_stats_common else Counter()
         if not isinstance(top_words_ctr_common, Counter):
             top_words_ctr_common = Counter(top_words_ctr_common or {})
@@ -1713,13 +2238,15 @@ def main():
             for ctx in action_dist_ctx_common
         }
         r_data["metrics"]["realized_speaker_distribution_common"] = {a: dict(realized_speaker_dist_common[a]) for a in realized_speaker_dist_common}
+        r_data["metrics"]["action_urgency_mean_common"] = action_urgency_mean_common
+        r_data["metrics"]["action_urgency_count_common"] = action_urgency_cnt_common
         r_data["metrics"]["interrupt_effects_common"] = interrupt_effects_common
+        r_data["metrics"]["interrupt_success_compare_common"] = compare_success_common
         r_data["metrics"]["interrupt_action_stats_common"] = {
             "total": interrupt_action_stats_common.get("total"),
             "purpose_dist": dict(interrupt_action_stats_common.get("purpose_dist", {})),
             "turn_dist": dict(interrupt_action_stats_common.get("turn_dist", {})),
             "agent_dist": dict(interrupt_action_stats_common.get("agent_dist", {})),
-            "token_dist": dict(interrupt_action_stats_common.get("token_dist", {})),
             "top_words": dict(top_words_ctr_common.most_common(50)),
             "sample_thoughts": interrupt_action_stats_common.get("sample_thoughts", []) if interrupt_action_stats_common else [],
         } if interrupt_action_stats_common else {}
@@ -1728,6 +2255,7 @@ def main():
             "total": silence_stats_common.get("total", 0),
             "token_dist": dict(silence_stats_common.get("token_dist", {})),
         }
+        r_data["metrics"]["interrupt_pairs_common"] = interrupt_pairs_common
 
         print(f"[RESULT] {tag} | Final Acc (All Target): {r_data['metrics']['final_accuracy_all_target']:.3f}")
         print(f"[RESULT] {tag} | Final Acc (Common Only): {acc_final_common:.3f}")
@@ -1759,6 +2287,7 @@ def main():
 
         if not r_data["metrics"]["is_roundrobin"]:
             # run ごとの行動分布（action_plan.action）
+            interrupt_effects_all = r_data["metrics"]["interrupt_effects_all"]
             out_ad = os.path.join(pair_out_dir, f"action_distribution_{tag}.png")
             plot_action_distribution_grouped(
                 aggregate_action_distribution(r_data["scenarios"], r_data["probs"]),
@@ -1786,9 +2315,12 @@ def main():
             interrupt_stats_plot = aggregate_interrupt_actions(r_data["scenarios"], r_data["probs"])
             if interrupt_stats_plot:
                 purpose_ctr = interrupt_stats_plot.get("purpose_dist", Counter())
-                token_ctr = interrupt_stats_plot.get("token_dist", Counter())
+                turn_ctr = interrupt_stats_plot.get("turn_dist", Counter())
                 thoughts = interrupt_stats_plot.get("sample_thoughts", [])
                 top_words_ctr = interrupt_stats_plot.get("top_words", Counter())
+                token_effects = interrupt_effects_all.get("token_effects", {})
+                turn_effects = interrupt_effects_all.get("turn_effects", {})
+                interrupt_tokens = interrupt_effects_all.get("interrupt_tokens", {})
 
                 out_purpose = os.path.join(pair_out_dir, f"interrupt_purpose_distribution_{tag}.png")
                 plot_counter_bar_simple(
@@ -1798,11 +2330,13 @@ def main():
                     out_path=out_purpose,
                 )
 
-                out_tok = os.path.join(pair_out_dir, f"interrupt_token_distribution_{tag}.png")
-                plot_token_counter(
-                    token_ctr,
-                    title=f"{tag} - Interrupt token distribution (all target)",
-                    out_path=out_tok,
+                out_turn = os.path.join(pair_out_dir, f"interrupt_turn_distribution_{tag}.png")
+                plot_counter_bar_simple(
+                    turn_ctr,
+                    title=f"{tag} - Interrupt turn distribution (all target)",
+                    xlabel="turn",
+                    out_path=out_turn,
+                    sort_by_key=True,
                 )
 
                 out_wc = os.path.join(pair_out_dir, f"interrupt_thought_wordcloud_{tag}.png")
@@ -1811,6 +2345,56 @@ def main():
                     title=f"{tag} - Interrupt thoughts wordcloud (sampled, all target)",
                     out_path=out_wc,
                     fallback_counter=top_words_ctr,
+                )
+
+                out_tok_eff = os.path.join(pair_out_dir, f"interrupt_token_effects_{tag}.png")
+                plot_interrupt_token_effects(
+                    Counter(token_effects.get("improve", {})),
+                    Counter(token_effects.get("improve_fail", {})),
+                    Counter(token_effects.get("worsen", {})),
+                    Counter(token_effects.get("worsen_fail", {})),
+                    title=f"{tag} - Interrupt token effects (all target)",
+                    out_path=out_tok_eff,
+                )
+
+                out_tok_rate = os.path.join(pair_out_dir, f"interrupt_token_success_rate_{tag}.png")
+                plot_interrupt_token_success_rate(
+                    Counter(token_effects.get("improve", {})),
+                    Counter(token_effects.get("improve_fail", {})),
+                    Counter(token_effects.get("worsen", {})),
+                    Counter(token_effects.get("worsen_fail", {})),
+                    title=f"{tag} - Interrupt success rates by token (all target)",
+                    out_path=out_tok_rate,
+                )
+
+                if interrupt_tokens:
+                    out_tok_count = os.path.join(pair_out_dir, f"interrupt_token_count_correct_vs_wrong_{tag}.png")
+                    plot_interrupt_token_counts_by_correctness(
+                        Counter(interrupt_tokens.get("speaker_correct", {})),
+                        Counter(interrupt_tokens.get("speaker_incorrect", {})),
+                        title=f"{tag} - Interrupt counts by speaker correctness (all target)",
+                        out_path=out_tok_count,
+                        bin_size=50,
+                    )
+
+                out_turn_eff = os.path.join(pair_out_dir, f"interrupt_turn_effects_{tag}.png")
+                plot_interrupt_turn_effects(
+                    Counter(turn_effects.get("improve", {})),
+                    Counter(turn_effects.get("improve_fail", {})),
+                    Counter(turn_effects.get("worsen", {})),
+                    Counter(turn_effects.get("worsen_fail", {})),
+                    title=f"{tag} - Interrupt effects by turn (all target)",
+                    out_path=out_turn_eff,
+                )
+
+                out_turn_rate = os.path.join(pair_out_dir, f"interrupt_turn_success_rate_{tag}.png")
+                plot_interrupt_turn_success_rate(
+                    Counter(turn_effects.get("improve", {})),
+                    Counter(turn_effects.get("improve_fail", {})),
+                    Counter(turn_effects.get("worsen", {})),
+                    Counter(turn_effects.get("worsen_fail", {})),
+                    title=f"{tag} - Interrupt success rates by turn (all target)",
+                    out_path=out_turn_rate,
                 )
 
             # silence 発生トークン分布
@@ -1844,14 +2428,22 @@ def main():
                 "action_distribution_by_ctx_common": r_data["metrics"]["action_distribution_by_ctx_common"],
                 "realized_speaker_distribution_all": r_data["metrics"]["realized_speaker_distribution_all"],
                 "realized_speaker_distribution_common": r_data["metrics"]["realized_speaker_distribution_common"],
+                "action_urgency_mean_all": r_data["metrics"]["action_urgency_mean_all"],
+                "action_urgency_mean_common": r_data["metrics"]["action_urgency_mean_common"],
+                "action_urgency_count_all": r_data["metrics"]["action_urgency_count_all"],
+                "action_urgency_count_common": r_data["metrics"]["action_urgency_count_common"],
                 "interrupt_effects_all": r_data["metrics"]["interrupt_effects_all"],
                 "interrupt_effects_common": r_data["metrics"]["interrupt_effects_common"],
+                "interrupt_success_compare_all": r_data["metrics"]["interrupt_success_compare_all"],
+                "interrupt_success_compare_common": r_data["metrics"]["interrupt_success_compare_common"],
                 "interrupt_action_stats_all": r_data["metrics"].get("interrupt_action_stats_all", {}),
                 "interrupt_action_stats_common": r_data["metrics"].get("interrupt_action_stats_common", {}),
                 "speak_effects_all": r_data["metrics"]["speak_effects_all"],
                 "speak_effects_common": r_data["metrics"]["speak_effects_common"],
                 "silence_stats_all": r_data["metrics"].get("silence_stats_all", {}),
                 "silence_stats_common": r_data["metrics"].get("silence_stats_common", {}),
+                "interrupt_pairs_all": r_data["metrics"].get("interrupt_pairs_all", {}),
+                "interrupt_pairs_common": r_data["metrics"].get("interrupt_pairs_common", {}),
             }
         }
 

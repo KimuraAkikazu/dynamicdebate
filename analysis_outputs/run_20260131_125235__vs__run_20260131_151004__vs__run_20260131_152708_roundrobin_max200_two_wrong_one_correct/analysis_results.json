@@ -1,0 +1,420 @@
+{
+  "scenario": "two_wrong_one_correct",
+  "runs": {
+    "proposed framework": {
+      "dir": "/home/a-kimura/dynamic_debate/logs/run_20260131_125235",
+      "target_scenarios": [],
+      "metrics": {
+        "final_accuracy_all_target": 0.0,
+        "final_accuracy_common": 0.0,
+        "token_majority_accuracy_all": [],
+        "token_majority_accuracy_common": [],
+        "token_majority_tokens_all": [],
+        "token_majority_tokens_common": [],
+        "per_agent_token_accuracy_all": {},
+        "per_agent_token_accuracy_common": {},
+        "per_agent_tokens_all": [],
+        "per_agent_tokens_common": [],
+        "action_distribution_all": {},
+        "action_distribution_common": {},
+        "action_distribution_by_ctx_all": {
+          "talk": {},
+          "silence": {}
+        },
+        "action_distribution_by_ctx_common": {
+          "talk": {},
+          "silence": {}
+        },
+        "realized_speaker_distribution_all": {},
+        "realized_speaker_distribution_common": {},
+        "action_urgency_mean_all": {},
+        "action_urgency_mean_common": {},
+        "action_urgency_count_all": {},
+        "action_urgency_count_common": {},
+        "interrupt_effects_all": {
+          "total_interrupts": 0,
+          "evaluated": 0,
+          "improved": 0,
+          "worsened": 0,
+          "unchanged": 0,
+          "unchanged_correct_to_correct": 0,
+          "unchanged_wrong_to_wrong": 0,
+          "per_horizon": {
+            "segment_end": {
+              "evaluated": 0,
+              "improved": 0,
+              "worsened": 0,
+              "unchanged": 0,
+              "unchanged_correct_to_correct": 0,
+              "unchanged_wrong_to_wrong": 0
+            },
+            "final": {
+              "evaluated": 0,
+              "improved": 0,
+              "worsened": 0,
+              "unchanged": 0,
+              "unchanged_correct_to_correct": 0,
+              "unchanged_wrong_to_wrong": 0
+            }
+          },
+          "details": [],
+          "token_effects": {
+            "improve": {},
+            "improve_fail": {},
+            "worsen": {},
+            "worsen_fail": {}
+          },
+          "turn_effects": {
+            "improve": {},
+            "improve_fail": {},
+            "worsen": {},
+            "worsen_fail": {},
+            "success_rate": {
+              "improve": {},
+              "worsen": {}
+            }
+          },
+          "success_rate": {
+            "improve": null,
+            "worsen": null
+          },
+          "primary_horizon": "segment_end"
+        },
+        "interrupt_effects_common": {
+          "total_interrupts": 0,
+          "evaluated": 0,
+          "improved": 0,
+          "worsened": 0,
+          "unchanged": 0,
+          "unchanged_correct_to_correct": 0,
+          "unchanged_wrong_to_wrong": 0,
+          "per_horizon": {
+            "segment_end": {
+              "evaluated": 0,
+              "improved": 0,
+              "worsened": 0,
+              "unchanged": 0,
+              "unchanged_correct_to_correct": 0,
+              "unchanged_wrong_to_wrong": 0
+            },
+            "final": {
+              "evaluated": 0,
+              "improved": 0,
+              "worsened": 0,
+              "unchanged": 0,
+              "unchanged_correct_to_correct": 0,
+              "unchanged_wrong_to_wrong": 0
+            }
+          },
+          "details": [],
+          "token_effects": {
+            "improve": {},
+            "improve_fail": {},
+            "worsen": {},
+            "worsen_fail": {}
+          },
+          "turn_effects": {
+            "improve": {},
+            "improve_fail": {},
+            "worsen": {},
+            "worsen_fail": {},
+            "success_rate": {
+              "improve": {},
+              "worsen": {}
+            }
+          },
+          "success_rate": {
+            "improve": null,
+            "worsen": null
+          },
+          "primary_horizon": "segment_end"
+        },
+        "interrupt_action_stats_all": {
+          "total": 0,
+          "purpose_dist": {},
+          "turn_dist": {},
+          "agent_dist": {},
+          "top_words": {},
+          "sample_thoughts": []
+        },
+        "interrupt_action_stats_common": {
+          "total": 0,
+          "purpose_dist": {},
+          "turn_dist": {},
+          "agent_dist": {},
+          "top_words": {},
+          "sample_thoughts": []
+        },
+        "speak_effects_all": {
+          "total_speak": 0,
+          "evaluated": 0,
+          "improved": 0,
+          "worsened": 0,
+          "unchanged": 0,
+          "unchanged_correct_to_correct": 0,
+          "unchanged_wrong_to_wrong": 0,
+          "details": []
+        },
+        "speak_effects_common": {
+          "total_speak": 0,
+          "evaluated": 0,
+          "improved": 0,
+          "worsened": 0,
+          "unchanged": 0,
+          "unchanged_correct_to_correct": 0,
+          "unchanged_wrong_to_wrong": 0,
+          "details": []
+        },
+        "silence_stats_all": {
+          "total": 0,
+          "token_dist": {}
+        },
+        "silence_stats_common": {
+          "total": 0,
+          "token_dist": {}
+        },
+        "interrupt_pairs_all": {},
+        "interrupt_pairs_common": {}
+      }
+    },
+    "dynamic order without interruption": {
+      "dir": "/home/a-kimura/dynamic_debate/logs/run_20260131_151004",
+      "target_scenarios": [],
+      "metrics": {
+        "final_accuracy_all_target": 0.0,
+        "final_accuracy_common": 0.0,
+        "token_majority_accuracy_all": [],
+        "token_majority_accuracy_common": [],
+        "token_majority_tokens_all": [],
+        "token_majority_tokens_common": [],
+        "per_agent_token_accuracy_all": {},
+        "per_agent_token_accuracy_common": {},
+        "per_agent_tokens_all": [],
+        "per_agent_tokens_common": [],
+        "action_distribution_all": {},
+        "action_distribution_common": {},
+        "action_distribution_by_ctx_all": {
+          "talk": {},
+          "silence": {}
+        },
+        "action_distribution_by_ctx_common": {
+          "talk": {},
+          "silence": {}
+        },
+        "realized_speaker_distribution_all": {},
+        "realized_speaker_distribution_common": {},
+        "action_urgency_mean_all": {},
+        "action_urgency_mean_common": {},
+        "action_urgency_count_all": {},
+        "action_urgency_count_common": {},
+        "interrupt_effects_all": {
+          "total_interrupts": 0,
+          "evaluated": 0,
+          "improved": 0,
+          "worsened": 0,
+          "unchanged": 0,
+          "unchanged_correct_to_correct": 0,
+          "unchanged_wrong_to_wrong": 0,
+          "per_horizon": {
+            "segment_end": {
+              "evaluated": 0,
+              "improved": 0,
+              "worsened": 0,
+              "unchanged": 0,
+              "unchanged_correct_to_correct": 0,
+              "unchanged_wrong_to_wrong": 0
+            },
+            "final": {
+              "evaluated": 0,
+              "improved": 0,
+              "worsened": 0,
+              "unchanged": 0,
+              "unchanged_correct_to_correct": 0,
+              "unchanged_wrong_to_wrong": 0
+            }
+          },
+          "details": [],
+          "token_effects": {
+            "improve": {},
+            "improve_fail": {},
+            "worsen": {},
+            "worsen_fail": {}
+          },
+          "turn_effects": {
+            "improve": {},
+            "improve_fail": {},
+            "worsen": {},
+            "worsen_fail": {},
+            "success_rate": {
+              "improve": {},
+              "worsen": {}
+            }
+          },
+          "success_rate": {
+            "improve": null,
+            "worsen": null
+          },
+          "primary_horizon": "segment_end"
+        },
+        "interrupt_effects_common": {
+          "total_interrupts": 0,
+          "evaluated": 0,
+          "improved": 0,
+          "worsened": 0,
+          "unchanged": 0,
+          "unchanged_correct_to_correct": 0,
+          "unchanged_wrong_to_wrong": 0,
+          "per_horizon": {
+            "segment_end": {
+              "evaluated": 0,
+              "improved": 0,
+              "worsened": 0,
+              "unchanged": 0,
+              "unchanged_correct_to_correct": 0,
+              "unchanged_wrong_to_wrong": 0
+            },
+            "final": {
+              "evaluated": 0,
+              "improved": 0,
+              "worsened": 0,
+              "unchanged": 0,
+              "unchanged_correct_to_correct": 0,
+              "unchanged_wrong_to_wrong": 0
+            }
+          },
+          "details": [],
+          "token_effects": {
+            "improve": {},
+            "improve_fail": {},
+            "worsen": {},
+            "worsen_fail": {}
+          },
+          "turn_effects": {
+            "improve": {},
+            "improve_fail": {},
+            "worsen": {},
+            "worsen_fail": {},
+            "success_rate": {
+              "improve": {},
+              "worsen": {}
+            }
+          },
+          "success_rate": {
+            "improve": null,
+            "worsen": null
+          },
+          "primary_horizon": "segment_end"
+        },
+        "interrupt_action_stats_all": {
+          "total": 0,
+          "purpose_dist": {},
+          "turn_dist": {},
+          "agent_dist": {},
+          "top_words": {},
+          "sample_thoughts": []
+        },
+        "interrupt_action_stats_common": {
+          "total": 0,
+          "purpose_dist": {},
+          "turn_dist": {},
+          "agent_dist": {},
+          "top_words": {},
+          "sample_thoughts": []
+        },
+        "speak_effects_all": {
+          "total_speak": 0,
+          "evaluated": 0,
+          "improved": 0,
+          "worsened": 0,
+          "unchanged": 0,
+          "unchanged_correct_to_correct": 0,
+          "unchanged_wrong_to_wrong": 0,
+          "details": []
+        },
+        "speak_effects_common": {
+          "total_speak": 0,
+          "evaluated": 0,
+          "improved": 0,
+          "worsened": 0,
+          "unchanged": 0,
+          "unchanged_correct_to_correct": 0,
+          "unchanged_wrong_to_wrong": 0,
+          "details": []
+        },
+        "silence_stats_all": {
+          "total": 0,
+          "token_dist": {}
+        },
+        "silence_stats_common": {
+          "total": 0,
+          "token_dist": {}
+        },
+        "interrupt_pairs_all": {},
+        "interrupt_pairs_common": {}
+      }
+    },
+    "fixed order": {
+      "dir": "/home/a-kimura/dynamic_debate/logs/run_20260131_152708_roundrobin",
+      "target_scenarios": [],
+      "metrics": {
+        "final_accuracy_all_target": 0.0,
+        "final_accuracy_common": 0.0,
+        "token_majority_accuracy_all": [],
+        "token_majority_accuracy_common": [],
+        "token_majority_tokens_all": [],
+        "token_majority_tokens_common": [],
+        "per_agent_token_accuracy_all": {},
+        "per_agent_token_accuracy_common": {},
+        "per_agent_tokens_all": [],
+        "per_agent_tokens_common": [],
+        "action_distribution_all": {},
+        "action_distribution_common": {},
+        "action_distribution_by_ctx_all": {},
+        "action_distribution_by_ctx_common": {},
+        "realized_speaker_distribution_all": {},
+        "realized_speaker_distribution_common": {},
+        "action_urgency_mean_all": {},
+        "action_urgency_mean_common": {},
+        "action_urgency_count_all": {},
+        "action_urgency_count_common": {},
+        "interrupt_effects_all": {},
+        "interrupt_effects_common": {},
+        "interrupt_action_stats_all": {},
+        "interrupt_action_stats_common": {},
+        "speak_effects_all": {
+          "total_speak": 0,
+          "evaluated": 0,
+          "improved": 0,
+          "worsened": 0,
+          "unchanged": 0,
+          "unchanged_correct_to_correct": 0,
+          "unchanged_wrong_to_wrong": 0,
+          "details": []
+        },
+        "speak_effects_common": {
+          "total_speak": 0,
+          "evaluated": 0,
+          "improved": 0,
+          "worsened": 0,
+          "unchanged": 0,
+          "unchanged_correct_to_correct": 0,
+          "unchanged_wrong_to_wrong": 0,
+          "details": []
+        },
+        "silence_stats_all": {
+          "total": 0,
+          "token_dist": {}
+        },
+        "silence_stats_common": {
+          "total": 0,
+          "token_dist": {}
+        },
+        "interrupt_pairs_all": {},
+        "interrupt_pairs_common": {}
+      }
+    }
+  },
+  "common": {
+    "scenarios": []
+  }
+}
