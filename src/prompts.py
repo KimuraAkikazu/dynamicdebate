@@ -391,9 +391,8 @@ You can take the following actions:
 3. Refer to the provided information and your current thought, decide the next turn's action you should take as {name}.
   - While considering the possibility that someone may be mid-sentence, decide whether to interrupt and respond immediately to this turn's statement or listen to its completion.
 4. Select the purpose of the action you have chosen.
-5. Based on the debate information, output the currently most supported answer to the question.
+5. Taking the debate information into account, prease provide the currently your most supported answer choice for the question.
 - If the anticipated continuation of statement may resolve your concern, choose listen. 
-
 # Constraints for Interruption
 - You shouldn't interrupt if the current speaker has only stated their stance but has not yet provided the reason or evidence.
 - You should interrupt if you discover a factual error in the logical progression of this turn's statement, when you can make a impactful statement that will lead to the correct answer, or when there is little time remaining and continuing would lead to an error.
