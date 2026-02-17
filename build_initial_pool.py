@@ -60,7 +60,7 @@ Follow the instructions strictly and return only valid JSON that matches the pro
 # Output format
 Return strictly a JSON object only.
 {{
-    "reason": "Detailed reasoning for your choice (within 150 words).",
+    "reason": "Detailed reasoning for your choice (within 100 words).",
     "answer": "one of 'A', 'B', 'C', or 'D'"
 }}"""
     }
@@ -186,7 +186,7 @@ def main():
     # Model
     parser.add_argument("--model_path", type=str, required=True, help="Path to gguf model")
     parser.add_argument("--n_gpu_layers", type=int, default=-1)
-    parser.add_argument("--n_ctx", type=int, default=1000)
+    parser.add_argument("--n_ctx", type=int, default=2048)
 
     args = parser.parse_args()
 
