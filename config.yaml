@@ -34,7 +34,7 @@ agents:
 # ---- Adversary 設定 ----
 # ベースラインに合わせ、敵対者は固定の誤答ラベルを選び続けて他者を説得する。
 adversary:
-  enabled: false        # 敵対者を有効化（比較実験時は true / ベースラインなしは false）
+  enabled: true        # 敵対者を有効化（比較実験時は true / ベースラインなしは false）
   agent_names: ["Alex"]    # どのエージェントを敵対者にするか（複数指定可: ["Alex", "Chris"]）
   target_strategy: "random_wrong"  # "random_wrong" | "fixed"
   fixed_label: "D"         # target_strategy: fixed のときのみ使用（A/B/C/D）

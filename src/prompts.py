@@ -238,7 +238,7 @@ You are debating to arrive at the correct answer to the question. Based on the d
 
 # Instructions
 1. Based on the debate so far and the utterance of this turn, briefly explain your current internal thoughts such as your perspective on the responses to the questions, your action plan for the remaining turns, your reaction.
-2. Based on the debate information, output the currently most supported answer to the question.
+2. Based on the debate information, output the answer to the question that you currently support the most.
 - Provide your response in the following output format.
 
 # Output format
