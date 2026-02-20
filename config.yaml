@@ -17,7 +17,7 @@ discussion:
   max_turns: 50
   public_token_budget: 500   # 公開発言トークン上限
   min_consecutive_chunks: 2    # 割り込み前に保証する連続文数
-  enable_interruption: true # true: 割り込みあり(既存), false: 割り込みなし(動的順序だが発話完了を待つ)
+  enable_interruption: false # true: 割り込みあり(既存), false: 割り込みなし(動的順序だが発話完了を待つ)
   early_stop:
     enabled: false
     require_consecutive: 1
@@ -38,6 +38,6 @@ agents:
 # ---- Adversary 設定 ----
 adversary:
   enabled: true
-  agent_names: ["Alex", "Chris"]    # 複数設定可能: ["Alex", "Chris"]
+  agent_names: ["Alex"]    # 複数設定可能: ["Alex", "Chris"]
   target_strategy: "random_wrong"  # "random_wrong" | "fixed"
   fixed_label: "D"         # target_strategy: fixed のときのみ使用
