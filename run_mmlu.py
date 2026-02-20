@@ -101,6 +101,12 @@ def main() -> None:
         default=500,
         help="Number of questions to sample (default: 50, use -1 for all)",
     )
+    parser.add_argument(
+        "--order",
+        choices=["sequential", "random"],
+        default="sequential",
+        help="Question order (default: sequential)",
+    )
     args = parser.parse_args()
 
     # 修正: ここで乱数シードを固定し、以降はグローバルの random を使い回す
@@ -142,12 +148,14 @@ def main() -> None:
 
     # 使用する問題数を決定
     if adv_enabled and pool_by_index:
+        # dict は挿入順を保持するため、initial_pool.jsonl の先頭から順に処理できる
         candidate_indices = list(pool_by_index.keys())
         if args.num < 0:
             total = len(candidate_indices)
         else:
             total = min(args.num, len(candidate_indices))
-        random.shuffle(candidate_indices)
+        if args.order == "random":
+            random.shuffle(candidate_indices)
         selected = candidate_indices[:total]
     else:
         if adv_enabled and not pool_by_index:
@@ -157,10 +165,10 @@ def main() -> None:
         else:
             total = min(args.num, total_available)
 
-        # ランダムにシャッフルして total 問を抽出
         indices = list(range(total_available))
-        # 修正: グローバルの random.shuffle を使用
-        random.shuffle(indices)
+        if args.order == "random":
+            # 修正: グローバルの random.shuffle を使用
+            random.shuffle(indices)
         selected = indices[:total]
 
     correct = 0
@@ -284,7 +292,8 @@ def main() -> None:
                 "total": total,
                 "accuracy": accuracy,
                 "seed": SEED,
-                "sampled": True,
+                "sampled": args.order == "random",
+                "order": args.order,
             },
             ensure_ascii=False,
         )
