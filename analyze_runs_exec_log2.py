@@ -876,7 +876,8 @@ def analyze_interrupt_effects(
     戻り値:
       {
         "total_interrupts": int,
-        "evaluated": int,              # gold と最終回答が両方あるもの
+        "evaluated": int,              # 話者以外に改善/改悪の判定対象がいるもの
+        "ineligible": int,             # 判定対象不在で除外したもの
         "improved": int,              # 割り込み後〜区間終端で誰かが正答化
         "worsened": int,              # 割り込み後〜区間終端で誰かが誤答化
         "unchanged": int,
@@ -912,6 +913,7 @@ def analyze_interrupt_effects(
     interrupt_count_wrong = 0
     interrupt_token_correct: Counter = Counter()
     interrupt_token_wrong: Counter = Counter()
+    ineligible = 0
 
     for pid in pids:
         pdata = problems.get(pid)
@@ -977,6 +979,24 @@ def analyze_interrupt_effects(
                 else:
                     interrupt_count_wrong += 1
                     interrupt_token_wrong[tok_for_count] += 1
+
+            # 話者以外に「改善/改悪の判定対象」がいないケースは除外する。
+            has_eligible_target = False
+            for ag in agent_names:
+                if ag == speaker:
+                    continue
+                cb = is_correct(answers_before.get(ag))
+                if cb is None:
+                    continue
+                if speaker_before_correct and cb is False:
+                    has_eligible_target = True
+                    break
+                if (speaker_before_correct is False) and cb is True:
+                    has_eligible_target = True
+                    break
+            if not has_eligible_target:
+                ineligible += 1
+                continue
 
             def evaluate_outcome(after_map: Dict[str, Any]) -> Tuple[str, bool, bool]:
                 improved_flag = False
@@ -1110,6 +1130,7 @@ def analyze_interrupt_effects(
     return {
         "total_interrupts": total,
         "evaluated": primary_stats["evaluated"],
+        "ineligible": ineligible,
         "improved": primary_stats["improved"],
         "worsened": primary_stats["worsened"],
         "unchanged": primary_stats["unchanged"],
@@ -1167,6 +1188,7 @@ def analyze_speak_effects(
     """
     details: List[Dict[str, Any]] = []
     total = evaluated = improved = worsened = unchanged = 0
+    ineligible = 0
     unchanged_correct_to_correct = 0
     unchanged_wrong_to_wrong = 0
 
@@ -1225,6 +1247,24 @@ def analyze_speak_effects(
                 return ans == gold if isinstance(ans, str) else None
 
             speaker_before_correct = is_correct(answers_before.get(speaker)) is True
+            # 話者以外に「改善/改悪の判定対象」がいないケースは除外する。
+            has_eligible_target = False
+            for ag in agent_names:
+                if ag == speaker:
+                    continue
+                cb = is_correct(answers_before.get(ag))
+                if cb is None:
+                    continue
+                if speaker_before_correct and cb is False:
+                    has_eligible_target = True
+                    break
+                if (speaker_before_correct is False) and cb is True:
+                    has_eligible_target = True
+                    break
+            if not has_eligible_target:
+                ineligible += 1
+                continue
+
             improved_flag = False
             worsened_flag = False
             for ag in agent_names:
@@ -1279,6 +1319,7 @@ def analyze_speak_effects(
     return {
         "total_speak": total,
         "evaluated": evaluated,
+        "ineligible": ineligible,
         "improved": improved,
         "worsened": worsened,
         "unchanged": unchanged,
